@@ -1,4 +1,5 @@
 createUnetModel2D <- function( inputImageSize, 
+                               numberOfClassificationLabels = 1,
                                layers = 1:4, 
                                lowestResolution = 32, 
                                kernelSize = c( 3, 3 ), 
@@ -48,9 +49,11 @@ for( i in 2:length( layers ) )
     axis = 3
     )
 
-  outputs %>%
+  outputs <- outputs %>%
     layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same'  )  
   }
+outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
+  
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
 unetModel %>% compile( loss = 'categorical_crossentropy',
   optimizer = optimizer_adam( lr = 0.00001 , decay = 1e-6 ),  

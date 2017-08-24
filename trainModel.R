@@ -1,7 +1,7 @@
 library( ANTsR )
 library( keras )
 
-baseDirectory <- '/Users/ntustison/Desktop/UNet/'
+baseDirectory <- '/Users/ntustison/Data/UNet/'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingData/' )
 testingDirectory <- paste0( dataDirectory, 'TestingData/' )
@@ -26,7 +26,6 @@ for ( i in 1:length( trainingImageFiles ) )
   }
 
 unetModel <- createUnetModel2D( dim( trainingImageArrays[[1]] )  )
-
 
   # track <- unetModel %>% fit( X_train, Y_train, epochs = 150, batch_size = 10,
   #              callbacks = callback_early_stopping(patience = 2, monitor = 'acc'),
