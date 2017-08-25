@@ -1,6 +1,7 @@
 library( ANTsR )
 library( keras )
 library( abind )
+library( ggplot2 )
 
 baseDirectory <- '/Users/ntustison/Data/UNet/'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
@@ -42,4 +43,37 @@ track <- unetModel %>% fit( X_train, Y_train,
                  epochs = 150, batch_size = 10,
                  callbacks = callback_early_stopping(patience = 2, monitor = 'acc'),
                  validation_split = 0.3 )
+
+
+## Plot the model fitting
+
+epochs <- 1:length( track$metrics$loss )
+
+unetModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
+                                  Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
+                                  Loss =c( track$metrics$loss, track$metrics$val_loss ), 
+                                  Accuracy = c( track$metrics$acc, track$metrics$val_acc )
+                                )
+
+unetModelLossPlot <- ggplot( data = unetModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
+                 geom_point( shape = 1, size = 0.5 ) +
+                 geom_line( size = 0.3 ) +
+                 ggtitle( "Loss")
+                
+
+unetModelAccuracyPlot <- ggplot( data = unetModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
+                 geom_point( shape = 1, size = 0.5 ) +
+                 geom_line( size = 0.3 ) +
+                 ggtitle( "Accuracy")
+
+ggsave( "unetModelLossPlot.pdf", plot = unetModelLossPlot, width = 5, height = 2, units = 'in' )
+ggsave( "unetModelAccuracyPlot.pdf", plot = unetModelAccuracyPlot, width = 5, height = 2, units = 'in' )
+
+
+
+
+
+
+
+
 
