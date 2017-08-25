@@ -13,7 +13,7 @@ if ( ! usePkg( "keras" ) )
   stop( "Please install the keras package." )
   }
 
-inputs <- layer_input( shape = c( inputImageSize, 1 ) )
+inputs <- layer_input( shape = c( inputImageSize, numberOfClassificationLabels + 1 ) )
 
 # Encoding path  
 
