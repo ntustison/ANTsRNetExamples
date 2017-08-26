@@ -12,7 +12,7 @@ source( paste0( baseDirectory, 'createUnetModel.R' ) )
 numberOfLabels <- 2
 
 trainingImageFiles <- list.files( path = trainingDirectory, pattern = "H1_2D", full.names = TRUE )
-trainingMaskFiles <- list.files( path = trainingDirectory, pattern = "BinaryMask_2D", full.names = TRUE )
+trainingMaskFiles <- list.files( path = trainingDirectory, pattern = "Mask_2D", full.names = TRUE )
 
 trainingImages <- list()
 trainingMasks <- list()
@@ -26,6 +26,7 @@ for ( i in 1:length( trainingImageFiles ) )
 
   trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
   trainingMaskArrays[[i]] <- as.array( trainingMasks[[i]] )  
+  trainingMaskArrays[[i]][which( trainingMaskArrays[[i]] > 1 )] <- 1
   }
 
 trainingData <- abind( trainingImageArrays, along = 3 )  

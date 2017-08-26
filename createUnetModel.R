@@ -1,10 +1,14 @@
 loss_dice_coefficient_error <- function( y_true, y_pred )
 {
+  smoothingFactor <- 1
+
   K <- backend()  
   y_true_f <- K$flatten( y_true )
   y_pred_f <- K$flatten( y_pred )
-  intersection <- K$sum( y_true_f * y_pred_f )
-  return ( -( 2 * intersection ) / ( K$sum( y_true_f ) + K$sum( y_pred_f ) ) )
+  intersection <- K$sum( y_true_f * y_pred_f ) 
+  dice <- ( -2.0 * intersection + smoothingFactor ) /
+    ( K$sum( y_true_f ) + K$sum( y_pred_f ) + smoothingFactor )
+  return( dice )
 }
 attr( loss_dice_coefficient_error, "py_function_name" ) <- "dice_coefficient_error"
 

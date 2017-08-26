@@ -5,11 +5,11 @@ library( ggplot2 )
 
 baseDirectory <- '/Users/ntustison/Data/UNet/'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
-testingDirectory <- paste0( dataDirectory, 'TestingData/' )
+testingDirectory <- paste0( dataDirectory, 'TrainingData/' )
 predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
 
 testingImageFiles <- list.files( path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
-testingMaskFiles <- list.files( path = testingDirectory, pattern = "BinaryMask_2D", full.names = TRUE )
+testingMaskFiles <- list.files( path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
 
 testingImages <- list()
 testingMasks <- list()
@@ -23,6 +23,7 @@ for ( i in 1:length( testingImageFiles ) )
 
   testingImageArrays[[i]] <- as.array( testingImages[[i]] )
   testingMaskArrays[[i]] <- as.array( testingMasks[[i]] )  
+  testingMaskArrays[[i]][which( testingMaskArrays[[i]] > 1 )] <- 1
   }
 
 testingData <- abind( testingImageArrays, along = 3 )  
