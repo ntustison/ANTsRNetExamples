@@ -9,8 +9,10 @@ trainingDirectory <- paste0( dataDirectory, 'TrainingData/' )
 
 source( paste0( baseDirectory, 'createUnetModel.R' ) )
 
+numberOfLabels <- 2
+
 trainingImageFiles <- list.files( path = trainingDirectory, pattern = "H1_2D", full.names = TRUE )
-trainingMaskFiles <- list.files( path = trainingDirectory, pattern = "Mask_2D", full.names = TRUE )
+trainingMaskFiles <- list.files( path = trainingDirectory, pattern = "BinaryMask_2D", full.names = TRUE )
 
 trainingImages <- list()
 trainingMasks <- list()
@@ -32,22 +34,23 @@ trainingData <- aperm( trainingData, c( 3, 1, 2 ) )
 trainingLabelData <- abind( trainingMaskArrays, along = 3 )  
 trainingLabelData <- aperm( trainingLabelData, c( 3, 1, 2 ) )
 
-numberOfLabels <- 3 
-
-X_train <- array( trainingData, dim = c( dim( trainingData ), numberOfLabels+1 ) )
+X_train <- array( trainingData, dim = c( dim( trainingData ), numberOfLabels ) )
 Y_train <- array( to_categorical( trainingLabelData ), dim = c( dim( trainingData ), numberOfLabels ) )
 
-unetModel <- createUnetModel2D( dim( trainingImageArrays[[1]] ), numberOfLabels )
+unetModel <- createUnetModel2D( dim( trainingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:3 )
 track <- unetModel %>% fit( X_train, Y_train,
                  epochs = 150, batch_size = 10,
-                 callbacks = callback_early_stopping(patience = 2, monitor = 'acc'),
-                 validation_split = 0.3 )
+                 callbacks = list( 
+                   callback_early_stopping(patience = 2, monitor = 'acc' ),
+                   callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
+                 ), 
+                 validation_split = 0.2 )
 
 ## Save the model
 
-save_model_hdf5( unetModel, filepath = paste0( baseDirectory, 'unetModel.h5' ), overwrite = FALSE )
-# unetModel <- load_model_hdf5( paste0( baseDirectory, 'unetModel.h5' ) )
+save_model_weights_hdf5( unetModel, filepath = paste0( baseDirectory, 'unetModelWeights.h5' ) )
 
+save_model_hdf5( unetModel, filepath = paste0( baseDirectory, 'unetModel.h5' ), overwrite = TRUE )
 
 ## Plot the model fitting
 

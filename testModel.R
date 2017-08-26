@@ -9,7 +9,7 @@ testingDirectory <- paste0( dataDirectory, 'TestingData/' )
 predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
 
 testingImageFiles <- list.files( path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
-testingMaskFiles <- list.files( path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
+testingMaskFiles <- list.files( path = testingDirectory, pattern = "BinaryMask_2D", full.names = TRUE )
 
 testingImages <- list()
 testingMasks <- list()
@@ -31,12 +31,13 @@ testingData <- aperm( testingData, c( 3, 1, 2 ) )
 testingLabelData <- abind( testingMaskArrays, along = 3 )  
 testingLabelData <- aperm( testingLabelData, c( 3, 1, 2 ) )
 
-numberOfLabels <- 3 
+numberOfLabels <- 2
 
-X_test <- array( testingData, dim = c( dim( testingData ), numberOfLabels + 1 ) )
+X_test <- array( testingData, dim = c( dim( testingData ), numberOfLabels ) )
 Y_test <- array( to_categorical( testingLabelData ), dim = c( dim( testingData ), numberOfLabels ) )
 
-unetModelTest <- load_model_hdf5( paste0( baseDirectory, 'unetModel.h5' ) )
+unetModelTest <- createUnetModel2D( dim( testingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:3 )
+load_model_weights_hdf5( unetModelTest, filepath = paste0( baseDirectory, 'unetModelWeights.h5' ) )
 
 testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
 

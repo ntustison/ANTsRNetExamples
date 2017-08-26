@@ -1,3 +1,13 @@
+loss_dice_coefficient_error <- function( y_true, y_pred )
+{
+  K <- backend()  
+  y_true_f <- K$flatten( y_true )
+  y_pred_f <- K$flatten( y_pred )
+  intersection <- K$sum( y_true_f * y_pred_f )
+  return ( -( 2 * intersection ) / ( K$sum( y_true_f ) + K$sum( y_pred_f ) ) )
+}
+attr( loss_dice_coefficient_error, "py_function_name" ) <- "dice_coefficient_error"
+
 createUnetModel2D <- function( inputImageSize, 
                                numberOfClassificationLabels = 1,
                                layers = 1:4, 
@@ -13,7 +23,7 @@ if ( ! usePkg( "keras" ) )
   stop( "Please install the keras package." )
   }
 
-inputs <- layer_input( shape = c( inputImageSize, numberOfClassificationLabels + 1 ) )
+inputs <- layer_input( shape = c( inputImageSize, numberOfClassificationLabels ) )
 
 # Encoding path  
 
@@ -55,7 +65,7 @@ for( i in 2:length( layers ) )
 outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
   
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
-unetModel %>% compile( loss = 'categorical_crossentropy',
+unetModel %>% compile( loss = loss_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.00001 , decay = 1e-6 ),  
   metrics = c( 'accuracy' ) )
 
