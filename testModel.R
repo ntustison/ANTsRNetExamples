@@ -37,7 +37,7 @@ numberOfLabels <- 2
 X_test <- array( testingData, dim = c( dim( testingData ), numberOfLabels ) )
 Y_test <- array( to_categorical( testingLabelData ), dim = c( dim( testingData ), numberOfLabels ) )
 
-unetModelTest <- createUnetModel2D( dim( testingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:3 )
+unetModelTest <- createUnetModel2D( dim( testingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:5 )
 load_model_weights_hdf5( unetModelTest, filepath = paste0( baseDirectory, 'unetModelWeights.h5' ) )
 
 testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )

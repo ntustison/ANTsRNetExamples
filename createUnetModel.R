@@ -56,14 +56,18 @@ outputs <- encodingConvolutionLayers[[length( layers )]]
 for( i in 2:length( layers ) )
   {
   numberOfFilters <- lowestResolution * 2 ^ ( length( layers ) - layers[i] )    
+  
+  # Note that the kernel size is different for the transpose layer
+
   outputs <- layer_concatenate( list( outputs %>%  
     layer_conv_2d_transpose( filters = numberOfFilters, 
-      kernel_size = kernelSize, strides = strides, activation = 'relu', padding = 'same' ),
+      kernel_size = strides, strides = strides, padding = 'same' ),
     encodingConvolutionLayers[[length( layers ) - i + 1]] ),
     axis = 3
     )
 
   outputs <- outputs %>%
+    layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same'  )  %>%
     layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same'  )  
   }
 outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )

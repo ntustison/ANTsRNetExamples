@@ -38,7 +38,7 @@ trainingLabelData <- aperm( trainingLabelData, c( 3, 1, 2 ) )
 X_train <- array( trainingData, dim = c( dim( trainingData ), numberOfLabels ) )
 Y_train <- array( to_categorical( trainingLabelData ), dim = c( dim( trainingData ), numberOfLabels ) )
 
-unetModel <- createUnetModel2D( dim( trainingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:3 )
+unetModel <- createUnetModel2D( dim( trainingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:5 )
 track <- unetModel %>% fit( X_train, Y_train,
                  epochs = 150, batch_size = 10,
                  callbacks = list( 
