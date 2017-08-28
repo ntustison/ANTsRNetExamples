@@ -1,4 +1,5 @@
-loss_dice_coefficient_error <- function( y_true, y_pred )
+
+dice_coefficient <- function( y_true, y_pred )
 {
   smoothingFactor <- 1
 
@@ -6,9 +7,14 @@ loss_dice_coefficient_error <- function( y_true, y_pred )
   y_true_f <- K$flatten( y_true )
   y_pred_f <- K$flatten( y_pred )
   intersection <- K$sum( y_true_f * y_pred_f ) 
-  dice <- ( -2.0 * intersection + smoothingFactor ) /
-    ( K$sum( y_true_f ) + K$sum( y_pred_f ) + smoothingFactor )
-  return( dice )
+  return( ( 2.0 * intersection + smoothingFactor ) /
+    ( K$sum( y_true_f ) + K$sum( y_pred_f ) + smoothingFactor ) )
+}
+attr( dice_coefficient, "py_function_name" ) <- "dice_coefficient"
+
+loss_dice_coefficient_error <- function( y_true, y_pred )
+{
+  return( -dice_coefficient( y_true, y_pred ) )
 }
 attr( loss_dice_coefficient_error, "py_function_name" ) <- "dice_coefficient_error"
 
@@ -75,7 +81,7 @@ outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, ke
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
 unetModel %>% compile( loss = loss_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.00001 , decay = 1e-6 ),  
-  metrics = c( 'accuracy' ) )
+  metrics = c( dice_coefficient, 'accuracy' ) )
 
 return( unetModel )
 }
