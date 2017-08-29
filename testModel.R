@@ -3,7 +3,7 @@ library( keras )
 library( abind )
 library( ggplot2 )
 
-baseDirectory <- '/Users/ntustison/Data/UNet/'
+baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
 testingDirectory <- paste0( dataDirectory, 'TestingData/' )
 predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )

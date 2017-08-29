@@ -3,7 +3,7 @@ library( keras )
 library( abind )
 library( ggplot2 )
 
-baseDirectory <- '/Users/ntustison/Data/UNet/'
+baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingData/' )
 
@@ -41,10 +41,10 @@ Y_train <- array( trainingLabelData, dim = c( dim( trainingData ), numberOfLabel
 
 unetModel <- createUnetModel2D( dim( trainingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
 track <- unetModel %>% fit( X_train, Y_train, 
-                 epochs = 50, batch_size = 32, verbose = 1, shuffle = TRUE,
+                 epochs = 100, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( "weights.h5", monitor = 'val_loss', save_best_only = TRUE ),
-                  #  callback_early_stopping( patience = 2, monitor = 'acc' ),
+                   callback_model_checkpoint( paste0( baseDirectory, "weights.h5" ), monitor = 'val_loss', save_best_only = TRUE ),
+                 #  callback_early_stopping( patience = 2, monitor = 'loss' ),
                    callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
                  ), 
                  validation_split = 0.2 )
@@ -74,8 +74,8 @@ unetModelAccuracyPlot <- ggplot( data = unetModelDataFrame, aes( x = Epoch, y = 
                  geom_line( size = 0.3 ) +
                  ggtitle( "Accuracy")
 
-ggsave( "unetModelLossPlot.pdf", plot = unetModelLossPlot, width = 5, height = 2, units = 'in' )
-ggsave( "unetModelAccuracyPlot.pdf", plot = unetModelAccuracyPlot, width = 5, height = 2, units = 'in' )
+ggsave( paste0( baseDirectory, "unetModelLossPlot.pdf" ), plot = unetModelLossPlot, width = 5, height = 2, units = 'in' )
+ggsave( paste0( baseDirectory, "unetModelAccuracyPlot.pdf" ), plot = unetModelAccuracyPlot, width = 5, height = 2, units = 'in' )
 
 
 

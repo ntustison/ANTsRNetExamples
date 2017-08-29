@@ -63,9 +63,6 @@ outputs <- encodingConvolutionLayers[[length( layers )]]
 for( i in 2:length( layers ) )
   {
   numberOfFilters <- lowestResolution * 2 ^ ( length( layers ) - layers[i] )    
-  
-  # Note that the kernel size is different for the transpose layer
-
   outputs <- layer_concatenate( list( outputs %>%  
     layer_conv_2d_transpose( filters = numberOfFilters, 
       kernel_size = deconvolutionKernelSize, strides = strides, padding = 'same' ),
