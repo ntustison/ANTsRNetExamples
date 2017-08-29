@@ -22,7 +22,8 @@ createUnetModel2D <- function( inputImageSize,
                                numberOfClassificationLabels = 1,
                                layers = 1:4, 
                                lowestResolution = 32, 
-                               kernelSize = c( 3, 3 ), 
+                               convolutionKernelSize = c( 3, 3 ), 
+                               deconvolutionKernelSize = c( 2, 2 ), 
                                poolSize = c( 2, 2 ), 
                                strides = c( 2, 2 )
                              )
@@ -44,11 +45,11 @@ for( i in 1:length( layers ) )
 
   if( i == 1 )
     {
-    conv <- inputs %>% layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same' )
+    conv <- inputs %>% layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     } else {
-    conv <- pool %>% layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same' )
+    conv <- pool %>% layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     }
-  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same' )
+  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
   
   if( i < length( layers ) )
     {
@@ -67,22 +68,23 @@ for( i in 2:length( layers ) )
 
   outputs <- layer_concatenate( list( outputs %>%  
     layer_conv_2d_transpose( filters = numberOfFilters, 
-      kernel_size = strides, strides = strides, padding = 'same' ),
+      kernel_size = deconvolutionKernelSize, strides = strides, padding = 'same' ),
     encodingConvolutionLayers[[length( layers ) - i + 1]] ),
     axis = 3
     )
 
   outputs <- outputs %>%
-    layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same'  )  %>%
-    layer_conv_2d( filters = numberOfFilters, kernel_size = kernelSize, activation = 'relu', padding = 'same'  )  
+    layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
+    layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
   }
-outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
+outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'sigmoid' )
   
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
 unetModel %>% compile( loss = loss_dice_coefficient_error,
-  optimizer = optimizer_adam( lr = 0.00001 , decay = 1e-6 ),  
-  metrics = c( dice_coefficient, 'accuracy' ) )
+  optimizer = optimizer_adam( lr = 0.0001 ),  
+  metrics = c( dice_coefficient ) )
 
 return( unetModel )
 }
 
+  

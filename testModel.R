@@ -5,8 +5,10 @@ library( ggplot2 )
 
 baseDirectory <- '/Users/ntustison/Data/UNet/'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
-testingDirectory <- paste0( dataDirectory, 'TrainingData/' )
+testingDirectory <- paste0( dataDirectory, 'TestingData/' )
 predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
+dir.create( predictedDirectory )
+
 
 testingImageFiles <- list.files( path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
 testingMaskFiles <- list.files( path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
@@ -28,16 +30,17 @@ for ( i in 1:length( testingImageFiles ) )
 
 testingData <- abind( testingImageArrays, along = 3 )  
 testingData <- aperm( testingData, c( 3, 1, 2 ) )
+testingData <- ( testingData - mean( testingData ) ) / sd( testingData )
 
 testingLabelData <- abind( testingMaskArrays, along = 3 )  
 testingLabelData <- aperm( testingLabelData, c( 3, 1, 2 ) )
 
-numberOfLabels <- 2
+numberOfLabels <- 1
 
 X_test <- array( testingData, dim = c( dim( testingData ), numberOfLabels ) )
-Y_test <- array( to_categorical( testingLabelData ), dim = c( dim( testingData ), numberOfLabels ) )
+Y_test <- array( testingLabelData, dim = c( dim( testingData ), numberOfLabels ) )
 
-unetModelTest <- createUnetModel2D( dim( testingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:5 )
+unetModelTest <- createUnetModel2D( dim( testingImageArrays[[1]] ), numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
 load_model_weights_hdf5( unetModelTest, filepath = paste0( baseDirectory, 'unetModelWeights.h5' ) )
 
 testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
