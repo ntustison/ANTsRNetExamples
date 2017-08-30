@@ -9,8 +9,6 @@ trainingDirectory <- paste0( dataDirectory, 'TrainingData/' )
 
 source( paste0( baseDirectory, 'createUnetModel.R' ) )
 
-numberOfLabels <- 1
-
 trainingImageFiles <- list.files( path = trainingDirectory, pattern = "H1_2D", full.names = TRUE )
 trainingMaskFiles <- list.files( path = trainingDirectory, pattern = "Mask_2D", full.names = TRUE )
 
@@ -26,32 +24,49 @@ for ( i in 1:length( trainingImageFiles ) )
 
   trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
   trainingMaskArrays[[i]] <- as.array( trainingMasks[[i]] )  
-  trainingMaskArrays[[i]][which( trainingMaskArrays[[i]] > 1 )] <- 1
   }
 
 trainingData <- abind( trainingImageArrays, along = 3 )  
 trainingData <- aperm( trainingData, c( 3, 1, 2 ) )
 trainingData <- ( trainingData - mean( trainingData ) ) / sd( trainingData )
 
+X_train <- array( trainingData, dim = c( dim( trainingData ), 1 ) )
+
 trainingLabelData <- abind( trainingMaskArrays, along = 3 )  
 trainingLabelData <- aperm( trainingLabelData, c( 3, 1, 2 ) )
 
-X_train <- array( trainingData, dim = c( dim( trainingData ), numberOfLabels ) )
-Y_train <- array( trainingLabelData, dim = c( dim( trainingData ), numberOfLabels ) )
+segmentationLabels <- sort( unique( as.vector( trainingLabelData ) ) )
+numberOfLabels <- length( segmentationLabels )
 
-unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
+# Different implementation of keras::to_categorical().  The ordering 
+# of the array elements seems to get screwed up.
+
+Y_train <- trainingLabelData
+Y_train[which( trainingLabelData == 0)] <- 1
+Y_train[which( trainingLabelData != 0)] <- 0
+
+for( i in 2:numberOfLabels )
+  {
+  Y_train_label <- trainingLabelData 
+  Y_train_label[which( trainingLabelData == segmentationLabels[i] )] <- 1
+  Y_train_label[which( trainingLabelData != segmentationLabels[i] )] <- 0
+
+  Y_train <- abind( Y_train, Y_train_label, along = 4 )
+  }
+
+unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:5 )
 track <- unetModel %>% fit( X_train, Y_train, 
-                 epochs = 100, batch_size = 32, verbose = 1, shuffle = TRUE,
+                 epochs = 50, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "weights.h5" ), monitor = 'val_loss', save_best_only = TRUE ),
+                   callback_model_checkpoint( paste0( baseDirectory, "weightsMultiLabel.h5" ), monitor = 'val_loss', save_best_only = TRUE )
                  #  callback_early_stopping( patience = 2, monitor = 'loss' ),
-                   callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
+                  #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
                  ), 
                  validation_split = 0.2 )
 ## Save the model
 
-save_model_weights_hdf5( unetModel, filepath = paste0( baseDirectory, 'unetModelWeights.h5' ) )
-save_model_hdf5( unetModel, filepath = paste0( baseDirectory, 'unetModel.h5' ), overwrite = TRUE )
+save_model_weights_hdf5( unetModel, filepath = paste0( baseDirectory, 'unetModelMultiLabelWeights.h5' ) )
+save_model_hdf5( unetModel, filepath = paste0( baseDirectory, 'unetModelMultiLabel.h5' ), overwrite = TRUE )
 
 ## Plot the model fitting
 

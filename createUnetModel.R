@@ -59,10 +59,11 @@ attr( loss_dice_coefficient_error, "py_function_name" ) <- "dice_coefficient_err
 #' 
 #'         https://github.com/joelthelion/ultrasound-nerve-segmentation       
 #'
-#' @param inputImageSize Specifies the input tensor shape.  It is assumed
-#' that the training/testing images all have the same size.
-#' @param numberOfClassificationLabels I think I have this wrong.  Need
-#' to check.  
+#' @param inputImageSize Used for specifying the input tensor shape.  The
+#' shape (or dimension) of that tensor is the image dimensions followed by
+#' the number of channels (e.g., red, green, and blue).  The batch size
+#' (i.e., number of training images) is not specified a priori. 
+#' @param numberOfClassificationLabels Number of segmentation labels.  
 #' @param layers a vector determining the number of 'filters' defined at
 #' for each layer.
 #' @param lowestResolution number of filters at the beginning and end of 
@@ -165,7 +166,7 @@ if ( ! usePkg( "keras" ) )
   stop( "Please install the keras package." )
   }
 
-inputs <- layer_input( shape = c( inputImageSize, numberOfClassificationLabels ) )
+inputs <- layer_input( shape = inputImageSize )
 
 # Encoding path  
 
@@ -205,12 +206,25 @@ for( i in 2:length( layers ) )
     layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
     layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
   }
-outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'sigmoid' )
+if( numberOfClassificationLabels == 1 )  
+  {
+  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'sigmoid' )
+  } else {
+  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
+  }
   
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
-unetModel %>% compile( loss = loss_dice_coefficient_error,
-  optimizer = optimizer_adam( lr = 0.0001 ),  
-  metrics = c( dice_coefficient ) )
+
+if( numberOfClassificationLabels == 1 )  
+  {
+  unetModel %>% compile( loss = loss_dice_coefficient_error,
+    optimizer = optimizer_adam( lr = 0.0001 ),  
+    metrics = c( dice_coefficient ) )
+  } else {
+  unetModel %>% compile( loss = 'categorical_crossentropy',
+    optimizer = optimizer_adam( lr = 5e-5 ),  
+    metrics = c( 'accuracy', 'categorical_crossentropy' ) )
+  }
 
 return( unetModel )
 }
@@ -232,10 +246,11 @@ return( unetModel )
 #' 
 #'         https://github.com/joelthelion/ultrasound-nerve-segmentation       
 #'
-#' @param inputImageSize Specifies the input tensor shape.  It is assumed
-#' that the training/testing images all have the same size.
-#' @param numberOfClassificationLabels I think I have this wrong.  Need
-#' to check.  
+#' @param inputImageSize Used for specifying the input tensor shape.  The
+#' shape (or dimension) of that tensor is the image dimensions followed by
+#' the number of channels (e.g., red, green, and blue).  The batch size
+#' (i.e., number of training images) is not specified a priori. 
+#' @param numberOfClassificationLabels Number of segmentation labels.  
 #' @param layers a vector determining the number of 'filters' defined at
 #' for each layer.
 #' @param lowestResolution number of filters at the beginning and end of 
@@ -378,13 +393,26 @@ for( i in 2:length( layers ) )
     layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
     layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
   }
-outputs <- outputs %>% layer_conv_3d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'sigmoid' )
-  
-unetModel <- keras_model( inputs = inputs, outputs = outputs )
-unetModel %>% compile( loss = loss_dice_coefficient_error,
-  optimizer = optimizer_adam( lr = 0.0001 ),  
-  metrics = c( dice_coefficient ) )
+if( numberOfClassificationLabels == 1 )  
+  {
+  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'sigmoid' )
+  } else {
+  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'softmax' )
+  }
 
+unetModel <- keras_model( inputs = inputs, outputs = outputs )
+
+if( numberOfClassificationLabels == 1 )  
+  {
+  unetModel %>% compile( loss = loss_dice_coefficient_error,
+    optimizer = optimizer_adam( lr = 0.0001 ),  
+    metrics = c( dice_coefficient ) )
+  } else {
+  unetModel %>% compile( loss = 'categorical_crossentropy',
+    optimizer = optimizer_adam( lr = 5e-5 ),  
+    metrics = c( 'accuracy', 'categorical_crossentropy' ) )
+  }
+  
 return( unetModel )
 }
   
