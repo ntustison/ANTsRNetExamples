@@ -31,29 +31,36 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   y_dims <- unlist( K$get_variable_shape( y_pred ) )
   numberOfLabels <- y_dims[length( y_dims )]
 
-  if( length( y_dims == 3 ) )
+  # Unlike native R, indexing starts at '0'.  However, we are 
+  # assuming the background is 0 so we skip index 0.
+
+  if( length( y_dims ) == 3 )
     {
-    y_true_label <- y_true[,,,0]  
-    y_pred_label <- y_pred[,,,0]  
+    # 2-D image  
+    y_true_label <- y_true[,,,1]  
+    y_pred_label <- y_pred[,,,1]  
     } else {
-    y_true_label <- y_true[,,,,0]  
-    y_pred_label <- y_pred[,,,,0]  
+    # 3-D image  
+    y_true_label <- y_true[,,,,1]  
+    y_pred_label <- y_pred[,,,,1]  
     }
+  
   y_true_label_f <- K$flatten( y_true_label )
   y_pred_label_f <- K$flatten( y_pred_label )
   numerator <- ( 2.0 * K$sum( y_true_label_f * y_pred_label_f ) )
   denominator <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
 
-  for( j in 2:numberOfLabels )  
+  while( j < numberOfLabels )  
     {
-    # 2-D image
-    if( length( y_dims == 3 ) )
+    if( length( y_dims ) == 3 )
       {
-      y_true_label <- y_true[,,,j-1]  
-      y_pred_label <- y_pred[,,,j-1]  
+      # 2-D image
+      y_true_label <- y_true[,,,j]  
+      y_pred_label <- y_pred[,,,j]  
       } else {
-      y_true_label <- y_true[,,,,j-1]  
-      y_pred_label <- y_pred[,,,,j-1]  
+      # 3-D image  
+      y_true_label <- y_true[,,,,j]  
+      y_pred_label <- y_pred[,,,,j]  
       }
     y_true_label_f <- K$flatten( y_true_label )
     y_pred_label_f <- K$flatten( y_pred_label )
@@ -62,8 +69,10 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
 
     numerator <- numerator + numeratorLabel
     denominator <- denominator + denominatorLabel
+
+    j <- j + 1
     }
-  return( ( 2.0 * numerator + smoothingFactor ) / ( denominator + smoothingFactor ) )
+  return( ( numerator + smoothingFactor ) / ( denominator + smoothingFactor ) )
 }
 attr( multilabel_dice_coefficient, "py_function_name" ) <- "multilabel_dice_coefficient"
 
