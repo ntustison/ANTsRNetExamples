@@ -1,5 +1,80 @@
+#' Model loss function for multilabel problems--- multilabel dice coefficient
+#'  
+#' Taken the keras loss function (losses.R):
+#' 
+#'    https://github.com/rstudio/keras/blob/master/R/losses.R
+#' 
+#' @param y_true True labels (Tensor) 
+#' @param y_pred Predictions (Tensor of the same shape as `y_true`)
+#' 
+#' @details Loss functions are to be supplied in the `loss` parameter of the 
+#' [compile()] function.
+#' 
+#' Loss functions can be specified either using the name of a built in loss
+#' function (e.g. 'loss = binary_crossentropy'), a reference to a built in loss
+#' function (e.g. 'loss = loss_binary_crossentropy()') or by passing an
+#' artitrary function that returns a scalar for each data-point and takes the
+#' following two arguments: 
+#' 
+#' - `y_true` True labels (Tensor) 
+#' - `y_pred` Predictions (Tensor of the same shape as `y_true`)
+#' 
+#' The actual optimized objective is the mean of the output array across all
+#' datapoints.
 
-#' Model loss function --- dice coefficient
+multilabel_dice_coefficient <- function( y_true, y_pred )
+{
+  smoothingFactor <- 1
+
+  K <- backend()  
+
+  y_dims <- unlist( K$get_variable_shape( y_pred ) )
+  numberOfLabels <- y_dims[length( y_dims )]
+
+  if( length( y_dims == 3 ) )
+    {
+    y_true_label <- y_true[,,,0]  
+    y_pred_label <- y_pred[,,,0]  
+    } else {
+    y_true_label <- y_true[,,,,0]  
+    y_pred_label <- y_pred[,,,,0]  
+    }
+  y_true_label_f <- K$flatten( y_true_label )
+  y_pred_label_f <- K$flatten( y_pred_label )
+  numerator <- ( 2.0 * K$sum( y_true_label_f * y_pred_label_f ) )
+  denominator <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
+
+  for( j in 2:numberOfLabels )  
+    {
+    # 2-D image
+    if( length( y_dims == 3 ) )
+      {
+      y_true_label <- y_true[,,,j-1]  
+      y_pred_label <- y_pred[,,,j-1]  
+      } else {
+      y_true_label <- y_true[,,,,j-1]  
+      y_pred_label <- y_pred[,,,,j-1]  
+      }
+    y_true_label_f <- K$flatten( y_true_label )
+    y_pred_label_f <- K$flatten( y_pred_label )
+    numeratorLabel <- K$sum( y_true_label_f * y_pred_label_f )
+    denominatorLabel <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
+
+    numerator <- numerator + numeratorLabel
+    denominator <- denominator + denominatorLabel
+    }
+  return( ( 2.0 * numerator + smoothingFactor ) / ( denominator + smoothingFactor ) )
+}
+attr( multilabel_dice_coefficient, "py_function_name" ) <- "multilabel_dice_coefficient"
+
+loss_multilabel_dice_coefficient_error <- function( y_true, y_pred )
+{
+  return( -multilabel_dice_coefficient( y_true, y_pred ) )
+}
+attr( loss_multilabel_dice_coefficient_error, "py_function_name" ) <- "multilabel_dice_coefficient_error"
+
+
+#' Model loss function for binary problems--- dice coefficient
 #'  
 #' Taken the keras loss function (losses.R):
 #' 
@@ -221,9 +296,12 @@ if( numberOfClassificationLabels == 1 )
     optimizer = optimizer_adam( lr = 0.0001 ),  
     metrics = c( dice_coefficient ) )
   } else {
-  unetModel %>% compile( loss = 'categorical_crossentropy',
-    optimizer = optimizer_adam( lr = 5e-5 ),  
-    metrics = c( 'accuracy', 'categorical_crossentropy' ) )
+  # unetModel %>% compile( loss = 'categorical_crossentropy',
+  #   optimizer = optimizer_adam( lr = 5e-5 ),  
+  #   metrics = c( 'accuracy', 'categorical_crossentropy' ) )
+  unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
+    optimizer = optimizer_adam( lr = 0.0001 ),  
+    metrics = c( multilabel_dice_coefficient ) )
   }
 
 return( unetModel )
@@ -412,7 +490,7 @@ if( numberOfClassificationLabels == 1 )
     optimizer = optimizer_adam( lr = 5e-5 ),  
     metrics = c( 'accuracy', 'categorical_crossentropy' ) )
   }
-  
+
 return( unetModel )
 }
   
