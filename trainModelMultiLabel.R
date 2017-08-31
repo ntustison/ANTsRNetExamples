@@ -24,7 +24,7 @@ for ( i in 1:length( trainingImageFiles ) )
 
   trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
   trainingMaskArrays[[i]] <- as.array( trainingMasks[[i]] )  
-  trainingMaskArrays[[i]][which( trainingMaskArrays[[i]] > 1 )] <- 1
+  # trainingMaskArrays[[i]][which( trainingMaskArrays[[i]] > 1 )] <- 1
   }
 
 trainingData <- abind( trainingImageArrays, along = 3 )  
@@ -38,6 +38,8 @@ trainingLabelData <- aperm( trainingLabelData, c( 3, 1, 2 ) )
 
 segmentationLabels <- sort( unique( as.vector( trainingLabelData ) ) )
 numberOfLabels <- length( segmentationLabels )
+
+cat( "Segmentation with ", numberOfLabels, " labels: ", segmentationLabels, ".\n", sep = "" )
 
 # Different implementation of keras::to_categorical().  The ordering 
 # of the array elements seems to get screwed up.
