@@ -24,7 +24,7 @@ for ( i in 1:length( trainingImageFiles ) )
 
   trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
   trainingMaskArrays[[i]] <- as.array( trainingMasks[[i]] )  
-  # trainingMaskArrays[[i]][which( trainingMaskArrays[[i]] > 1 )] <- 1
+  trainingMaskArrays[[i]][which( trainingMaskArrays[[i]] > 1 )] <- 1
   }
 
 trainingData <- abind( trainingImageArrays, along = 3 )  

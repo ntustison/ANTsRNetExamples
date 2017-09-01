@@ -50,29 +50,29 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   numerator <- ( 2.0 * K$sum( y_true_label_f * y_pred_label_f ) )
   denominator <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
 
-  j <- 3L
-  while( j <= numberOfLabels )  
-    {
-    if( length( y_dims ) == 3 )
-      {
-      # 2-D image
-      y_true_label <- y_true[,,,j-1]  
-      y_pred_label <- y_pred[,,,j-1]  
-      } else {
-      # 3-D image  
-      y_true_label <- y_true[,,,,j-1]  
-      y_pred_label <- y_pred[,,,,j-1]  
-      }
-    y_true_label_f <- K$flatten( y_true_label )
-    y_pred_label_f <- K$flatten( y_pred_label )
-    numeratorLabel <- K$sum( y_true_label_f * y_pred_label_f )
-    denominatorLabel <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
+  # j <- 3L
+  # while( j <= numberOfLabels )  
+  #   {
+  #   if( length( y_dims ) == 3 )
+  #     {
+  #     # 2-D image
+  #     y_true_label <- y_true[,,,j-1]  
+  #     y_pred_label <- y_pred[,,,j-1]  
+  #     } else {
+  #     # 3-D image  
+  #     y_true_label <- y_true[,,,,j-1]  
+  #     y_pred_label <- y_pred[,,,,j-1]  
+  #     }
+  #   y_true_label_f <- K$flatten( y_true_label )
+  #   y_pred_label_f <- K$flatten( y_pred_label )
+  #   numeratorLabel <- K$sum( y_true_label_f * y_pred_label_f )
+  #   denominatorLabel <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
 
-    numerator <- numerator + numeratorLabel
-    denominator <- denominator + denominatorLabel
+  #   numerator <- numerator + numeratorLabel
+  #   denominator <- denominator + denominatorLabel
 
-    j <- j + 1
-    }
+  #   j <- j + 1
+  #   }
   return( ( numerator + smoothingFactor ) / ( denominator + smoothingFactor ) )
 }
 attr( multilabel_dice_coefficient, "py_function_name" ) <- "multilabel_dice_coefficient"
