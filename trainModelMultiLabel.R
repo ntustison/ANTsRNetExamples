@@ -45,8 +45,8 @@ cat( "Segmentation with ", numberOfLabels, " labels: ", segmentationLabels, ".\n
 # of the array elements seems to get screwed up.
 
 Y_train <- trainingLabelData
-Y_train[which( trainingLabelData == 0)] <- 1
-Y_train[which( trainingLabelData != 0)] <- 0
+Y_train[which( trainingLabelData == 0 )] <- 1
+Y_train[which( trainingLabelData != 0 )] <- 0
 
 for( i in 2:numberOfLabels )
   {
@@ -78,7 +78,7 @@ epochs <- 1:length( track$metrics$loss )
 unetModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
                                   Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
                                   Loss =c( track$metrics$loss, track$metrics$val_loss ), 
-                                  Accuracy = c( track$metrics$dice_coefficient, track$metrics$val_dice_coefficient )
+                                  Accuracy = c( track$metrics$multilabel_dice_coefficient, track$metrics$val_multilabel_dice_coefficient )
                                 )
 
 unetModelLossPlot <- ggplot( data = unetModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +

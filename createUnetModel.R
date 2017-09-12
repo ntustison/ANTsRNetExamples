@@ -24,35 +24,38 @@
 
 multilabel_dice_coefficient <- function( y_true, y_pred )
 {
-  smoothingFactor <- 1
+  smoothingFactor <- 0
 
   K <- backend()  
 
   y_dims <- unlist( K$int_shape( y_pred ) )
   numberOfLabels <- y_dims[length( y_dims )]
+
   # Unlike native R, indexing starts at '0'.  However, we are 
   # assuming the background is 0 so we skip index 0.
 
   if( length( y_dims ) == 3 )
     {
-    # 2-D image  
-    y_true_label <- y_true[,,,1]  
-    y_pred_label <- y_pred[,,,1]  
+    # 2-D image
+    y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 3L, 0L, 1L, 2L ) ), indices = c( 1L ) )
+    y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) ), indices = c( 1L ) )
     } else {
     # 3-D image  
-    y_true_label <- y_true[,,,,1]  
-    y_pred_label <- y_pred[,,,,1]  
+    y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( 1L ) )
+    y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( 1L ) )
     }
   
   y_true_label_f <- K$flatten( y_true_label )
   y_pred_label_f <- K$flatten( y_pred_label )
-  numerator <- ( 2.0 * K$sum( y_true_label_f * y_pred_label_f ) )
-  denominator <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
+  intersection <-  y_true_label_f * y_pred_label_f
+  union <- y_true_label_f + y_pred_label_f - intersection
+
+  numerator <- K$sum( intersection )
+  denominator <- K$sum( union )
 
   j <- 2L
   while( j < numberOfLabels )  
     {
-    print( j )
     if( length( y_dims ) == 3 )
       {
       # 2-D image
@@ -60,20 +63,22 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
       y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) ), indices = c( j ) )
       } else {
       # 3-D image  
-      y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( j ) )                    
+      y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( j ) )
       y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( j ) )
       }
     y_true_label_f <- K$flatten( y_true_label )
     y_pred_label_f <- K$flatten( y_pred_label )
-    numeratorLabel <- K$sum( y_true_label_f * y_pred_label_f )
-    denominatorLabel <- K$sum( y_true_label_f ) + K$sum( y_pred_label_f )
+    intersection <-  y_true_label_f * y_pred_label_f
+    union <- y_true_label_f + y_pred_label_f - intersection
 
-    numerator <- numerator + numeratorLabel
-    denominator <- denominator + denominatorLabel
+    numerator <- numerator + K$sum( intersection )
+    denominator <- denominator + K$sum( union )
 
     j <- j + 1
     }
-  return( ( numerator + smoothingFactor ) / ( denominator + smoothingFactor ) )
+  unionOverlap <- numerator / denominator 
+
+  return ( ( 2.0 * unionOverlap + smoothingFactor ) / ( 1.0 + unionOverlap + smoothingFactor ) )
 }
 attr( multilabel_dice_coefficient, "py_function_name" ) <- "multilabel_dice_coefficient"
 

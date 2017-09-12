@@ -78,25 +78,25 @@ for( i in 1:numberOfTestingImages )
     }  
   }
 
-for( i in 1:1 )
-  {
-  imageArray <- X_train[i,,,1]  
-  image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
+# for( i in 1:1 )
+#   {
+#   imageArray <- X_train[i,,,1]  
+#   image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
 
-  imageFileName <- gsub( ".nii.gz", paste0( "_Recreated", j, ".nii.gz" ), trainingImageFiles[[i]] )
-  imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
+#   imageFileName <- gsub( ".nii.gz", paste0( "_Recreated", j, ".nii.gz" ), trainingImageFiles[[i]] )
+#   imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
 
-  antsImageWrite( image, imageFileName )
+#   antsImageWrite( image, imageFileName )
 
-  for( j in 1:numberOfLabels )
-    {
-    imageArray <- Y_train[i,,,j]  
-    image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
+#   for( j in 1:numberOfLabels )
+#     {
+#     imageArray <- Y_train[i,,,j]  
+#     image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
 
-    imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), trainingImageFiles[[i]] )
-    imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
+#     imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), trainingImageFiles[[i]] )
+#     imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
 
-    antsImageWrite( image, imageFileName ) 
-    }  
-  }
+#     antsImageWrite( image, imageFileName ) 
+#     }  
+#   }
 
