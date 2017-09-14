@@ -37,13 +37,15 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   if( length( y_dims ) == 3 )
     {
     # 2-D image
-    y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 3L, 0L, 1L, 2L ) ), indices = c( 1L ) )
-    y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) ), indices = c( 1L ) )
+    y_true_permuted <- K$permute_dimensions( y_true, pattern = c( 3L, 0L, 1L, 2L ) )
+    y_pred_permuted <- K$permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) )
     } else {
     # 3-D image  
-    y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( 1L ) )
-    y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( 1L ) )
+    y_true_permuted <- K$permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
+    y_pred_permuted <- K$permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
     }
+  y_true_label <- K$gather( y_true_permuted, indices = c( 1L ) )
+  y_pred_label <- K$gather( y_pred_permuted, indices = c( 1L ) )
   
   y_true_label_f <- K$flatten( y_true_label )
   y_pred_label_f <- K$flatten( y_pred_label )
@@ -53,19 +55,10 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   numerator <- K$sum( intersection )
   denominator <- K$sum( union )
 
-  j <- 2L
-  while( j < numberOfLabels )  
+  for( j in 2L:( numberOfLabels - 1L ) )
     {
-    if( length( y_dims ) == 3 )
-      {
-      # 2-D image
-      y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 3L, 0L, 1L, 2L ) ), indices = c( j ) )
-      y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) ), indices = c( j ) )
-      } else {
-      # 3-D image  
-      y_true_label <- K$gather( K$permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( j ) )
-      y_pred_label <- K$gather( K$permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) ), indices = c( j ) )
-      }
+    y_true_label <- K$gather( y_true_permuted, indices = c( j ) )
+    y_pred_label <- K$gather( y_pred_permuted, indices = c( j ) )
     y_true_label_f <- K$flatten( y_true_label )
     y_pred_label_f <- K$flatten( y_pred_label )
     intersection <-  y_true_label_f * y_pred_label_f
@@ -73,8 +66,6 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
 
     numerator <- numerator + K$sum( intersection )
     denominator <- denominator + K$sum( union )
-
-    j <- j + 1
     }
   unionOverlap <- numerator / denominator 
 
@@ -87,51 +78,6 @@ loss_multilabel_dice_coefficient_error <- function( y_true, y_pred )
   return( -multilabel_dice_coefficient( y_true, y_pred ) )
 }
 attr( loss_multilabel_dice_coefficient_error, "py_function_name" ) <- "multilabel_dice_coefficient_error"
-
-
-#' Model loss function for binary problems--- dice coefficient
-#'  
-#' Taken the keras loss function (losses.R):
-#' 
-#'    https://github.com/rstudio/keras/blob/master/R/losses.R
-#' 
-#' @param y_true True labels (Tensor) 
-#' @param y_pred Predictions (Tensor of the same shape as `y_true`)
-#' 
-#' @details Loss functions are to be supplied in the `loss` parameter of the 
-#' [compile()] function.
-#' 
-#' Loss functions can be specified either using the name of a built in loss
-#' function (e.g. 'loss = binary_crossentropy'), a reference to a built in loss
-#' function (e.g. 'loss = loss_binary_crossentropy()') or by passing an
-#' artitrary function that returns a scalar for each data-point and takes the
-#' following two arguments: 
-#' 
-#' - `y_true` True labels (Tensor) 
-#' - `y_pred` Predictions (Tensor of the same shape as `y_true`)
-#' 
-#' The actual optimized objective is the mean of the output array across all
-#' datapoints.
-
-dice_coefficient <- function( y_true, y_pred )
-{
-  smoothingFactor <- 1
-
-  K <- backend()  
-  y_true_f <- K$flatten( y_true )
-  y_pred_f <- K$flatten( y_pred )
-  intersection <- K$sum( y_true_f * y_pred_f ) 
-  return( ( 2.0 * intersection + smoothingFactor ) /
-    ( K$sum( y_true_f ) + K$sum( y_pred_f ) + smoothingFactor ) )
-}
-attr( dice_coefficient, "py_function_name" ) <- "dice_coefficient"
-
-loss_dice_coefficient_error <- function( y_true, y_pred )
-{
-  return( -dice_coefficient( y_true, y_pred ) )
-}
-attr( loss_dice_coefficient_error, "py_function_name" ) <- "dice_coefficient_error"
-
 
 #' 2-D image segmentation implementation of the U-net deep learning architecture.
 #'
