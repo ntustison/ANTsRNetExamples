@@ -55,7 +55,7 @@ for( i in 2:numberOfLabels )
   Y_test <- abind( Y_test, Y_test_label, along = 4 )
   }
 
-unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:5 )
+unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
 load_model_weights_hdf5( unetModelTest, filepath = paste0( baseDirectory, 'unetModelMultiLabelWeights.h5' ) )
 
 testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )

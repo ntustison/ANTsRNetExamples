@@ -5,7 +5,7 @@ library( ggplot2 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
-trainingDirectory <- paste0( dataDirectory, 'TrainingData/' )
+trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )
 
 source( paste0( baseDirectory, 'createUnetModel.R' ) )
 
@@ -17,10 +17,14 @@ trainingMasks <- list()
 trainingImageArrays <- list()
 trainingMaskArrays <- list()
 
-for ( i in 1:length( trainingImageFiles ) )
+trainingProportion <- 0.55
+set.seed( 1234 )
+trainingIndices <- sample.int( length( trainingMaskFiles ), size = length( trainingMaskFiles ) * trainingProportion )
+
+for ( i in 1:length( trainingIndices ) )
   {
-  trainingImages[[i]] <- antsImageRead( trainingImageFiles[i], dimension = 2 )    
-  trainingMasks[[i]] <- antsImageRead( trainingMaskFiles[i], dimension = 2 )    
+  trainingImages[[i]] <- antsImageRead( trainingImageFiles[trainingIndices[i]], dimension = 2 )    
+  trainingMasks[[i]] <- antsImageRead( trainingMaskFiles[trainingIndices[i]], dimension = 2 )    
 
   trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
   trainingMaskArrays[[i]] <- as.array( trainingMasks[[i]] )  
@@ -57,12 +61,12 @@ for( i in 2:numberOfLabels )
   Y_train <- abind( Y_train, Y_train_label, along = 4 )
   }
 
-unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:5 )
+unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
 track <- unetModel %>% fit( X_train, Y_train, 
-                 epochs = 50, batch_size = 32, verbose = 1, shuffle = TRUE,
+                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
                    callback_model_checkpoint( paste0( baseDirectory, "weightsMultiLabel.h5" ), monitor = 'val_loss', save_best_only = TRUE )
-                 #  callback_early_stopping( patience = 2, monitor = 'loss' ),
+                  # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
                  ), 
                  validation_split = 0.2 )

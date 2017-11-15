@@ -24,7 +24,7 @@
 
 multilabel_dice_coefficient <- function( y_true, y_pred )
 {
-  smoothingFactor <- 0
+  smoothingFactor <- 1.0
 
   K <- backend()  
 
@@ -55,18 +55,21 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   numerator <- K$sum( intersection )
   denominator <- K$sum( union )
 
-  for( j in 2L:( numberOfLabels - 1L ) )
+  if( numberOfLabels > 2 )
     {
-    y_true_label <- K$gather( y_true_permuted, indices = c( j ) )
-    y_pred_label <- K$gather( y_pred_permuted, indices = c( j ) )
-    y_true_label_f <- K$flatten( y_true_label )
-    y_pred_label_f <- K$flatten( y_pred_label )
-    intersection <-  y_true_label_f * y_pred_label_f
-    union <- y_true_label_f + y_pred_label_f - intersection
+    for( j in 2L:( numberOfLabels - 1L ) )
+      {
+      y_true_label <- K$gather( y_true_permuted, indices = c( j ) )
+      y_pred_label <- K$gather( y_pred_permuted, indices = c( j ) )
+      y_true_label_f <- K$flatten( y_true_label )
+      y_pred_label_f <- K$flatten( y_pred_label )
+      intersection <-  y_true_label_f * y_pred_label_f
+      union <- y_true_label_f + y_pred_label_f - intersection
 
-    numerator <- numerator + K$sum( intersection )
-    denominator <- denominator + K$sum( union )
-    }
+      numerator <- numerator + K$sum( intersection )
+      denominator <- denominator + K$sum( union )
+      }
+    }  
   unionOverlap <- numerator / denominator 
 
   return ( ( 2.0 * unionOverlap + smoothingFactor ) / ( 1.0 + unionOverlap + smoothingFactor ) )
