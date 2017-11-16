@@ -15,10 +15,8 @@ source( paste0( modelDirectory, 'createVggModel.R' ) )
 
 trainingImageFiles <- list.files( 
   path = trainingDirectory, pattern = "*.jpg", full.names = TRUE )
-trainingClassifications[grep( "dog", trainingImageFiles )] <- 1
 
-
-trainingProportion <- 0.1
+trainingProportion <- 0.05
 set.seed( 1234 )
 trainingIndices <- sample.int( 
   length( trainingImageFiles ), size = length( trainingImageFiles ) * trainingProportion )
