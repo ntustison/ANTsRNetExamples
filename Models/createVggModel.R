@@ -127,24 +127,23 @@ if( style != 19 && style != 16 )
   stop( "Incorrect style.  Must be either '16' or '19'." )
   }
  
-inputs <- layer_input( shape = inputImageSize )
+vggModel <- keras_model_sequential()
 
-weightLayers <- list()
 for( i in 1:length( layers ) )
   {
   numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )    
 
   if( i == 1 )
     {
-    weightLayers[[i]] <- inputs %>% layer_conv_2d( 
+    vggModel %>% layer_conv_2d( input_shape = inputImageSize,
       filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     } else if( i == 2 ) {
-    weightLayers[[i]] <- pool %>% layer_conv_2d( 
+    vggModel %>% layer_conv_2d( 
       filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     }  else {
     if( style == 16 )  
       {
-      weightLayers[[i]] <- pool %>%
+      vggModel %>%
         layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
                        activation = 'relu', padding = 'same' ) %>% 
         layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
@@ -152,7 +151,7 @@ for( i in 1:length( layers ) )
         layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
                        activation = 'relu', padding = 'same' )
       } else {  # style == 19
-      weightLayers[[i]] <- pool %>%
+      vggModel %>%
         layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
                        activation = 'relu', padding = 'same' ) %>% 
         layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
@@ -164,20 +163,17 @@ for( i in 1:length( layers ) )
       }  
     }
     
-  pool <- weightLayers[[i]] %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
+  vggModel %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
   }
 
-outputs <- weightLayers[[length( layers )]]
-outputs <- outputs %>% layer_flatten()
-outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
-outputs <- outputs %>% layer_dropout( rate = dropoutRate )
-outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
-outputs <- outputs %>% layer_dropout( rate = dropoutRate )
-outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+vggModel %>% layer_flatten()
+vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+vggModel %>% layer_dropout( rate = dropoutRate )
+vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+vggModel %>% layer_dropout( rate = dropoutRate )
+vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
   
-vggModel <- keras_model( inputs = inputs, outputs = outputs )
-
-vggModel %>% compile( loss = 'categorical_crossentropy',
+vggModel %>% compile( loss = 'categorical_crossentropy', nesterov = TRUE,
   optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6 ),  
   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
 
@@ -313,24 +309,23 @@ if( style != 19 && style != 16 )
   stop( "Incorrect style.  Must be either '16' or '19'." )
   }
  
-inputs <- layer_input( shape = inputImageSize )
+vggModel <- keras_model_sequential()
 
-weightLayers <- list()
 for( i in 1:length( layers ) )
   {
   numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )    
 
   if( i == 1 )
     {
-    weightLayers[[i]] <- inputs %>% layer_conv_3d( 
+    vggModel %>% layer_conv_3d( input_shape = inputImageSize,
       filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     } else if( i == 2 ) {
-    weightLayers[[i]] <- pool %>% layer_conv_3d( 
+    vggModel %>% layer_conv_3d( 
       filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     }  else {
     if( style == 16 )  
       {
-      weightLayers[[i]] <- pool %>%
+      vggModel %>%
         layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
                        activation = 'relu', padding = 'same' ) %>% 
         layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
@@ -338,7 +333,7 @@ for( i in 1:length( layers ) )
         layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
                        activation = 'relu', padding = 'same' )
       } else {  # style == 19
-      weightLayers[[i]] <- pool %>%
+      vggModel %>%
         layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
                        activation = 'relu', padding = 'same' ) %>% 
         layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
@@ -350,20 +345,17 @@ for( i in 1:length( layers ) )
       }  
     }
     
-  pool <- weightLayers[[i]] %>% layer_max_pooling_3d( pool_size = poolSize, strides = strides )
+  vggModel %>% layer_max_pooling_3d( pool_size = poolSize, strides = strides )
   }
 
-outputs <- weightLayers[[length( layers )]]
-outputs <- outputs %>% layer_flatten()
-outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
-outputs <- outputs %>% layer_dropout( rate = dropoutRate )
-outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
-outputs <- outputs %>% layer_dropout( rate = dropoutRate )
-outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+vggModel %>% layer_flatten()
+vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+vggModel %>% layer_dropout( rate = dropoutRate )
+vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+vggModel %>% layer_dropout( rate = dropoutRate )
+vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
   
-vggModel <- keras_model( inputs = inputs, outputs = outputs )
-
-vggModel %>% compile( loss = 'categorical_crossentropy',
+vggModel %>% compile( loss = 'categorical_crossentropy', nesterov = TRUE,
   optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6 ),  
   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
 

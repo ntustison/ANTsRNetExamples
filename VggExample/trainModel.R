@@ -16,7 +16,7 @@ source( paste0( modelDirectory, 'createVggModel.R' ) )
 trainingImageFiles <- list.files( 
   path = trainingDirectory, pattern = "*.jpg", full.names = TRUE )
 
-trainingProportion <- 0.05
+trainingProportion <- 0.5
 set.seed( 1234 )
 trainingIndices <- sample.int( 
   length( trainingImageFiles ), size = length( trainingImageFiles ) * trainingProportion )
@@ -62,7 +62,7 @@ track <- vggModel %>% fit( X_train, Y_train,
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
                  ), 
                  validation_split = 0.2 )
-## Save the model
+# Save the model
 
 save_model_weights_hdf5( 
   vggModel, filepath = paste0( baseDirectory, 'vggWeights.h5' ) )
@@ -71,27 +71,27 @@ save_model_hdf5(
 
 ## Plot the model fitting
 
-# epochs <- 1:length( track$metrics$loss )
+epochs <- 1:length( track$metrics$loss )
 
-# vggModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
-#                                   Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
-#                                   Loss =c( track$metrics$loss, track$metrics$val_loss ), 
-#                                   Accuracy = c( track$metrics$multilabel_dice_coefficient, track$metrics$val_multilabel_dice_coefficient )
-#                                 )
+vggModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
+                                  Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
+                                  Loss =c( track$metrics$loss, track$metrics$val_loss ), 
+                                  Accuracy = c( track$metrics$multilabel_dice_coefficient, track$metrics$val_multilabel_dice_coefficient )
+                                )
 
-# vggModelLossPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
-#                  geom_point( shape = 1, size = 0.5 ) +
-#                  geom_line( size = 0.3 ) +
-#                  ggtitle( "Loss" )
+vggModelLossPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
+                 geom_point( shape = 1, size = 0.5 ) +
+                 geom_line( size = 0.3 ) +
+                 ggtitle( "Loss" )
                 
 
-# vggModelAccuracyPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
-#                  geom_point( shape = 1, size = 0.5 ) +
-#                  geom_line( size = 0.3 ) +
-#                  ggtitle( "Accuracy")
+vggModelAccuracyPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
+                 geom_point( shape = 1, size = 0.5 ) +
+                 geom_line( size = 0.3 ) +
+                 ggtitle( "Accuracy")
 
-# ggsave( paste0( baseDirectory, "vggModelLossPlot.pdf" ), plot = vggModelLossPlot, width = 5, height = 2, units = 'in' )
-# ggsave( paste0( baseDirectory, "vggModelAccuracyPlot.pdf" ), plot = vggModelAccuracyPlot, width = 5, height = 2, units = 'in' )
+ggsave( paste0( baseDirectory, "vggModelLossPlot.pdf" ), plot = vggModelLossPlot, width = 5, height = 2, units = 'in' )
+ggsave( paste0( baseDirectory, "vggModelAccuracyPlot.pdf" ), plot = vggModelAccuracyPlot, width = 5, height = 2, units = 'in' )
 
 
 
