@@ -107,7 +107,7 @@
 
 createVggModel2D <- function( inputImageSize, 
                                numberOfClassificationLabels = 1000,
-                               layers = c( 1, 2, 3, 3 ), 
+                               layers = c( 1, 2, 3, 4, 4 ), 
                                lowestResolution = 64, 
                                convolutionKernelSize = c( 3, 3 ), 
                                poolSize = c( 2, 2 ), 
@@ -144,23 +144,23 @@ for( i in 1:length( layers ) )
     }  else {
     if( style == 16 )  
       {
-      weightLayers[[i]] <- pool 
-        %>% layer_conv_2d( 
-          filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-        %>% layer_conv_2d( 
-          filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-        %>% layer_conv_2d( 
-          filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+      weightLayers[[i]] <- pool %>%
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                       activation = 'relu', padding = 'same' ) %>% 
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                       activation = 'relu', padding = 'same' ) %>% 
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                       activation = 'relu', padding = 'same' )
       } else {  # style == 19
-      weightLayers[[i]] <- pool 
-        %>% layer_conv_2d( 
-          filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-        %>% layer_conv_2d( 
-          filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-        %>% layer_conv_2d( 
-          filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-        %>% layer_conv_2d( 
-          filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+      weightLayers[[i]] <- pool %>%
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                       activation = 'relu', padding = 'same' ) %>% 
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                       activation = 'relu', padding = 'same' ) %>% 
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                       activation = 'relu', padding = 'same' ) %>%
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                       activation = 'relu', padding = 'same' )
       }  
     }
     
