@@ -6,38 +6,55 @@ library( ggplot2 )
 # Dog vs. cat data available from here:
 #    https://www.kaggle.com/c/dogs-vs-cats/data
 
+trainingProportion <- 0.5
+trainingImageSize <- c( 100, 100 )
+
+
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
 modelDirectory <- paste0( baseDirectory, '../Models/' )
-trainingDirectory <- paste0( dataDirectory, 'TrainingData/' )
 
 source( paste0( modelDirectory, 'createVggModel.R' ) )
 
-trainingImageFiles <- list.files( 
-  path = trainingDirectory, pattern = "*.jpg", full.names = TRUE )
+trainingDirectories <- c()
+trainingDirectories[1] <- paste0( dataDirectory, 'TrainingDataDog/' )
+trainingDirectories[2] <- paste0( dataDirectory, 'TrainingDataHuman/' )
+# trainingDirectories[3] <- paste0( dataDirectory, 'TrainingDataCat/' )
 
-trainingProportion <- 0.5
-set.seed( 1234 )
-trainingIndices <- sample.int( 
-  length( trainingImageFiles ), size = length( trainingImageFiles ) * trainingProportion )
-trainingClassifications <- rep( 0, length( trainingIndices ) )
+numberOfSubjectsPerCategory <- 1e6
+for( i in 1:length( trainingDirectories ) )
+  {
+  trainingImageFilesPerCategory <- list.files( 
+    path = trainingDirectories[i], pattern = "*.jpg", full.names = TRUE )
+  numberOfSubjectsPerCategory <- min( numberOfSubjectsPerCategory,
+    trainingProportion * length( trainingImageFilesPerCategory ) )
+  }
 
-trainingImageSize <- c( 224, 224 )
+trainingImageFiles <- c()
+trainingClassifications <- c()
+for( i in 1:length( trainingDirectories ) )
+  {
+  trainingImageFilesPerCategory <- list.files( 
+    path = trainingDirectories[i], pattern = "*.jpg", full.names = TRUE )
+
+  set.seed( 1234 )
+  trainingIndices <- sample.int( 
+    length( trainingImageFilesPerCategory ), size = numberOfSubjectsPerCategory )
+  trainingImageFiles <- append( 
+    trainingImageFiles, trainingImageFilesPerCategory[trainingIndices] )  
+  trainingClassifications <- append( trainingClassifications, 
+    rep( i-1, length( trainingIndices ) ) )
+  }
 
 trainingImages <- list()
 trainingImageArrays <- list()
-
-for ( i in 1:length( trainingIndices ) )
+for ( i in 1:length( trainingImageFiles ) )
   {
-  cat( "Reading ", trainingImageFiles[trainingIndices[i]], "\n" )
+  cat( "Reading ", trainingImageFiles[i], "\n" )
   trainingImages[[i]] <- resampleImage( 
-    antsImageRead( trainingImageFiles[trainingIndices[i]], dimension = 2 ),
+    antsImageRead( trainingImageFiles[i], dimension = 2 ),
     trainingImageSize, useVoxels = TRUE )
   trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
-  if( grepl( "dog", trainingImageFiles[trainingIndices[i]] ) )
-    {
-    trainingClassifications[i] <- 1
-    }
   }
 
 trainingData <- abind( trainingImageArrays, along = 3 )  
@@ -71,27 +88,27 @@ save_model_hdf5(
 
 ## Plot the model fitting
 
-epochs <- 1:length( track$metrics$loss )
+# epochs <- 1:length( track$metrics$loss )
 
-vggModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
-                                  Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
-                                  Loss =c( track$metrics$loss, track$metrics$val_loss ), 
-                                  Accuracy = c( track$metrics$multilabel_dice_coefficient, track$metrics$val_multilabel_dice_coefficient )
-                                )
+# vggModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
+#                                   Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
+#                                   Loss =c( track$metrics$loss, track$metrics$val_loss ), 
+#                                   Accuracy = c( track$metrics$multilabel_dice_coefficient, track$metrics$val_multilabel_dice_coefficient )
+#                                 )
 
-vggModelLossPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
-                 geom_point( shape = 1, size = 0.5 ) +
-                 geom_line( size = 0.3 ) +
-                 ggtitle( "Loss" )
+# vggModelLossPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
+#                  geom_point( shape = 1, size = 0.5 ) +
+#                  geom_line( size = 0.3 ) +
+#                  ggtitle( "Loss" )
                 
 
-vggModelAccuracyPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
-                 geom_point( shape = 1, size = 0.5 ) +
-                 geom_line( size = 0.3 ) +
-                 ggtitle( "Accuracy")
+# vggModelAccuracyPlot <- ggplot( data = vggModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
+#                  geom_point( shape = 1, size = 0.5 ) +
+#                  geom_line( size = 0.3 ) +
+#                  ggtitle( "Accuracy")
 
-ggsave( paste0( baseDirectory, "vggModelLossPlot.pdf" ), plot = vggModelLossPlot, width = 5, height = 2, units = 'in' )
-ggsave( paste0( baseDirectory, "vggModelAccuracyPlot.pdf" ), plot = vggModelAccuracyPlot, width = 5, height = 2, units = 'in' )
+# ggsave( paste0( baseDirectory, "vggModelLossPlot.pdf" ), plot = vggModelLossPlot, width = 5, height = 2, units = 'in' )
+# ggsave( paste0( baseDirectory, "vggModelAccuracyPlot.pdf" ), plot = vggModelAccuracyPlot, width = 5, height = 2, units = 'in' )
 
 
 

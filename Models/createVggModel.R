@@ -179,10 +179,17 @@ vggModel %>% layer_dropout( rate = dropoutRate )
 vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
 vggModel %>% layer_dropout( rate = dropoutRate )
 vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
-  
-vggModel %>% compile( loss = 'categorical_crossentropy',
-  optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
-  metrics = c( 'categorical_crossentropy' ) )
+
+if( numberOfClassificationLabels == 2 )   
+  {
+  vggModel %>% compile( loss = 'categorical_crossentropy',
+    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
+    metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+  } else {
+  vggModel %>% compile( loss = 'binary_crossentropy',
+    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
+    metrics = c( 'binary_crossentropy', 'accuracy' ) )
+  }  
 
 return( vggModel )
 }
@@ -372,6 +379,17 @@ vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'so
 vggModel %>% compile( loss = 'categorical_crossentropy',
   optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+
+if( numberOfClassificationLabels == 2 )   
+  {
+  vggModel %>% compile( loss = 'categorical_crossentropy',
+    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
+    metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+  } else {
+  vggModel %>% compile( loss = 'binary_crossentropy',
+    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
+    metrics = c( 'binary_crossentropy', 'accuracy' ) )
+  }  
 
 return( vggModel )
 }
