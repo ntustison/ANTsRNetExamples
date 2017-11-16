@@ -58,15 +58,18 @@ vggModel <- createVggModel2D( c( dim( trainingImageArrays[[1]] ), 1 ),
 track <- vggModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "weightsMultiLabel.h5" ), monitor = 'val_loss', save_best_only = TRUE )
+                   callback_model_checkpoint( paste0( baseDirectory, "vggWeights.h5" ),
+                     monitor = 'val_loss', save_best_only = TRUE )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
                  ), 
                  validation_split = 0.2 )
 ## Save the model
 
-save_model_weights_hdf5( vggModel, filepath = paste0( baseDirectory, 'vggModelWeights.h5' ) )
-save_model_hdf5( vggModel, filepath = paste0( baseDirectory, 'vggModel.h5' ), overwrite = TRUE )
+save_model_weights_hdf5( 
+  vggModel, filepath = paste0( baseDirectory, 'vggWeights.h5' ) )
+save_model_hdf5( 
+  vggModel, filepath = paste0( baseDirectory, 'vggModel.h5' ), overwrite = TRUE )
 
 ## Plot the model fitting
 

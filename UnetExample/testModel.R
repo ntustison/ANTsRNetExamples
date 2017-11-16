@@ -10,8 +10,10 @@ predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
 dir.create( predictedDirectory )
 
 
-testingImageFiles <- list.files( path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
-testingMaskFiles <- list.files( path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
+testingImageFiles <- list.files( 
+  path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
+testingMaskFiles <- list.files( 
+  path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
 
 testingImages <- list()
 testingMasks <- list()
@@ -55,8 +57,10 @@ for( i in 2:numberOfLabels )
   Y_test <- abind( Y_test, Y_test_label, along = 4 )
   }
 
-unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
-load_model_weights_hdf5( unetModelTest, filepath = paste0( baseDirectory, 'unetModelMultiLabelWeights.h5' ) )
+unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), 
+  numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
+load_model_weights_hdf5( unetModelTest, 
+  filepath = paste0( baseDirectory, 'unetWeights.h5' ) )
 
 testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
 
@@ -71,7 +75,8 @@ for( i in 1:numberOfTestingImages )
     imageArray <- predictedData[i,,,j]  
     image <- as.antsImage( imageArray, reference = testingImages[[i]] )
 
-    imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), testingImageFiles[[i]] )
+    imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), 
+      testingImageFiles[[i]] )
     imageFileName <- gsub( testingDirectory, predictedDirectory, imageFileName )
 
     antsImageWrite( image, imageFileName ) 
