@@ -135,11 +135,18 @@ for( i in 1:length( layers ) )
 
   if( i == 1 )
     {
-    vggModel %>% layer_conv_2d( input_shape = inputImageSize,
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    vggModel %>% 
+      layer_conv_2d( input_shape = inputImageSize, filters = numberOfFilters, 
+                     kernel_size = convolutionKernelSize, activation = 'relu', 
+                     padding = 'same' ) %>% 
+      layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                     activation = 'relu', padding = 'same' )
     } else if( i == 2 ) {
-    vggModel %>% layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    vggModel %>% 
+      layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                     activation = 'relu', padding = 'same' ) %>% 
+      layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                     activation = 'relu', padding = 'same' )
     }  else {
     if( style == 16 )  
       {
@@ -173,9 +180,9 @@ vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
 vggModel %>% layer_dropout( rate = dropoutRate )
 vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
   
-vggModel %>% compile( loss = 'categorical_crossentropy', nesterov = TRUE,
-  optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6 ),  
-  metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+vggModel %>% compile( loss = 'categorical_crossentropy',
+  optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
+  metrics = c( 'categorical_crossentropy' ) )
 
 return( vggModel )
 }
@@ -317,11 +324,18 @@ for( i in 1:length( layers ) )
 
   if( i == 1 )
     {
-    vggModel %>% layer_conv_3d( input_shape = inputImageSize,
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    vggModel %>% 
+      layer_conv_3d( input_shape = inputImageSize, filters = numberOfFilters, 
+                     kernel_size = convolutionKernelSize, activation = 'relu', 
+                     padding = 'same' ) %>% 
+      layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                     activation = 'relu', padding = 'same' )
     } else if( i == 2 ) {
-    vggModel %>% layer_conv_3d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    vggModel %>% 
+      layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                     activation = 'relu', padding = 'same' ) %>% 
+      layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                     activation = 'relu', padding = 'same' )
     }  else {
     if( style == 16 )  
       {
@@ -345,7 +359,7 @@ for( i in 1:length( layers ) )
       }  
     }
     
-  vggModel %>% layer_max_pooling_3d( pool_size = poolSize, strides = strides )
+  vggModel %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
   }
 
 vggModel %>% layer_flatten()
@@ -355,8 +369,8 @@ vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
 vggModel %>% layer_dropout( rate = dropoutRate )
 vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
   
-vggModel %>% compile( loss = 'categorical_crossentropy', nesterov = TRUE,
-  optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6 ),  
+vggModel %>% compile( loss = 'categorical_crossentropy',
+  optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
 
 return( vggModel )
