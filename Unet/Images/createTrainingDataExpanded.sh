@@ -1,7 +1,9 @@
 baseDir=./
 inputDir=${baseDir}/TrainingData/
-templateDir=${baseDir}/TemplateTrainingData/
+templateDir=${baseDir}/TemplateTransforms/
 outputDir=${baseDir}/TrainingDataExpanded/
+
+mkdir -p $outputDir
 
 images=( `ls ${inputDir}/*H1*.nii.gz` )
 

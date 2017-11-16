@@ -5,9 +5,10 @@ library( ggplot2 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
+modelDirectory <- paste0( baseDirectory, '../Models/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )
 
-source( paste0( baseDirectory, 'createUnetModel.R' ) )
+source( paste0( modelDirectory, 'createUnetModel.R' ) )
 
 trainingImageFiles <- list.files( path = trainingDirectory, pattern = "H1_2D", full.names = TRUE )
 trainingMaskFiles <- list.files( path = trainingDirectory, pattern = "Mask_2D", full.names = TRUE )
@@ -17,7 +18,7 @@ trainingMasks <- list()
 trainingImageArrays <- list()
 trainingMaskArrays <- list()
 
-trainingProportion <- 0.55
+trainingProportion <- 0.2
 set.seed( 1234 )
 trainingIndices <- sample.int( length( trainingMaskFiles ), size = length( trainingMaskFiles ) * trainingProportion )
 

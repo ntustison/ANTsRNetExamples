@@ -82,7 +82,7 @@ loss_multilabel_dice_coefficient_error <- function( y_true, y_pred )
 }
 attr( loss_multilabel_dice_coefficient_error, "py_function_name" ) <- "multilabel_dice_coefficient_error"
 
-#' 2-D image segmentation implementation of the U-net deep learning architecture.
+#' 2-D implementation of the U-net deep learning architecture.
 #'
 #' Creates a keras model of the U-net deep learning architecture for image 
 #' segmentation.  More information is provided at the authors' website:
@@ -121,7 +121,6 @@ attr( loss_multilabel_dice_coefficient_error, "py_function_name" ) <- "multilabe
 #' \dontrun{ 
 #' 
 #'  library( ANTsR )
-#'  library( ggplot2 )
 #'
 #'  imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 #'
@@ -216,11 +215,14 @@ for( i in 1:length( layers ) )
 
   if( i == 1 )
     {
-    conv <- inputs %>% layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    conv <- inputs %>% layer_conv_2d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     } else {
-    conv <- pool %>% layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    conv <- pool %>% layer_conv_2d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     }
-  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_2d( 
+    filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
   
   if( i < length( layers ) )
     {
@@ -242,14 +244,18 @@ for( i in 2:length( layers ) )
     )
 
   outputs <- outputs %>%
-    layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
-    layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
+    layer_conv_2d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
+    layer_conv_2d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
   }
 if( numberOfClassificationLabels == 1 )  
   {
-  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'sigmoid' )
+  outputs <- outputs %>% layer_conv_2d( 
+    filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'sigmoid' )
   } else {
-  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
+  outputs <- outputs %>% layer_conv_2d( 
+    filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
   }
   
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
@@ -311,7 +317,6 @@ return( unetModel )
 #' \dontrun{ 
 #' 
 #'  library( ANTsR )
-#'  library( ggplot2 )
 #'
 #'  imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 #'
@@ -406,11 +411,14 @@ for( i in 1:length( layers ) )
 
   if( i == 1 )
     {
-    conv <- inputs %>% layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    conv <- inputs %>% layer_conv_3d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     } else {
-    conv <- pool %>% layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    conv <- pool %>% layer_conv_3d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
     }
-  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_3d( 
+    filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
   
   if( i < length( layers ) )
     {
@@ -432,14 +440,18 @@ for( i in 2:length( layers ) )
     )
 
   outputs <- outputs %>%
-    layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
-    layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
+    layer_conv_3d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
+    layer_conv_3d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
   }
 if( numberOfClassificationLabels == 1 )  
   {
-  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'sigmoid' )
+  outputs <- outputs %>% layer_conv_2d( 
+    filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'sigmoid' )
   } else {
-  outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'softmax' )
+  outputs <- outputs %>% layer_conv_2d( 
+    filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'softmax' )
   }
 
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
