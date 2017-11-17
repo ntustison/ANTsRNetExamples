@@ -71,6 +71,10 @@ for( i in 2:numberOfLabels )
 unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), 
   numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
 
+unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
+  optimizer = optimizer_adam( lr = 0.0001 ),  
+  metrics = c( multilabel_dice_coefficient ) )
+
 track <- unetModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 

@@ -2,14 +2,15 @@ library( ANTsR )
 library( keras )
 library( abind )
 library( ggplot2 )
+library( jpeg )
 
 # Dog vs. cat data available from here:
 #    https://www.kaggle.com/c/dogs-vs-cats/data
 # Also use the human faces from:
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
-trainingProportion <- 0.5
-trainingImageSize <- c( 100, 100 )
+trainingProportion <- 0.1
+trainingImageSize <- c( 224, 224 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
@@ -18,9 +19,9 @@ modelDirectory <- paste0( baseDirectory, '../Models/' )
 source( paste0( modelDirectory, 'createVggModel.R' ) )
 
 trainingDirectories <- c()
-trainingDirectories[1] <- paste0( dataDirectory, 'TrainingDataDog/' )
+trainingDirectories[1] <- paste0( dataDirectory, 'TrainingDataPlanes/' )
 trainingDirectories[2] <- paste0( dataDirectory, 'TrainingDataHuman/' )
-# trainingDirectories[3] <- paste0( dataDirectory, 'TrainingDataCat/' )
+trainingDirectories[3] <- paste0( dataDirectory, 'TrainingDataCat/' )
 
 numberOfSubjectsPerCategory <- 1e6
 for( i in 1:length( trainingDirectories ) )
@@ -52,27 +53,62 @@ trainingImageArrays <- list()
 for ( i in 1:length( trainingImageFiles ) )
   {
   cat( "Reading ", trainingImageFiles[i], "\n" )
-  trainingImages[[i]] <- resampleImage( 
-    antsImageRead( trainingImageFiles[i], dimension = 2 ),
-    trainingImageSize, useVoxels = TRUE )
-  trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
+  trainingImages[[i]] <- readJPEG( trainingImageFiles[i] )
+  if( length( dim( trainingImages[[i]] ) ) == 3 )
+    {
+    r <- as.matrix( resampleImage( 
+          as.antsImage( trainingImages[[i]][,,1] ), 
+          trainingImageSize, useVoxels = TRUE ) )
+    r <- ( r - mean( r ) ) / sd( r )          
+    g <- as.matrix( resampleImage( 
+          as.antsImage( trainingImages[[i]][,,2] ), 
+          trainingImageSize, useVoxels = TRUE ) )
+    g <- ( g - mean( g ) ) / sd( g )      
+    b <- as.matrix( resampleImage( 
+          as.antsImage( trainingImages[[i]][,,3] ), 
+          trainingImageSize, useVoxels = TRUE ) )
+    b <- ( b - mean( b ) ) / sd( b )      
+    } else {
+    r <- as.matrix( resampleImage( 
+          as.antsImage( trainingImages[[i]] ), 
+          trainingImageSize, useVoxels = TRUE ) )
+    r <- ( r - mean( r ) ) / sd( r )      
+    g <- b <- r  
+    }      
+  trainingImageArrays[[i]] <- abind( r, g, b, along = 3 )  
   }
 
-trainingData <- abind( trainingImageArrays, along = 3 )  
-trainingData <- aperm( trainingData, c( 3, 1, 2 ) )
-trainingData <- ( trainingData - mean( trainingData ) ) / sd( trainingData )
+# trainingData <- abind( trainingImageArrays, along = 3 )  
+# trainingData <- aperm( trainingData, c( 3, 1, 2 ) )
+# X_train <- array( trainingData, dim = c( dim( trainingData ), 1 ) )
 
-X_train <- array( trainingData, dim = c( dim( trainingData ), 1 ) )
+trainingData <- abind( trainingImageArrays, along = 4 )  
+trainingData <- aperm( trainingData, c( 4, 1, 2, 3 ) )
+X_train <- array( trainingData, dim = c( dim( trainingData ) ) )
 
 segmentationLabels <- sort( unique( trainingClassifications ) )
 numberOfLabels <- length( segmentationLabels )
 Y_train <- to_categorical( trainingClassifications, numberOfLabels )
 
-vggModel <- createVggModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), layers = c( 1, 2, 3, 4 ),
-  numberOfClassificationLabels = numberOfLabels, style = 16 )
+# vggModel <- createVggModel2D( c( dim( trainingImageArrays[[1]] ), 1 ),
+#   numberOfClassificationLabels = numberOfLabels, style = 19 )
+vggModel <- createVggModel2D( dim( trainingImageArrays[[1]] ),
+  numberOfClassificationLabels = numberOfLabels, style = 19 )
+
+if( numberOfLabels == 2 )   
+  {
+  vggModel %>% compile( loss = 'binary_crossentropy',
+    optimizer = optimizer_adam( lr = 0.0001 ),  
+    metrics = c( 'binary_crossentropy', 'accuracy' ) )
+  } else {
+  vggModel %>% compile( loss = 'categorical_crossentropy',
+    optimizer = optimizer_adam( lr = 0.0001 ),  
+    metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+  }
+
 
 track <- vggModel %>% fit( X_train, Y_train, 
-                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
+                 epochs = 5, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
                    callback_model_checkpoint( paste0( baseDirectory, "vggWeights.h5" ),
                      monitor = 'val_loss', save_best_only = TRUE )

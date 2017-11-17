@@ -260,20 +260,6 @@ if( numberOfClassificationLabels == 1 )
   
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
 
-if( numberOfClassificationLabels == 1 )  
-  {
-  unetModel %>% compile( loss = loss_dice_coefficient_error,
-    optimizer = optimizer_adam( lr = 0.0001 ),  
-    metrics = c( dice_coefficient ) )
-  } else {
-  # unetModel %>% compile( loss = 'categorical_crossentropy',
-  #   optimizer = optimizer_adam( lr = 5e-5 ),  
-  #   metrics = c( 'accuracy', 'categorical_crossentropy' ) )
-  unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
-    optimizer = optimizer_adam( lr = 0.0001 ),  
-    metrics = c( multilabel_dice_coefficient ) )
-  }
-
 return( unetModel )
 }
 
@@ -455,17 +441,6 @@ if( numberOfClassificationLabels == 1 )
   }
 
 unetModel <- keras_model( inputs = inputs, outputs = outputs )
-
-if( numberOfClassificationLabels == 1 )  
-  {
-  unetModel %>% compile( loss = loss_dice_coefficient_error,
-    optimizer = optimizer_adam( lr = 0.0001 ),  
-    metrics = c( dice_coefficient ) )
-  } else {
-  unetModel %>% compile( loss = 'categorical_crossentropy',
-    optimizer = optimizer_adam( lr = 5e-5 ),  
-    metrics = c( 'accuracy', 'categorical_crossentropy' ) )
-  }
 
 return( unetModel )
 }

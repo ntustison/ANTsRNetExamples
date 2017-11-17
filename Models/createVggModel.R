@@ -113,7 +113,7 @@ createVggModel2D <- function( inputImageSize,
                                poolSize = c( 2, 2 ), 
                                strides = c( 2, 2 ),
                                denseUnits = 4096,
-                               dropoutRate = 0.5,
+                               dropoutRate = 0.0,
                                style = 19
                              )
 {
@@ -175,21 +175,16 @@ for( i in 1:length( layers ) )
 
 vggModel %>% layer_flatten()
 vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-vggModel %>% layer_dropout( rate = dropoutRate )
-vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-vggModel %>% layer_dropout( rate = dropoutRate )
-vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
-
-if( numberOfClassificationLabels == 2 )   
+if( dropoutRate > 0.0 )
   {
-  vggModel %>% compile( loss = 'mean_squared_error',
-    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
-    metrics = c( 'binary_accuracy', 'mean_squared_error' ) )
-  } else {
-  vggModel %>% compile( loss = 'categorical_crossentropy',
-    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
-    metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+  vggModel %>% layer_dropout( rate = dropoutRate )
   }
+vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+if( dropoutRate > 0.0 )
+  {
+  vggModel %>% layer_dropout( rate = dropoutRate )
+  }
+vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
 
 return( vggModel )
 }
@@ -309,7 +304,7 @@ createVggModel3D <- function( inputImageSize,
                                poolSize = c( 2, 2, 2 ), 
                                strides = c( 2, 2, 2 ),
                                denseUnits = 4096,
-                               dropoutRate = 0.5,
+                               dropoutRate = 0.0,
                                style = 19
                              )
 {
@@ -371,26 +366,17 @@ for( i in 1:length( layers ) )
 
 vggModel %>% layer_flatten()
 vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-vggModel %>% layer_dropout( rate = dropoutRate )
+if( dropoutRate > 0.0 )
+  {
+  vggModel %>% layer_dropout( rate = dropoutRate )
+  }
 vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-vggModel %>% layer_dropout( rate = dropoutRate )
+if( dropoutRate > 0.0 )
+  {
+  vggModel %>% layer_dropout( rate = dropoutRate )
+  }
 vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
   
-vggModel %>% compile( loss = 'categorical_crossentropy',
-  optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
-  metrics = c( 'categorical_crossentropy', 'accuracy' ) )
-
-if( numberOfClassificationLabels == 2 )   
-  {
-  vggModel %>% compile( loss = 'binary_crossentropy',
-    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
-    metrics = c( 'binary_crossentropy', 'accuracy' ) )
-  } else {
-  vggModel %>% compile( loss = 'categorical_crossentropy',
-    optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
-    metrics = c( 'categorical_crossentropy', 'accuracy' ) )
-  }  
-
 return( vggModel )
 }
 
