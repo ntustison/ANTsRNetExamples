@@ -9,8 +9,8 @@ library( jpeg )
 # Also use the human faces from:
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
-trainingProportion <- 0.1
-trainingImageSize <- c( 224, 224 )
+trainingProportion <- 0.2
+trainingImageSize <- c( 100, 100 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
@@ -22,6 +22,7 @@ trainingDirectories <- c()
 trainingDirectories[1] <- paste0( dataDirectory, 'TrainingDataPlanes/' )
 trainingDirectories[2] <- paste0( dataDirectory, 'TrainingDataHuman/' )
 trainingDirectories[3] <- paste0( dataDirectory, 'TrainingDataCat/' )
+trainingDirectories[4] <- paste0( dataDirectory, 'TrainingDataDog/' )
 
 numberOfSubjectsPerCategory <- 1e6
 for( i in 1:length( trainingDirectories ) )
@@ -108,7 +109,7 @@ if( numberOfLabels == 2 )
 
 
 track <- vggModel %>% fit( X_train, Y_train, 
-                 epochs = 5, batch_size = 32, verbose = 1, shuffle = TRUE,
+                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
                    callback_model_checkpoint( paste0( baseDirectory, "vggWeights.h5" ),
                      monitor = 'val_loss', save_best_only = TRUE )

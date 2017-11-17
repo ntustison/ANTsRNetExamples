@@ -20,9 +20,10 @@ source( paste0( modelDirectory, 'createVggModel.R' ) )
 # Yeah, I know I'm double-dipping here but I'm just trying to get something
 # to work at this point.
 testingDirectories <- c()
-testingDirectories[1] <- paste0( dataDirectory, 'TrainingDataDog/' )
+testingDirectories[1] <- paste0( dataDirectory, 'TrainingDataPlanes/' )
 testingDirectories[2] <- paste0( dataDirectory, 'TrainingDataHuman/' )
-# testingDirectories[3] <- paste0( dataDirectory, 'TrainingDataCat/' )
+testingDirectories[3] <- paste0( dataDirectory, 'TrainingDataCat/' )
+testingDirectories[4] <- paste0( dataDirectory, 'TrainingDataDog/' )
 
 numberOfSubjectsPerCategory <- 1e6
 for( i in 1:length( testingDirectories ) )
@@ -97,6 +98,16 @@ numberOfLabels <- length( unique( as.vector( testingClassifications ) ) )
 #   numberOfClassificationLabels = numberOfLabels, style = 19 )
 vggModelTest <- createVggModel2D( dim( testingImageArrays[[1]] ),
   numberOfClassificationLabels = numberOfLabels, style = 19 )
+if( numberOfLabels == 2 )   
+  {
+  vggModelTest %>% compile( loss = 'binary_crossentropy',
+    optimizer = optimizer_adam( lr = 0.0001 ),  
+    metrics = c( 'binary_crossentropy', 'accuracy' ) )
+  } else {
+  vggModelTest %>% compile( loss = 'categorical_crossentropy',
+    optimizer = optimizer_adam( lr = 0.0001 ),  
+    metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+  }
 
 load_model_weights_hdf5( vggModelTest, filepath = paste0( baseDirectory, 'vggWeights.h5' ) )
 
