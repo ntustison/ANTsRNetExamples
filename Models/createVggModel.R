@@ -182,15 +182,15 @@ vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'so
 
 if( numberOfClassificationLabels == 2 )   
   {
-  vggModel %>% compile( loss = 'binary_crossentropy',
+  vggModel %>% compile( loss = 'mean_squared_error',
     optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
-    metrics = c( 'binary_crossentropy', 'accuracy' ) )
+    metrics = c( 'binary_accuracy', 'mean_squared_error' ) )
   } else {
   vggModel %>% compile( loss = 'categorical_crossentropy',
     optimizer = optimizer_sgd( lr = 0.1, momentum = 0.9, decay = 1e-6, nesterov = TRUE ),  
     metrics = c( 'categorical_crossentropy', 'accuracy' ) )
   }
-  
+
 return( vggModel )
 }
 

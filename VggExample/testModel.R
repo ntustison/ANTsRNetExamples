@@ -3,29 +3,61 @@ library( keras )
 library( abind )
 library( ggplot2 )
 
+# Dog vs. cat data available from here:
+#    https://www.kaggle.com/c/dogs-vs-cats/data
+# Also use the human faces from:
+#    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
+
+testingProportion <- 0.01
+testingImageSize <- c( 100, 100 )
+
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
-testingDirectory <- paste0( dataDirectory, 'TestingData/' )
-predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
-dir.create( predictedDirectory )
+modelDirectory <- paste0( baseDirectory, '../Models/' )
 
+source( paste0( modelDirectory, 'createVggModel.R' ) )
 
-testingImageFiles <- list.files( path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
-testingMaskFiles <- list.files( path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
+# Yeah, I know I'm double-dipping here but I'm just trying to get something
+# to work at this point.
+testingDirectories <- c()
+testingDirectories[1] <- paste0( dataDirectory, 'TrainingDataDog/' )
+testingDirectories[2] <- paste0( dataDirectory, 'TrainingDataHuman/' )
+
+numberOfSubjectsPerCategory <- 1e6
+for( i in 1:length( testingDirectories ) )
+  {
+  testingImageFilesPerCategory <- list.files( 
+    path = testingDirectories[i], pattern = "*.jpg", full.names = TRUE )
+  numberOfSubjectsPerCategory <- min( numberOfSubjectsPerCategory,
+    testingProportion * length( testingImageFilesPerCategory ) )
+  }
+
+testingImageFiles <- c()
+testingClassifications <- c()
+for( i in 1:length( testingDirectories ) )
+  {
+  testingImageFilesPerCategory <- list.files( 
+    path = testingDirectories[i], pattern = "*.jpg", full.names = TRUE )
+
+  set.seed( 567 )
+  testingIndices <- sample.int( 
+    length( testingImageFilesPerCategory ), size = numberOfSubjectsPerCategory )
+  testingImageFiles <- append( 
+    testingImageFiles, testingImageFilesPerCategory[testingIndices] )  
+  testingClassifications <- append( testingClassifications, 
+    rep( i-1, length( testingIndices ) ) )
+  }
+  
 
 testingImages <- list()
-testingMasks <- list()
 testingImageArrays <- list()
-testingMaskArrays <- list()
-
 for ( i in 1:length( testingImageFiles ) )
   {
-  testingImages[[i]] <- antsImageRead( testingImageFiles[i], dimension = 2 )    
-  testingMasks[[i]] <- antsImageRead( testingMaskFiles[i], dimension = 2 )    
-
+  cat( "Reading ", testingImageFiles[i], "(", i, " of ", length( testingImageFiles ), ")\n" )
+  testingImages[[i]] <- resampleImage( 
+    antsImageRead( testingImageFiles[i], dimension = 2 ),
+    testingImageSize, useVoxels = TRUE )
   testingImageArrays[[i]] <- as.array( testingImages[[i]] )
-  testingMaskArrays[[i]] <- as.array( testingMasks[[i]] )  
-  # testingMaskArrays[[i]][which( testingMaskArrays[[i]] > 1 )] <- 1
   }
 
 testingData <- abind( testingImageArrays, along = 3 )  
@@ -33,70 +65,16 @@ testingData <- aperm( testingData, c( 3, 1, 2 ) )
 testingData <- ( testingData - mean( testingData ) ) / sd( testingData )
 
 X_test <- array( testingData, dim = c( dim( testingData ), 1 ) )
+segmentationLabels <- sort( unique( testingClassifications ) )
+numberOfLabels <- length( segmentationLabels )
+Y_test <- to_categorical( testingClassifications, numberOfLabels )
 
-testingLabelData <- abind( testingMaskArrays, along = 3 )  
-testingLabelData <- aperm( testingLabelData, c( 3, 1, 2 ) )
+numberOfLabels <- length( unique( as.vector( testingClassifications ) ) )
 
-numberOfLabels <- length( unique( as.vector( testingLabelData ) ) )
+vggModelTest <- createVggModel2D( c( dim( testingImageArrays[[1]] ), 1 ), layers = c( 1, 2, 3, 4 ),
+  numberOfClassificationLabels = numberOfLabels, style = 16 )
+load_model_weights_hdf5( vggModelTest, filepath = paste0( baseDirectory, 'vggWeights.h5' ) )
 
-# Different implementation of keras::to_categorical().  The ordering 
-# of the array elements seems to get screwed up.
-
-Y_test <- testingLabelData
-Y_test[which( testingLabelData == 0)] <- 1
-Y_test[which( testingLabelData != 0)] <- 0
-
-for( i in 2:numberOfLabels )
-  {
-  Y_test_label <- testingLabelData 
-  Y_test_label[which( testingLabelData == segmentationLabels[i] )] <- 1
-  Y_test_label[which( testingLabelData != segmentationLabels[i] )] <- 0
-
-  Y_test <- abind( Y_test, Y_test_label, along = 4 )
-  }
-
-unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
-load_model_weights_hdf5( unetModelTest, filepath = paste0( baseDirectory, 'unetModelMultiLabelWeights.h5' ) )
-
-testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
-
-predictedData <- unetModelTest %>% predict( X_test, verbose = 1 )
-
-numberOfTestingImages <- dim( predictedData )[1]
-
-for( i in 1:numberOfTestingImages )
-  {
-  for( j in 1:numberOfLabels )
-    {
-    imageArray <- predictedData[i,,,j]  
-    image <- as.antsImage( imageArray, reference = testingImages[[i]] )
-
-    imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), testingImageFiles[[i]] )
-    imageFileName <- gsub( testingDirectory, predictedDirectory, imageFileName )
-
-    antsImageWrite( image, imageFileName ) 
-    }  
-  }
-
-# for( i in 1:1 )
-#   {
-#   imageArray <- X_train[i,,,1]  
-#   image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
-
-#   imageFileName <- gsub( ".nii.gz", paste0( "_Recreated", j, ".nii.gz" ), trainingImageFiles[[i]] )
-#   imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
-
-#   antsImageWrite( image, imageFileName )
-
-#   for( j in 1:numberOfLabels )
-#     {
-#     imageArray <- Y_train[i,,,j]  
-#     image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
-
-#     imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), trainingImageFiles[[i]] )
-#     imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
-
-#     antsImageWrite( image, imageFileName ) 
-#     }  
-#   }
+testingMetrics <- vggModelTest %>% evaluate( X_test, Y_test )
+predictedData <- vggModelTest %>% predict( X_test, verbose = 1 )
 

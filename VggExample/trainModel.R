@@ -5,10 +5,11 @@ library( ggplot2 )
 
 # Dog vs. cat data available from here:
 #    https://www.kaggle.com/c/dogs-vs-cats/data
+# Also use the human faces from:
+#    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
 trainingProportion <- 0.5
 trainingImageSize <- c( 100, 100 )
-
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
@@ -67,8 +68,8 @@ segmentationLabels <- sort( unique( trainingClassifications ) )
 numberOfLabels <- length( segmentationLabels )
 Y_train <- to_categorical( trainingClassifications, numberOfLabels )
 
-vggModel <- createVggModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), 
-  numberOfClassificationLabels = numberOfLabels )
+vggModel <- createVggModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), layers = c( 1, 2, 3, 4 ),
+  numberOfClassificationLabels = numberOfLabels, style = 16 )
 
 track <- vggModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
