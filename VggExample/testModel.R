@@ -9,7 +9,7 @@ library( ggplot2 )
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
 testingProportion <- 0.01
-testingImageSize <- c( 224, 224 )
+testingImageSize <- c( 100, 100 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
