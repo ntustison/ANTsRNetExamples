@@ -101,10 +101,10 @@
 #' }
 
 createResNetModel2D <- function( inputImageSize, 
-                                 numberOfClassificationLabels = 1,
+                                 numberOfClassificationLabels = 1000,
                                  layers = 1:4, 
                                  residualBlockSchedule = c( 4, 5, 7, 4 ),
-                                 lowestResolution = 128,
+                                 lowestResolution = 64,
                                  cardinality = 32
                                )
 {
@@ -173,7 +173,7 @@ createResNetModel2D <- function( inputImageSize,
     if( projectShortcut == TRUE || prod( strides == c( 1, 1 ) ) == 0 )
       {
       shortcut <- shortcut %>% layer_conv_2d( filters = numberOfFiltersOut, 
-        kernel_size = c( 1, 1, ), strides = strides, padding = 'same' )
+        kernel_size = c( 1, 1 ), strides = strides, padding = 'same' )
       shortcut <- shortcut %>% layer_batch_normalization()  
       }
 
@@ -186,19 +186,21 @@ createResNetModel2D <- function( inputImageSize,
 
   inputs <- layer_input( shape = inputImageSize )
 
-  outputs <- inputs %>% layer_conv_2d( filters = numberOfFilters, 
-    kernel_size = c( 7, 7 ), strides = strides )
-  outputs <- addCommonLayers( output )  
+  nFilters <- lowestResolution
+
+  outputs <- inputs %>% layer_conv_2d( filters = nFilters, 
+    kernel_size = c( 7, 7 ), strides = c( 2, 2 ) )
+  outputs <- addCommonLayers( outputs )  
   outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), 
     strides = c( 2, 2 ), padding = 'same' )
 
   for( i in 1:length( layers ) )
     {
-    nFiltersIn <- lowestResolution * 2 ^ ( layers[i] - 1 )
+    nFiltersIn <- lowestResolution * 2 ^ ( layers[i] )
     nFiltersOut <- 2 * nFiltersIn
-
     for( j in 1:residualBlockSchedule[i] )  
       {
+      projectShortcut <- FALSE
       if( i == 1 && j == 1 )  
         {
         projectShortcut <- TRUE  
@@ -215,8 +217,7 @@ createResNetModel2D <- function( inputImageSize,
       }
     }  
   outputs <- outputs %>% layer_global_average_pooling_2d()
-  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, 
-    kernel_initializer = 'he_normal', activation = 'softmax' )
+  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels )
 
   resNetModel <- keras_model( inputs = inputs, outputs = outputs )
 
