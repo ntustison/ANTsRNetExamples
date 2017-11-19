@@ -186,7 +186,6 @@ createResNetModel2D <- function( inputImageSize,
 
   inputs <- layer_input( shape = inputImageSize )
 
-  # Convolution 1
   outputs <- inputs %>% layer_conv_2d( filters = numberOfFilters, 
     kernel_size = c( 7, 7 ), strides = strides )
   outputs <- addCommonLayers( output )  
@@ -216,7 +215,8 @@ createResNetModel2D <- function( inputImageSize,
       }
     }  
   outputs <- outputs %>% layer_global_average_pooling_2d()
-  outputs <- outputs %>% layer_dense( 1 )
+  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, 
+    kernel_initializer = 'he_normal', activation = 'softmax' )
 
   resNetModel <- keras_model( inputs = inputs, outputs = outputs )
 
