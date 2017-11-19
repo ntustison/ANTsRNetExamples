@@ -199,10 +199,8 @@ createResNetModel2D <- function( inputImageSize,
     {
     nFiltersIn <- lowestResolution * 2 ^ ( layers[i] )
     nFiltersOut <- 2 * nFiltersIn
-    cat( i, "\n" )
     for( j in 1:residualBlockSchedule[i] )  
       {
-      cat( "  ", j, " out of ", residualBlockSchedule[i], "\n" )
       projectShortcut <- FALSE
       if( i == 1 && j == 1 )  
         {
@@ -220,7 +218,7 @@ createResNetModel2D <- function( inputImageSize,
       }
     }  
   outputs <- outputs %>% layer_global_average_pooling_2d()
-  outputs <- outputs %>% layer_dense( 1 )
+  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels )
 
   resNetModel <- keras_model( inputs = inputs, outputs = outputs )
 

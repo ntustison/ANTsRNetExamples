@@ -9,11 +9,11 @@ library( jpeg )
 # Also use the human faces from:
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
-trainingProportion <- 0.01
+trainingProportion <- 0.2
 trainingImageSize <- c( 100, 100 )
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, '../ResNetExample/Images/' )
+dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
 modelDirectory <- paste0( baseDirectory, '../Models/' )
 
 source( paste0( modelDirectory, 'createResNetModel.R' ) )
