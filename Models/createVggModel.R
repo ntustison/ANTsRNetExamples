@@ -118,75 +118,75 @@ createVggModel2D <- function( inputImageSize,
                              )
 {
 
-if ( ! usePkg( "keras" ) )
-  {
-  stop( "Please install the keras package." )
-  }
-if( style != 19 && style != 16 )
-  {
-  stop( "Incorrect style.  Must be either '16' or '19'." )
-  }
- 
-vggModel <- keras_model_sequential()
-
-for( i in 1:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )    
-
-  if( i == 1 )
+  if ( ! usePkg( "keras" ) )
     {
-    vggModel %>% 
-      layer_conv_2d( input_shape = inputImageSize, filters = numberOfFilters, 
-                     kernel_size = convolutionKernelSize, activation = 'relu', 
-                     padding = 'same' ) %>% 
-      layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                     activation = 'relu', padding = 'same' )
-    } else if( i == 2 ) {
-    vggModel %>% 
-      layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                     activation = 'relu', padding = 'same' ) %>% 
-      layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                     activation = 'relu', padding = 'same' )
-    }  else {
-    if( style == 16 )  
-      {
-      vggModel %>%
-        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' )
-      } else {  # style == 19
-      vggModel %>%
-        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>%
-        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' )
-      }  
+    stop( "Please install the keras package." )
     }
-    
-  vggModel %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
-  }
+  if( style != 19 && style != 16 )
+    {
+    stop( "Incorrect style.  Must be either '16' or '19'." )
+    }
+  
+  vggModel <- keras_model_sequential()
 
-vggModel %>% layer_flatten()
-vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-if( dropoutRate > 0.0 )
-  {
-  vggModel %>% layer_dropout( rate = dropoutRate )
-  }
-vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-if( dropoutRate > 0.0 )
-  {
-  vggModel %>% layer_dropout( rate = dropoutRate )
-  }
-vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+  for( i in 1:length( layers ) )
+    {
+    numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )    
 
-return( vggModel )
+    if( i == 1 )
+      {
+      vggModel %>% 
+        layer_conv_2d( input_shape = inputImageSize, filters = numberOfFilters, 
+                      kernel_size = convolutionKernelSize, activation = 'relu', 
+                      padding = 'same' ) %>% 
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                      activation = 'relu', padding = 'same' )
+      } else if( i == 2 ) {
+      vggModel %>% 
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                      activation = 'relu', padding = 'same' ) %>% 
+        layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                      activation = 'relu', padding = 'same' )
+      }  else {
+      if( style == 16 )  
+        {
+        vggModel %>%
+          layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' )
+        } else {  # style == 19
+        vggModel %>%
+          layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>%
+          layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' )
+        }  
+      }
+      
+    vggModel %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
+    }
+
+  vggModel %>% layer_flatten()
+  vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+  if( dropoutRate > 0.0 )
+    {
+    vggModel %>% layer_dropout( rate = dropoutRate )
+    }
+  vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+  if( dropoutRate > 0.0 )
+    {
+    vggModel %>% layer_dropout( rate = dropoutRate )
+    }
+  vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+
+  return( vggModel )
 }
 
 #' 3-D implementation of the Vgg deep learning architecture.
@@ -309,74 +309,74 @@ createVggModel3D <- function( inputImageSize,
                              )
 {
 
-if ( ! usePkg( "keras" ) )
-  {
-  stop( "Please install the keras package." )
-  }
-if( style != 19 && style != 16 )
-  {
-  stop( "Incorrect style.  Must be either '16' or '19'." )
-  }
- 
-vggModel <- keras_model_sequential()
-
-for( i in 1:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )    
-
-  if( i == 1 )
+  if ( ! usePkg( "keras" ) )
     {
-    vggModel %>% 
-      layer_conv_3d( input_shape = inputImageSize, filters = numberOfFilters, 
-                     kernel_size = convolutionKernelSize, activation = 'relu', 
-                     padding = 'same' ) %>% 
-      layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                     activation = 'relu', padding = 'same' )
-    } else if( i == 2 ) {
-    vggModel %>% 
-      layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                     activation = 'relu', padding = 'same' ) %>% 
-      layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                     activation = 'relu', padding = 'same' )
-    }  else {
-    if( style == 16 )  
-      {
-      vggModel %>%
-        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' )
-      } else {  # style == 19
-      vggModel %>%
-        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>% 
-        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' ) %>%
-        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
-                       activation = 'relu', padding = 'same' )
-      }  
+    stop( "Please install the keras package." )
     }
-    
-  vggModel %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
-  }
-
-vggModel %>% layer_flatten()
-vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-if( dropoutRate > 0.0 )
-  {
-  vggModel %>% layer_dropout( rate = dropoutRate )
-  }
-vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
-if( dropoutRate > 0.0 )
-  {
-  vggModel %>% layer_dropout( rate = dropoutRate )
-  }
-vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+  if( style != 19 && style != 16 )
+    {
+    stop( "Incorrect style.  Must be either '16' or '19'." )
+    }
   
-return( vggModel )
+  vggModel <- keras_model_sequential()
+
+  for( i in 1:length( layers ) )
+    {
+    numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )    
+
+    if( i == 1 )
+      {
+      vggModel %>% 
+        layer_conv_3d( input_shape = inputImageSize, filters = numberOfFilters, 
+                      kernel_size = convolutionKernelSize, activation = 'relu', 
+                      padding = 'same' ) %>% 
+        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                      activation = 'relu', padding = 'same' )
+      } else if( i == 2 ) {
+      vggModel %>% 
+        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                      activation = 'relu', padding = 'same' ) %>% 
+        layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                      activation = 'relu', padding = 'same' )
+      }  else {
+      if( style == 16 )  
+        {
+        vggModel %>%
+          layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' )
+        } else {  # style == 19
+        vggModel %>%
+          layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>% 
+          layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' ) %>%
+          layer_conv_3d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+                        activation = 'relu', padding = 'same' )
+        }  
+      }
+      
+    vggModel %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
+    }
+
+  vggModel %>% layer_flatten()
+  vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+  if( dropoutRate > 0.0 )
+    {
+    vggModel %>% layer_dropout( rate = dropoutRate )
+    }
+  vggModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+  if( dropoutRate > 0.0 )
+    {
+    vggModel %>% layer_dropout( rate = dropoutRate )
+    }
+  vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+    
+  return( vggModel )
 }
 

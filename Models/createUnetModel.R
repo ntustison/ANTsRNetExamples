@@ -46,7 +46,7 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
     }
   y_true_label <- K$gather( y_true_permuted, indices = c( 1L ) )
   y_pred_label <- K$gather( y_pred_permuted, indices = c( 1L ) )
-  
+
   y_true_label_f <- K$flatten( y_true_label )
   y_pred_label_f <- K$flatten( y_pred_label )
   intersection <-  y_true_label_f * y_pred_label_f
@@ -198,69 +198,69 @@ createUnetModel2D <- function( inputImageSize,
                                strides = c( 2, 2 )
                              )
 {
-
-if ( ! usePkg( "keras" ) )
-  {
-  stop( "Please install the keras package." )
-  }
-
-inputs <- layer_input( shape = inputImageSize )
-
-# Encoding path  
-
-encodingConvolutionLayers <- list()
-for( i in 1:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )
-
-  if( i == 1 )
+  if ( ! usePkg( "keras" ) )
     {
-    conv <- inputs %>% layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    stop( "Please install the keras package." )
+    }
+
+  inputs <- layer_input( shape = inputImageSize )
+
+  # Encoding path  
+
+  encodingConvolutionLayers <- list()
+  for( i in 1:length( layers ) )
+    {
+    numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )
+
+    if( i == 1 )
+      {
+      conv <- inputs %>% layer_conv_2d( filters = numberOfFilters, 
+        kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+      } else {
+      conv <- pool %>% layer_conv_2d( filters = numberOfFilters, 
+        kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+      }
+    encodingConvolutionLayers[[i]] <- conv %>% layer_conv_2d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+      activation = 'relu', padding = 'same' )
+    
+    if( i < length( layers ) )
+      {
+      pool <- encodingConvolutionLayers[[i]] %>% 
+        layer_max_pooling_2d( pool_size = poolSize, strides = strides )
+      }
+    }
+
+  # Decoding path 
+
+  outputs <- encodingConvolutionLayers[[length( layers )]]
+  for( i in 2:length( layers ) )
+    {
+    numberOfFilters <- lowestResolution * 2 ^ ( length( layers ) - layers[i] )    
+    outputs <- layer_concatenate( list( outputs %>%  
+      layer_conv_2d_transpose( filters = numberOfFilters, 
+        kernel_size = deconvolutionKernelSize, strides = strides, padding = 'same' ),
+      encodingConvolutionLayers[[length( layers ) - i + 1]] ),
+      axis = 3
+      )
+
+    outputs <- outputs %>% layer_conv_2d( filters = numberOfFilters, 
+      kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )  %>%
+      layer_conv_2d( filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+      activation = 'relu', padding = 'same'  )  
+    }
+  if( numberOfClassificationLabels == 1 )  
+    {
+    outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, 
+      kernel_size = c( 1, 1 ), activation = 'sigmoid' )
     } else {
-    conv <- pool %>% layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, 
+      kernel_size = c( 1, 1 ), activation = 'softmax' )
     }
-  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_2d( 
-    filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-  
-  if( i < length( layers ) )
-    {
-    pool <- encodingConvolutionLayers[[i]] %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
-    }
-  }
+    
+  unetModel <- keras_model( inputs = inputs, outputs = outputs )
 
-# Decoding path 
-
-outputs <- encodingConvolutionLayers[[length( layers )]]
-for( i in 2:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( length( layers ) - layers[i] )    
-  outputs <- layer_concatenate( list( outputs %>%  
-    layer_conv_2d_transpose( filters = numberOfFilters, 
-      kernel_size = deconvolutionKernelSize, strides = strides, padding = 'same' ),
-    encodingConvolutionLayers[[length( layers ) - i + 1]] ),
-    axis = 3
-    )
-
-  outputs <- outputs %>%
-    layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
-    layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
-  }
-if( numberOfClassificationLabels == 1 )  
-  {
-  outputs <- outputs %>% layer_conv_2d( 
-    filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'sigmoid' )
-  } else {
-  outputs <- outputs %>% layer_conv_2d( 
-    filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
-  }
-  
-unetModel <- keras_model( inputs = inputs, outputs = outputs )
-
-return( unetModel )
+  return( unetModel )
 }
 
   
@@ -381,67 +381,68 @@ createUnetModel3D <- function( inputImageSize,
                              )
 {
 
-if ( ! usePkg( "keras" ) )
-  {
-  stop( "Please install the keras package." )
-  }
-
-inputs <- layer_input( shape = c( inputImageSize, numberOfClassificationLabels ) )
-
-# Encoding path  
-
-encodingConvolutionLayers <- list()
-for( i in 1:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )
-
-  if( i == 1 )
+  if ( ! usePkg( "keras" ) )
     {
-    conv <- inputs %>% layer_conv_3d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    stop( "Please install the keras package." )
+    }
+
+  inputs <- layer_input( shape = c( inputImageSize, numberOfClassificationLabels ) )
+
+  # Encoding path  
+
+  encodingConvolutionLayers <- list()
+  for( i in 1:length( layers ) )
+    {
+    numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )
+
+    if( i == 1 )
+      {
+      conv <- inputs %>% layer_conv_3d( filters = numberOfFilters, 
+        kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+      } else {
+      conv <- pool %>% layer_conv_3d( filters = numberOfFilters, 
+        kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+      }
+    encodingConvolutionLayers[[i]] <- conv %>% layer_conv_3d( 
+      filters = numberOfFilters, kernel_size = convolutionKernelSize, 
+      activation = 'relu', padding = 'same' )
+    
+    if( i < length( layers ) )
+      {
+      pool <- encodingConvolutionLayers[[i]] %>% 
+        layer_max_pooling_3d( pool_size = poolSize, strides = strides )
+      }
+    }
+
+  # Decoding path 
+
+  outputs <- encodingConvolutionLayers[[length( layers )]]
+  for( i in 2:length( layers ) )
+    {
+    numberOfFilters <- lowestResolution * 2 ^ ( length( layers ) - layers[i] )    
+    outputs <- layer_concatenate( list( outputs %>%  
+      layer_conv_3d_transpose( filters = numberOfFilters, 
+        kernel_size = deconvolutionKernelSize, strides = strides, padding = 'same' ),
+      encodingConvolutionLayers[[length( layers ) - i + 1]] ),
+      axis = 3
+      )
+
+    outputs <- outputs %>% layer_conv_3d( filters = numberOfFilters, 
+      kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
+      layer_conv_3d( filters = numberOfFilters, 
+        kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
+    }
+  if( numberOfClassificationLabels == 1 )  
+    {
+    outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, 
+      kernel_size = c( 1, 1, 1 ), activation = 'sigmoid' )
     } else {
-    conv <- pool %>% layer_conv_3d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, 
+      kernel_size = c( 1, 1, 1 ), activation = 'softmax' )
     }
-  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_3d( 
-    filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-  
-  if( i < length( layers ) )
-    {
-    pool <- encodingConvolutionLayers[[i]] %>% layer_max_pooling_3d( pool_size = poolSize, strides = strides )
-    }
-  }
 
-# Decoding path 
+  unetModel <- keras_model( inputs = inputs, outputs = outputs )
 
-outputs <- encodingConvolutionLayers[[length( layers )]]
-for( i in 2:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( length( layers ) - layers[i] )    
-  outputs <- layer_concatenate( list( outputs %>%  
-    layer_conv_3d_transpose( filters = numberOfFilters, 
-      kernel_size = deconvolutionKernelSize, strides = strides, padding = 'same' ),
-    encodingConvolutionLayers[[length( layers ) - i + 1]] ),
-    axis = 3
-    )
-
-  outputs <- outputs %>%
-    layer_conv_3d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
-    layer_conv_3d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
-  }
-if( numberOfClassificationLabels == 1 )  
-  {
-  outputs <- outputs %>% layer_conv_2d( 
-    filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'sigmoid' )
-  } else {
-  outputs <- outputs %>% layer_conv_2d( 
-    filters = numberOfClassificationLabels, kernel_size = c( 1, 1, 1 ), activation = 'softmax' )
-  }
-
-unetModel <- keras_model( inputs = inputs, outputs = outputs )
-
-return( unetModel )
+  return( unetModel )
 }
   

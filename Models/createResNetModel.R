@@ -1,11 +1,3 @@
-createBasicBlockArchitecture <- function()
-
-createBottleNeckArchitecture <- function()
-
-createResidualBlockArchitecture <- function()
-
-
-
 #' 2-D implementation of the ResNet deep learning architecture.
 #'
 #' Creates a keras model of the ResNet deep learning architecture for image 
@@ -16,7 +8,7 @@ createResidualBlockArchitecture <- function()
 #' This particular implementation was influenced by the following python 
 #' implementation: 
 #' 
-#'         https://github.com/raghakot/keras-resnet/blob/master/resnet.py     
+#'         https://gist.github.com/mjdietzx/0cb95922aac14d446a6530f87b3a04ce    
 #'
 #' @param inputImageSize Used for specifying the input tensor shape.  The
 #' shape (or dimension) of that tensor is the image dimensions followed by
@@ -111,88 +103,122 @@ createResidualBlockArchitecture <- function()
 createResNetModel2D <- function( inputImageSize, 
                                  numberOfClassificationLabels = 1,
                                  layers = 1:4, 
-                                 lowestResolution = 64, 
-                                 convolutionKernelSize = c( 3, 3 ), 
-                                 deconvolutionKernelSize = c( 2, 2 ), 
-                                 poolSize = c( 2, 2 ), 
-                                 strides = c( 2, 2 )
+                                 residualBlockSchedule = c( 4, 5, 7, 4 ),
+                                 lowestResolution = 128,
+                                 cardinality = 32
                                )
 {
-
-if ( ! usePkg( "keras" ) )
-  {
-  stop( "Please install the keras package." )
-  }
-
-inputs <- layer_input( shape = inputImageSize )
-
-# Encoding path  
-
-convolutionLayers <- list()
-for( i in 1:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( layers[i] - 1 )
-
-  if( i == 1 )
+  if ( ! usePkg( "keras" ) )
     {
-    conv <- inputs %>% layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-    } else {
-    conv <- pool %>% layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
+    stop( "Please install the keras package." )
     }
-  encodingConvolutionLayers[[i]] <- conv %>% layer_conv_2d( 
-    filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same' )
-  
-  if( i < length( layers ) )
+
+  addCommonLayers <- function( model )
     {
-    pool <- encodingConvolutionLayers[[i]] %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
+    model <- model %>% layer_batch_normalization()
+    model <- model %>% layer_activation_leaky_relu()
+
+    return( model )
     }
-  }
 
-# Decoding path 
+  groupedConvolutionLayer2D <- function( model, numberOfFilters, strides )
+    {
 
-outputs <- encodingConvolutionLayers[[length( layers )]]
-for( i in 2:length( layers ) )
-  {
-  numberOfFilters <- lowestResolution * 2 ^ ( length( layers ) - layers[i] )    
-  outputs <- layer_concatenate( list( outputs %>%  
-    layer_conv_2d_transpose( filters = numberOfFilters, 
-      kernel_size = deconvolutionKernelSize, strides = strides, padding = 'same' ),
-    encodingConvolutionLayers[[length( layers ) - i + 1]] ),
-    axis = 3
-    )
+    # Per standard ResNet, this is just a 2-D convolution
+    if( cardinality == 1 )
+      {
+      model %>% layer_conv_2d( filters = numberOfFilters, 
+        kernel_size = c( 3, 3 ), padding = 'same' )
+      return( model )
+      }
 
-  outputs <- outputs %>%
-    layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  %>%
-    layer_conv_2d( 
-      filters = numberOfFilters, kernel_size = convolutionKernelSize, activation = 'relu', padding = 'same'  )  
-  }
-if( numberOfClassificationLabels == 1 )  
-  {
-  outputs <- outputs %>% layer_conv_2d( 
-    filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'sigmoid' )
-  } else {
-  outputs <- outputs %>% layer_conv_2d( 
-    filters = numberOfClassificationLabels, kernel_size = c( 1, 1 ), activation = 'softmax' )
-  }
-  
-unetModel <- keras_model( inputs = inputs, outputs = outputs )
+    if( numberOfFilters %% cardinality != 0 )  
+      {
+      stop( "numberOfFilters %% cardinality != 0" )  
+      }
 
-if( numberOfClassificationLabels == 1 )  
-  {
-  unetModel %>% compile( loss = loss_dice_coefficient_error,
-    optimizer = optimizer_adam( lr = 0.0001 ),  
-    metrics = c( dice_coefficient ) )
-  } else {
-  # unetModel %>% compile( loss = 'categorical_crossentropy',
-  #   optimizer = optimizer_adam( lr = 5e-5 ),  
-  #   metrics = c( 'accuracy', 'categorical_crossentropy' ) )
-  unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
-    optimizer = optimizer_adam( lr = 0.0001 ),  
-    metrics = c( multilabel_dice_coefficient ) )
-  }
+    numberOfGroupFilters <- as.integer( numberOfFilters / cardinality )
 
-return( unetModel )
+    convolutionLayers <- list()
+    for( j in 1:cardinality )
+      {
+      convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
+        { z[,,, ( j * numberOfGroupFilters ):( ( j + 1 ) * numberOfGroupFilters )] } )
+      convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
+        layer_conv_2d( filters = numberOfGroupFilters, 
+          kernel_size = c( 3, 3 ), strides = strides, padding = 'same' )
+      }
+
+    return( layer_concatenate( convolutionLayers ) )
+    }
+
+  residualBlock2D <- function( model, numberOfFiltersIn, numberOfFiltersOut, 
+    strides = c( 1, 1 ), projectShortcut = FALSE )
+    {
+    shortcut <- model
+
+    model <- model %>% layer_conv_2d( filters = numberOfFiltersIn, 
+      kernel_size = c( 1, 1 ), strides = c( 1, 1 ), padding = 'same' )
+    model <- addCommonLayers( model )
+
+    # ResNeXt (identical to ResNet when `cardinality` == 1)
+    model <- groupedConvolutionLayer2D( model, numberOfFilters = numberOfFiltersIn, 
+      strides = strides )
+    model <- addCommonLayers( model ) 
+
+    model <- model %>% layer_conv_2d( filters = numberOfFiltersOut, 
+      kernel_size = c( 1, 1 ), strides = c( 1, 1 ), padding = 'same' )
+    model <- model %>% layer_batch_normalization() 
+
+    if( projectShortcut == TRUE || prod( strides == c( 1, 1 ) ) == 0 )
+      {
+      shortcut <- shortcut %>% layer_conv_2d( filters = numberOfFiltersOut, 
+        kernel_size = c( 1, 1, ), strides = strides, padding = 'same' )
+      shortcut <- shortcut %>% layer_batch_normalization()  
+      }
+
+    model <- layer_add( list( shortcut, model ) )
+
+    model <- model %>% layer_activation_leaky_relu()
+
+    return( model )
+    }
+
+  inputs <- layer_input( shape = inputImageSize )
+
+  # Convolution 1
+  outputs <- inputs %>% layer_conv_2d( filters = numberOfFilters, 
+    kernel_size = c( 7, 7 ), strides = strides )
+  outputs <- addCommonLayers( output )  
+  outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), 
+    strides = c( 2, 2 ), padding = 'same' )
+
+  for( i in 1:length( layers ) )
+    {
+    nFiltersIn <- lowestResolution * 2 ^ ( layers[i] - 1 )
+    nFiltersOut <- 2 * nFiltersIn
+
+    for( j in 1:residualBlockSchedule[i] )  
+      {
+      if( i == 1 && j == 1 )  
+        {
+        projectShortcut <- TRUE  
+        }
+      if( i > 1 && j == 1 )
+        {
+        strides <- c( 2, 2 )
+        } else {
+        strides <- c( 1, 1 )  
+        }
+      outputs <- residualBlock2D( outputs, numberOfFiltersIn = nFiltersIn, 
+        numberOfFiltersOut = nFiltersOut, strides = strides, 
+        projectShortcut = projectShortcut )  
+      }
+    }  
+  outputs <- outputs %>% layer_global_average_pooling_2d()
+  outputs <- outputs %>% layer_dense( 1 )
+
+  resNetModel <- keras_model( inputs = inputs, outputs = outputs )
+
+  return( resNetModel )
 }
