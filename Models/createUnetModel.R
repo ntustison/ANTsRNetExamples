@@ -26,7 +26,7 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
 {
   smoothingFactor <- 1.0
 
-  K <- backend()  
+  K <- keras::backend()  
 
   y_dims <- unlist( K$int_shape( y_pred ) )
   numberOfLabels <- y_dims[length( y_dims )]

@@ -96,7 +96,7 @@
 #' }
 
 createAlexNetModel2D <- function( inputImageSize, 
-                                  numberOfClassificationLabels = 1000,
+                                  numberOfClassificationLabels = 1000
                                 )
 {
 
@@ -121,29 +121,58 @@ createAlexNetModel2D <- function( inputImageSize,
       } else {
       stop( "Wrong axis specification.")  
       }
-    return output  
-       
-    return layer_lambda( output )  
+    return( output )
     }
 
-  alexNetModel <- keras_model_sequential()
+  crossChannelNormalization <- function( alpha = 1e-4, k = 2, beta = 0.75, n = 5 )
+    {
 
-  alexNetModel <- alexNetModel %>% layer_conv_2d( input_shape = inputImageSize, 
-    strides = c( 4, 4 ), activation = 'relu' )
+    normalizeTensor <- function( X )
+      {
+      K <- keras::backend() 
+      half <- as.integer( n / 2 )
+      X2 <- K$square( X )
+      extraChannels <- K$spatial_2d_padding( 
+        K$permute_dimensions( X2, pattern = c( 0L, 2L, 3L, 1L ) ), c( 0, half ) )
+      extraChannels <- K$permute_dimensions( extraChannels, pattern = c( 0L, 3L, 1L, 2L ) )
+      scale <- k
+
+      ch <- unlist( K$int_shape( X ) )[2]
+      for( i in 0:n )
+        {
+        scale <- scale + alpha * extraChannels[, i:( i + ch ),,]  
+        }
+      scale <- scale^beta
+
+      X <- X / scale
+
+      return( X )  
+      }
+
+    return( layer_lambda( normalizeTensor ) )  
+    }
+
+  inputs <- layer_input( shape = inputImageSize )
+
+  # Conv1
+  alexNetModel <- inputs %>% layer_conv_2d( numberOfFilters = 96, 
+    kernel_size = c( 11, 11 ), strides = c( 4, 4 ), activation = 'relu', 
+    kernel_initializer = "initializer_he_normal" )
 
   # Conv2
   alexNetModel <- alexNetModel %>% layer_max_pooling_2d( poolSize = c( 3, 3 ), 
     strides = c( 2, 2 ) )
   # Cross channel normalization  
-  alexNetModel <- l
+  alexNetModel <- alexNetModel %>% createCrossChannelNormalization()
 
   alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
 
   convolutionLayer <- alexNetModel %>% layer_conv_2d( numberOfFilters = 128 )
   lambdaLayers <- list( convolutionLayer )
-  for( i = 1:3 )
+  for( i in 0:2 )
     {
-    lambdaLayers <- lappend( lambdaLayers, splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i-1 ) )
+    lambdaLayers <- lappend( lambdaLayers, 
+      splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i ) )
     }
   alexNetModel <- layer_concatenate( lambdaLayers )
 
@@ -151,7 +180,7 @@ createAlexNetModel2D <- function( inputImageSize,
   alexNetModel <- alexNetModel %>% layer_max_pooling_2d( poolSize = c( 3, 3 ), 
     strides = c( 2, 2 ) )
   # Cross channel normalization  
-  alexNetModel <- l
+  alexNetModel <- alexNetModel %>% createCrossChannelNormalization()
 
   alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
   alexNetModel <- alexNetModel %>% layer_conv_2d( numberOfFilters = 384 )
@@ -160,24 +189,27 @@ createAlexNetModel2D <- function( inputImageSize,
   alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
   convolutionLayer <- alexNetModel %>% layer_conv_2d( numberOfFilters = 128 )
   lambdaLayers <- list( convolutionLayer )
-  for( i = 1:3 )
+  for( i in 0:2 )
     {
-    lambdaLayers <- lappend( lambdaLayers, splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i-1 ) )
+    lambdaLayers <- lappend( lambdaLayers, 
+      splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i ) )
     }
   alexNetModel <- layer_concatenate( lambdaLayers )
 
   # Conv5
   alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
   # Cross channel normalization  
-  alexNetModel <- l
+  alexNetModel <- alexNetModel %>% createCrossChannelNormalization()
 
   convolutionLayer <- alexNetModel %>% layer_conv_2d( numberOfFilters = 128 )
   lambdaLayers <- list( convolutionLayer )
-  for( i = 0:2 )
+  for( i in 0:2 )
     {
-    lambdaLayers <- lappend( lambdaLayers, splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i ) )
+    lambdaLayers <- lappend( lambdaLayers, 
+      splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i ) )
     }
   alexNetModel <- layer_concatenate( lambdaLayers )
+
 
   alexNetModel %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), strides = c(2, 2 ) )
   alexNetModel %>% layer_flatten()
