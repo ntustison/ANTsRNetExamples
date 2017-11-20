@@ -375,7 +375,8 @@ createVggModel3D <- function( inputImageSize,
     {
     vggModel %>% layer_dropout( rate = dropoutRate )
     }
-  vggModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+  vggModel %>% layer_dense( units = numberOfClassificationLabels, 
+                            activation = 'softmax' )
     
   return( vggModel )
 }

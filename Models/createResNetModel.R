@@ -214,7 +214,8 @@ createResNetModel2D <- function( inputImageSize,
       }
     }  
   outputs <- outputs %>% layer_global_average_pooling_2d()
-  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels )
+  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, 
+                                      activation = 'softmax' )
 
   resNetModel <- keras_model( inputs = inputs, outputs = outputs )
 
