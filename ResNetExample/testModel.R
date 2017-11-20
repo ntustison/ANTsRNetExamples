@@ -12,10 +12,10 @@ testingProportion <- 0.01
 testingImageSize <- c( 100, 100 )
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, 'Images/' )
+dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
 modelDirectory <- paste0( baseDirectory, '../Models/' )
 
-source( paste0( modelDirectory, 'createVggModel.R' ) )
+source( paste0( modelDirectory, 'createResNetModel.R' ) )
 
 # Yeah, I know I'm double-dipping here but I'm just trying to get something
 # to work at this point.
@@ -94,23 +94,23 @@ Y_test <- to_categorical( testingClassifications, numberOfLabels )
 
 numberOfLabels <- length( unique( as.vector( testingClassifications ) ) )
 
-# vggModelTest <- createVggModel2D( c( dim( testingImageArrays[[1]] ), 1 ),
+# resNetModelTest <- createResNetModel2D( c( dim( testingImageArrays[[1]] ), 1 ),
 #   numberOfClassificationLabels = numberOfLabels, style = 19 )
-vggModelTest <- createVggModel2D( dim( testingImageArrays[[1]] ),
-  numberOfClassificationLabels = numberOfLabels, style = 19 )
+resNetModelTest <- createResNetModel2D( dim( testingImageArrays[[1]] ),
+  numberOfClassificationLabels = numberOfLabels )
 if( numberOfLabels == 2 )   
   {
-  vggModelTest %>% compile( loss = 'binary_crossentropy',
+  resNetModelTest %>% compile( loss = 'binary_crossentropy',
     optimizer = optimizer_adam( lr = 0.0001 ),  
     metrics = c( 'binary_crossentropy', 'accuracy' ) )
   } else {
-  vggModelTest %>% compile( loss = 'categorical_crossentropy',
+  resNetModelTest %>% compile( loss = 'categorical_crossentropy',
     optimizer = optimizer_adam( lr = 0.0001 ),  
     metrics = c( 'categorical_crossentropy', 'accuracy' ) )
   }
 
-load_model_weights_hdf5( vggModelTest, filepath = paste0( baseDirectory, 'vggWeights.h5' ) )
+load_model_weights_hdf5( resNetModelTest, filepath = paste0( baseDirectory, 'resNetWeights.h5' ) )
 
-testingMetrics <- vggModelTest %>% evaluate( X_test, Y_test )
-predictedData <- vggModelTest %>% predict( X_test, verbose = 1 )
+testingMetrics <- resNetModelTest %>% evaluate( X_test, Y_test )
+predictedData <- resNetModelTest %>% predict( X_test, verbose = 1 )
 

@@ -91,6 +91,8 @@ segmentationLabels <- sort( unique( trainingClassifications ) )
 numberOfLabels <- length( segmentationLabels )
 Y_train <- to_categorical( trainingClassifications, numberOfLabels )
 
+return()
+
 # resNetModel <- createResNetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ),
 #   numberOfClassificationLabels = numberOfLabels )
 resNetModel <- createResNetModel2D( dim( trainingImageArrays[[1]] ),

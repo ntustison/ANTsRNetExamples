@@ -103,7 +103,7 @@
 createResNetModel2D <- function( inputImageSize, 
                                  numberOfClassificationLabels = 1000,
                                  layers = 1:4, 
-                                 residualBlockSchedule = c( 4, 5, 7, 4 ),
+                                 residualBlockSchedule = c( 3, 4, 6, 3 ),
                                  lowestResolution = 64,
                                  cardinality = 1
                                )
@@ -189,7 +189,7 @@ createResNetModel2D <- function( inputImageSize,
   nFilters <- lowestResolution
 
   outputs <- inputs %>% layer_conv_2d( filters = nFilters, 
-    kernel_size = c( 7, 7 ), strides = c( 2, 2 ) )
+    kernel_size = c( 7, 7 ), strides = c( 2, 2 ), padding = 'same' )
   outputs <- addCommonLayers( outputs )  
   outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), 
     strides = c( 2, 2 ), padding = 'same' )
