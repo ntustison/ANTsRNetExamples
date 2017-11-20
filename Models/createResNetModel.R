@@ -17,14 +17,11 @@
 #' @param numberOfClassificationLabels Number of segmentation labels.  
 #' @param layers a vector determining the number of 'filters' defined at
 #' for each layer.
+#' @param residualBlockSchedule vector defining the how many residual blocks
+#' repeats.
 #' @param lowestResolution number of filters at the beginning and end of 
 #' the 'U'.
-#' @param convolutionKernelSize 2-d vector definining the kernel size 
-#' during the encoding path
-#' @param deconvolutionKernelSize 2-d vector definining the kernel size 
-#' during the decoding 
-#' @param poolSize 2-d vector defining the region for each pooling layer.
-#' @param strides 2-d vector describing the stride length in each direction.
+#' @param cardinality perform  ResNet (cardinality = 1) or ResNeXt (cardinality != 1)
 #'
 #' @return a ResNet keras model to be used with subsequent fitting
 #' @author Tustison NJ

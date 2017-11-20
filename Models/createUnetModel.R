@@ -107,9 +107,9 @@ attr( loss_multilabel_dice_coefficient_error, "py_function_name" ) <- "multilabe
 #' for each layer.
 #' @param lowestResolution number of filters at the beginning and end of 
 #' the 'U'.
-#' @param convolutionKernelSize 2-d vector definining the kernel size 
+#' @param convolutionKernelSize 2-d vector defining the kernel size 
 #' during the encoding path
-#' @param deconvolutionKernelSize 2-d vector definining the kernel size 
+#' @param deconvolutionKernelSize 2-d vector defining the kernel size 
 #' during the decoding 
 #' @param poolSize 2-d vector defining the region for each pooling layer.
 #' @param strides 2-d vector describing the stride length in each direction.
@@ -289,9 +289,9 @@ createUnetModel2D <- function( inputImageSize,
 #' for each layer.
 #' @param lowestResolution number of filters at the beginning and end of 
 #' the 'U'.
-#' @param convolutionKernelSize 3-d vector definining the kernel size 
+#' @param convolutionKernelSize 3-d vector defining the kernel size 
 #' during the encoding path
-#' @param deconvolutionKernelSize 3-d vector definining the kernel size 
+#' @param deconvolutionKernelSize 3-d vector defining the kernel size 
 #' during the decoding 
 #' @param poolSize 3-d vector defining the region for each pooling layer.
 #' @param strides 3-d vector describing the stride length in each direction.
