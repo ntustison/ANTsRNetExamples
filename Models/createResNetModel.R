@@ -105,7 +105,7 @@ createResNetModel2D <- function( inputImageSize,
                                  layers = 1:4, 
                                  residualBlockSchedule = c( 4, 5, 7, 4 ),
                                  lowestResolution = 64,
-                                 cardinality = 32
+                                 cardinality = 1
                                )
 {
   if ( ! usePkg( "keras" ) )
@@ -127,8 +127,8 @@ createResNetModel2D <- function( inputImageSize,
     # Per standard ResNet, this is just a 2-D convolution
     if( cardinality == 1 )
       {
-      model %>% layer_conv_2d( filters = numberOfFilters, 
-        kernel_size = c( 3, 3 ), padding = 'same' )
+      model <- model %>% layer_conv_2d( filters = numberOfFilters, 
+        kernel_size = c( 3, 3 ), strides = strides, padding = 'same' )
       return( model )
       }
 
@@ -140,10 +140,10 @@ createResNetModel2D <- function( inputImageSize,
     numberOfGroupFilters <- as.integer( numberOfFilters / cardinality )
 
     convolutionLayers <- list()
-    for( j in 1:cardinality )
+    for( j in 0:cardinality )
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
-        { z[,,, ( j * numberOfGroupFilters ):( ( j + 1 ) * numberOfGroupFilters )] } )
+        { return( z[,,, ( j * numberOfGroupFilters ):( ( j + 1 ) * numberOfGroupFilters )] ) } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
         layer_conv_2d( filters = numberOfGroupFilters, 
           kernel_size = c( 3, 3 ), strides = strides, padding = 'same' )
@@ -186,7 +186,6 @@ createResNetModel2D <- function( inputImageSize,
 
   inputs <- layer_input( shape = inputImageSize )
 
-  # Convolution 1
   nFilters <- lowestResolution
 
   outputs <- inputs %>% layer_conv_2d( filters = nFilters, 
