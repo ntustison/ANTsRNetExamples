@@ -9,7 +9,7 @@ library( ggplot2 )
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
 testingProportion <- 0.01
-testingImageSize <- c( 100, 100 )
+testingImageSize <- c( 224, 224 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
@@ -101,11 +101,11 @@ resNetModelTest <- createResNetModel2D( dim( testingImageArrays[[1]] ),
 if( numberOfLabels == 2 )   
   {
   resNetModelTest %>% compile( loss = 'binary_crossentropy',
-    optimizer = optimizer_adam( lr = 0.0001 ),  
+    optimizer = optimizer_adam( lr = 0.01 ),  
     metrics = c( 'binary_crossentropy', 'accuracy' ) )
   } else {
   resNetModelTest %>% compile( loss = 'categorical_crossentropy',
-    optimizer = optimizer_adam( lr = 0.0001 ),  
+    optimizer = optimizer_adam( lr = 0.01 ),  
     metrics = c( 'categorical_crossentropy', 'accuracy' ) )
   }
 

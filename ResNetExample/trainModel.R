@@ -10,7 +10,7 @@ library( jpeg )
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
 trainingProportion <- 0.2
-trainingImageSize <- c( 100, 100 )
+trainingImageSize <- c( 224, 224 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
@@ -99,11 +99,11 @@ resNetModel <- createResNetModel2D( dim( trainingImageArrays[[1]] ),
 if( numberOfLabels == 2 )   
   {
   resNetModel %>% compile( loss = 'binary_crossentropy',
-    optimizer = optimizer_adam( lr = 0.0001 ),  
+    optimizer = optimizer_adam( lr = 0.001 ),  
     metrics = c( 'binary_crossentropy', 'accuracy' ) )
   } else {
   resNetModel %>% compile( loss = 'categorical_crossentropy',
-    optimizer = optimizer_adam( lr = 0.0001 ),  
+    optimizer = optimizer_adam( lr = 0.001 ),  
     metrics = c( 'categorical_crossentropy', 'accuracy' ) )
   }
 
