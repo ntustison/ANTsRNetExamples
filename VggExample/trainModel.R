@@ -9,7 +9,7 @@ library( jpeg )
 # Also use the human faces from:
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
-trainingProportion <- 0.2
+trainingProportion <- 0.5
 trainingImageSize <- c( 100, 100 )
 
 baseDirectory <- './'

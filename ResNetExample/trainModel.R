@@ -94,7 +94,7 @@ Y_train <- to_categorical( trainingClassifications, numberOfLabels )
 # resNetModel <- createResNetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ),
 #   numberOfClassificationLabels = numberOfLabels )
 resNetModel <- createResNetModel2D( dim( trainingImageArrays[[1]] ),
-  numberOfClassificationLabels = numberOfLabels )
+  numberOfClassificationLabels = numberOfLabels, cardinality = 32 )
 
 if( numberOfLabels == 2 )   
   {
@@ -110,19 +110,19 @@ if( numberOfLabels == 2 )
 
 track <- resNetModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
-                 callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "resNetWeights.h5" ),
-                     monitor = 'val_loss', save_best_only = TRUE )
+                #  callbacks = list( 
+                #    callback_model_checkpoint( paste0( baseDirectory, "resNetWeights.h5" ),
+                #      monitor = 'val_loss', save_best_only = TRUE )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
-                 ), 
+                #  ), 
                  validation_split = 0.2 )
 # Save the model
 
-save_model_weights_hdf5( 
-  resNetModel, filepath = paste0( baseDirectory, 'resNetWeights.h5' ) )
-save_model_hdf5( 
-  resNetModel, filepath = paste0( baseDirectory, 'resNetModel.h5' ), overwrite = TRUE )
+# save_model_weights_hdf5( 
+#   resNetModel, filepath = paste0( baseDirectory, 'resNetWeights.h5' ) )
+# save_model_hdf5( 
+#   resNetModel, filepath = paste0( baseDirectory, 'resNetModel.h5' ), overwrite = TRUE )
 
 ## Plot the model fitting
 

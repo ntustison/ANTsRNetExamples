@@ -142,8 +142,10 @@ createResNetModel2D <- function( inputImageSize,
     for( j in 1:cardinality )
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
-        { 
-        return( z[,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )] ) 
+        {
+        K <- keras::backend()
+        K$set_image_dim_ordering( 'tf' ) 
+        z[,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )]
         } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
         layer_conv_2d( filters = numberOfGroupFilters, 
@@ -371,7 +373,9 @@ createResNetModel3D <- function( inputImageSize,
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
         { 
-        return( z[,,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )] ) 
+        K <- keras::backend()
+        K$set_image_dim_ordering( 'tf' ) 
+        z[,,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )]
         } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
         layer_conv_3d( filters = numberOfGroupFilters, 
