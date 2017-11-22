@@ -21,8 +21,10 @@
 #' repeats.
 #' @param lowestResolution number of filters at the beginning and end of 
 #' the 'U'.
-#' @param cardinality perform  ResNet (cardinality = 1) or ResNeXt (cardinality != 1)
+#' @param cardinality perform  ResNet (cardinality = 1) or ResNeXt 
+#' (cardinality != 1 but powers of 2---try '32' ) 
 #'
+#
 #' @return a ResNet keras model to be used with subsequent fitting
 #' @author Tustison NJ
 #' @examples
@@ -124,9 +126,9 @@ createResNetModel2D <- function( inputImageSize,
     # Per standard ResNet, this is just a 2-D convolution
     if( cardinality == 1 )
       {
-      model <- model %>% layer_conv_2d( filters = numberOfFilters, 
+      groupedModel <- model %>% layer_conv_2d( filters = numberOfFilters, 
         kernel_size = c( 3, 3 ), strides = strides, padding = 'same' )
-      return( model )
+      return( groupedModel )
       }
 
     if( numberOfFilters %% cardinality != 0 )  
@@ -137,16 +139,19 @@ createResNetModel2D <- function( inputImageSize,
     numberOfGroupFilters <- as.integer( numberOfFilters / cardinality )
 
     convolutionLayers <- list()
-    for( j in 0:cardinality )
+    for( j in 1:cardinality )
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
-        { return( z[,,, ( j * numberOfGroupFilters ):( ( j + 1 ) * numberOfGroupFilters )] ) } )
+        { 
+        return( z[,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )] ) 
+        } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
         layer_conv_2d( filters = numberOfGroupFilters, 
           kernel_size = c( 3, 3 ), strides = strides, padding = 'same' )
       }
 
-    return( layer_concatenate( convolutionLayers ) )
+    groupedModel <- layer_concatenate( convolutionLayers )
+    return( groupedModel )
     }
 
   residualBlock2D <- function( model, numberOfFiltersIn, numberOfFiltersOut, 
@@ -245,7 +250,8 @@ createResNetModel2D <- function( inputImageSize,
 #' repeats.
 #' @param lowestResolution number of filters at the beginning and end of 
 #' the 'U'.
-#' @param cardinality perform  ResNet (cardinality = 1) or ResNeXt (cardinality != 1)
+#' @param cardinality perform  ResNet (cardinality = 1) or ResNeXt 
+#' (cardinality != 1 but powers of 2---try '32' ) 
 #'
 #' @return a ResNet keras model to be used with subsequent fitting
 #' @author Tustison NJ
@@ -342,15 +348,15 @@ createResNetModel3D <- function( inputImageSize,
     return( model )
     }
 
-  groupedConvolutionLayer3D <- function( model, numberOfFilters, strides )
+  groupedConvolutionLayer3d <- function( model, numberOfFilters, strides )
     {
 
-    # Per standard ResNet, this is just a 3-D convolution
+    # Per standard ResNet, this is just a 2-D convolution
     if( cardinality == 1 )
       {
-      model <- model %>% layer_conv_3d( filters = numberOfFilters, 
+      groupedModel <- model %>% layer_conv_3d( filters = numberOfFilters, 
         kernel_size = c( 3, 3, 3 ), strides = strides, padding = 'same' )
-      return( model )
+      return( groupedModel )
       }
 
     if( numberOfFilters %% cardinality != 0 )  
@@ -361,20 +367,23 @@ createResNetModel3D <- function( inputImageSize,
     numberOfGroupFilters <- as.integer( numberOfFilters / cardinality )
 
     convolutionLayers <- list()
-    for( j in 0:cardinality )
+    for( j in 1:cardinality )
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
-        { return( z[,,,, ( j * numberOfGroupFilters ):( ( j + 1 ) * numberOfGroupFilters )] ) } )
+        { 
+        return( z[,,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )] ) 
+        } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
         layer_conv_3d( filters = numberOfGroupFilters, 
           kernel_size = c( 3, 3, 3 ), strides = strides, padding = 'same' )
       }
 
-    return( layer_concatenate( convolutionLayers ) )
+    groupedModel <- layer_concatenate( convolutionLayers )
+    return( groupedModel )
     }
 
-  residualBlock3D <- function( model, numberOfFiltersIn, numberOfFiltersOut, 
-    strides = c( 1, 1 ), projectShortcut = FALSE )
+  residualBlock3d <- function( model, numberOfFiltersIn, numberOfFiltersOut, 
+    strides = c( 1, 1, 1 ), projectShortcut = FALSE )
     {
     shortcut <- model
 
@@ -383,7 +392,7 @@ createResNetModel3D <- function( inputImageSize,
     model <- addCommonLayers( model )
 
     # ResNeXt (identical to ResNet when `cardinality` == 1)
-    model <- groupedConvolutionLayer3D( model, numberOfFilters = numberOfFiltersIn, 
+    model <- groupedConvolutionLayer3d( model, numberOfFilters = numberOfFiltersIn, 
       strides = strides )
     model <- addCommonLayers( model ) 
 
@@ -432,7 +441,7 @@ createResNetModel3D <- function( inputImageSize,
         } else {
         strides <- c( 1, 1, 1 )  
         }
-      outputs <- residualBlock3D( outputs, numberOfFiltersIn = nFiltersIn, 
+      outputs <- residualBlock3d( outputs, numberOfFiltersIn = nFiltersIn, 
         numberOfFiltersOut = nFiltersOut, strides = strides, 
         projectShortcut = projectShortcut )  
       }
@@ -445,4 +454,3 @@ createResNetModel3D <- function( inputImageSize,
 
   return( resNetModel )
 }
-
