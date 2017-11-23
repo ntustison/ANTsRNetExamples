@@ -10,7 +10,7 @@ library( jpeg )
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
 trainingProportion <- 0.02
-trainingImageSize <- c( 100, 100 )
+trainingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
@@ -91,27 +91,27 @@ segmentationLabels <- sort( unique( trainingClassifications ) )
 numberOfLabels <- length( segmentationLabels )
 Y_train <- to_categorical( trainingClassifications, numberOfLabels )
 
-# resNetModel <- createAlexNetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ),
+# alexNetModel <- createAlexNetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ),
 #   numberOfClassificationLabels = numberOfLabels )
-resNetModel <- createAlexNetModel2D( dim( trainingImageArrays[[1]] ),
+alexNetModel <- createAlexNetModel2D( dim( trainingImageArrays[[1]] ),
   numberOfClassificationLabels = numberOfLabels )
 
 if( numberOfLabels == 2 )   
   {
-  resNetModel %>% compile( loss = 'binary_crossentropy',
+  alexNetModel %>% compile( loss = 'binary_crossentropy',
     optimizer = optimizer_adam( lr = 0.0001 ),  
     metrics = c( 'binary_crossentropy', 'accuracy' ) )
   } else {
-  resNetModel %>% compile( loss = 'categorical_crossentropy',
+  alexNetModel %>% compile( loss = 'categorical_crossentropy',
     optimizer = optimizer_adam( lr = 0.0001 ),  
     metrics = c( 'categorical_crossentropy', 'accuracy' ) )
   }
 
 
-track <- resNetModel %>% fit( X_train, Y_train, 
+track <- alexNetModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "resNetWeights.h5" ),
+                   callback_model_checkpoint( paste0( baseDirectory, "alexNetWeights.h5" ),
                      monitor = 'val_loss', save_best_only = TRUE )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
@@ -120,33 +120,33 @@ track <- resNetModel %>% fit( X_train, Y_train,
 # Save the model
 
 save_model_weights_hdf5( 
-  resNetModel, filepath = paste0( baseDirectory, 'resNetWeights.h5' ) )
+  alexNetModel, filepath = paste0( baseDirectory, 'alexNetWeights.h5' ) )
 save_model_hdf5( 
-  resNetModel, filepath = paste0( baseDirectory, 'resNetModel.h5' ), overwrite = TRUE )
+  alexNetModel, filepath = paste0( baseDirectory, 'alexNetModel.h5' ), overwrite = TRUE )
 
 ## Plot the model fitting
 
 # epochs <- 1:length( track$metrics$loss )
 
-# resNetModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
+# alexNetModelDataFrame <- data.frame( Epoch = rep( epochs, 2 ), 
 #                                   Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
 #                                   Loss =c( track$metrics$loss, track$metrics$val_loss ), 
 #                                   Accuracy = c( track$metrics$multilabel_dice_coefficient, track$metrics$val_multilabel_dice_coefficient )
 #                                 )
 
-# resNetModelLossPlot <- ggplot( data = resNetModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
+# alexNetModelLossPlot <- ggplot( data = alexNetModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
 #                  geom_point( shape = 1, size = 0.5 ) +
 #                  geom_line( size = 0.3 ) +
 #                  ggtitle( "Loss" )
                 
 
-# resNetModelAccuracyPlot <- ggplot( data = resNetModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
+# alexNetModelAccuracyPlot <- ggplot( data = alexNetModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
 #                  geom_point( shape = 1, size = 0.5 ) +
 #                  geom_line( size = 0.3 ) +
 #                  ggtitle( "Accuracy")
 
-# ggsave( paste0( baseDirectory, "resNetModelLossPlot.pdf" ), plot = resNetModelLossPlot, width = 5, height = 2, units = 'in' )
-# ggsave( paste0( baseDirectory, "resNetModelAccuracyPlot.pdf" ), plot = resNetModelAccuracyPlot, width = 5, height = 2, units = 'in' )
+# ggsave( paste0( baseDirectory, "alexNetModelLossPlot.pdf" ), plot = alexNetModelLossPlot, width = 5, height = 2, units = 'in' )
+# ggsave( paste0( baseDirectory, "alexNetModelAccuracyPlot.pdf" ), plot = alexNetModelAccuracyPlot, width = 5, height = 2, units = 'in' )
 
 
 

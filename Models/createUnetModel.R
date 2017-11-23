@@ -28,6 +28,16 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
 
   K <- keras::backend()  
 
+  # We set the dimension ordering to 'tf' since that is what I'm using to 
+  # test this implementation although someone might want to use a Theano
+  # backend.  Note the difference in ordering is:
+  #  Theano (2D):      [batchSize, channelSize, widthSize, heightSize]
+  #  tensorflow (2D):  [batchSize, widthSize, heightSize, channelSize]
+  #  Theano (3D):      [batchSize, channelSize, widthSize, heightSize, depthSize]
+  #  tensorflow (3D):  [batchSize, widthSize, heightSize, depthSize, channelSize]
+
+  K$set_image_dim_ordering( dim_ordering = 'tf' )
+
   y_dims <- unlist( K$int_shape( y_pred ) )
   numberOfLabels <- y_dims[length( y_dims )]
 

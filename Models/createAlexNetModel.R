@@ -13,7 +13,8 @@
 #' This particular implementation was influenced by the following python 
 #' implementation: 
 #' 
-#'         https://github.com/duggalrahul/AlexNet-Experiments-Keras/blob/master/Code/alexnet_base.py      
+#'         https://github.com/duggalrahul/AlexNet-Experiments-Keras/     
+#'         https://github.com/lunardog/convnets-keras/
 #'
 #' @param inputImageSize Used for specifying the input tensor shape.  The
 #' shape (or dimension) of that tensor is the image dimensions followed by
@@ -74,12 +75,12 @@
 #'  
 #'  # Create the model
 #'  
-#'  alexNetModel <- createAlexNetModel2D( dim( trainingImageArrays[[1]] ), 
+#'  outputs <- createAlexNetModel2D( dim( trainingImageArrays[[1]] ), 
 #'    numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
 #'  
 #'  # Fit the model
 #'  
-#'  track <- alexNetModel %>% fit( X_train, Y_train, 
+#'  track <- outputs %>% fit( X_train, Y_train, 
 #'                 epochs = 100, batch_size = 32, verbose = 1, shuffle = TRUE,
 #'                 callbacks = list( 
 #'                   callback_model_checkpoint( paste0( baseDirectory, "weights.h5" ), 
@@ -96,7 +97,9 @@
 #' }
 
 createAlexNetModel2D <- function( inputImageSize, 
-                                  numberOfClassificationLabels = 1000
+                                  numberOfClassificationLabels = 1000,
+                                  denseUnits = 4096,
+                                  dropoutRate = 0.0
                                 )
 {
 
@@ -105,125 +108,151 @@ createAlexNetModel2D <- function( inputImageSize,
     stop( "Please install the keras package." )
     }
 
-  splitTensor2D <- function( model, axis = 1, ratioSplit = 1, idSplit = 0  )
+  splitTensor2D <- function( axis = 4, ratioSplit = 1, idSplit = 1  )
     {
-    div <- as.integer( ( model$shape ) / ratioSplit )
-
-    if( axis == 0 ) 
+    f <- function( X )
       {
-      output <- model[( idSplit * div ):( ( idSplit + 1 ) * div ),,,]
-      } else if( axis == 1 ) {
-      output <- model[, ( idSplit * div ):( ( idSplit + 1 ) * div ),,]
-      } else if( axis == 2 ) {
-      output <- model[,, ( idSplit * div ):( ( idSplit + 1 ) * div ),]
-      } else if( axis == 3 ) {
-      output <- model[,,, ( idSplit * div ):( ( idSplit + 1 ) * div )]
-      } else {
-      stop( "Wrong axis specification.")  
+      Xdims <- K$int_shape( X )
+      div <- as.integer( Xdims[[axis]] / ratioSplit )
+      axisSplit <- ( ( idSplit - 1 ) * div + 1 ):( idSplit * div )  
+
+      if( axis == 1 ) 
+        {
+        output <- X[axisSplit,,,]
+        } else if( axis == 2 ) {
+        output <- X[, axisSplit,,]
+        } else if( axis == 3 ) {
+        output <- X[,, axisSplit,]
+        } else if( axis == 4 ) {
+        output <- X[,,, axisSplit]
+        } else {
+        stop( "Wrong axis specification." )  
+        }
+      return( output )
       }
-    return( output )
-    }
 
-  crossChannelNormalization <- function( alpha = 1e-4, k = 2, beta = 0.75, n = 5 )
+    return( layer_lambda( f = f ) )
+    }  
+
+  crossChannelNormalization2D <- function( alpha = 1e-4, k = 2, beta = 0.75, n = 5L )
     {
-
-    normalizeTensor <- function( X )
+    K <- keras::backend()       
+ 
+    normalizeTensor2D <- function( X )
       {
-      K <- keras::backend() 
-      half <- as.integer( n / 2 )
+      # We set the dimension ordering to 'tf' even though the original
+      # implementation did even though I'm using a tensorflow backend. 
+      # Note the difference in ordering is:
+      #  Theano:  [batchSize, channelSize, widthSize, heightSize]
+      #  tensorflow:  [batchSize, widthSize, heightSize, channelSize]
+
+      if( K$backend() == 'tensorflow' )
+        {
+        Xshape <- X$get_shape()  
+        } else {
+        Xshape <- X$shape()  
+        }
       X2 <- K$square( X )
+
+      half <- as.integer( n / 2 )
+
       extraChannels <- K$spatial_2d_padding( 
-        K$permute_dimensions( X2, pattern = c( 0L, 2L, 3L, 1L ) ), c( 0, half ) )
-      extraChannels <- K$permute_dimensions( extraChannels, pattern = c( 0L, 3L, 1L, 2L ) )
+        K$permute_dimensions( X2, c( 1L, 2L, 3L, 0L ) ), 
+        padding = list( c( 0L, 0L ), c( half, half ) ) )
+      extraChannels <- K$permute_dimensions( extraChannels, c( 3L, 0L, 1L, 2L ) )  
       scale <- k
 
-      ch <- unlist( K$int_shape( X ) )[2]
-      for( i in 0:n )
+      Xdims <- K$int_shape( X )
+      ch <- as.integer( Xdims[[length( Xdims )]] )
+      for( i in 1:n )
         {
-        scale <- scale + alpha * extraChannels[, i:( i + ch ),,]  
+        scale <- scale + alpha * extraChannels[,,, i:( i + ch - 1 )]  
         }
-      scale <- scale^beta
+      scale <- K$pow( scale, beta )
 
-      X <- X / scale
-
-      return( X )  
+      return( X / scale )
       }
 
-    return( layer_lambda( normalizeTensor ) )  
+    return( layer_lambda( f = normalizeTensor2D ) )  
     }
-
+    
+  K <- keras::backend()
   inputs <- layer_input( shape = inputImageSize )
 
   # Conv1
-  alexNetModel <- inputs %>% layer_conv_2d( numberOfFilters = 96, 
-    kernel_size = c( 11, 11 ), strides = c( 4, 4 ), activation = 'relu', 
-    kernel_initializer = "initializer_he_normal" )
+  outputs <- inputs %>% layer_conv_2d( filters = 96, 
+    kernel_size = c( 11, 11 ), strides = c( 4, 4 ), activation = 'relu' )
 
   # Conv2
-  alexNetModel <- alexNetModel %>% layer_max_pooling_2d( poolSize = c( 3, 3 ), 
+  outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), 
     strides = c( 2, 2 ) )
-  # Cross channel normalization  
-  alexNetModel <- alexNetModel %>% createCrossChannelNormalization()
+  normalizationLayer <- crossChannelNormalization2D()
+  outputs <- outputs %>% normalizationLayer
 
-  alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
+  outputs <- outputs %>% layer_zero_padding_2d( padding = c( 2, 2 ) )
 
-  convolutionLayer <- alexNetModel %>% layer_conv_2d( numberOfFilters = 128 )
+  convolutionLayer <- outputs %>% layer_conv_2d( filters = 128, 
+    kernel_size = c( 5, 5 ), padding = 'same' )
   lambdaLayers <- list( convolutionLayer )
-  for( i in 0:2 )
+  for( i in 1:2 )
     {
-    lambdaLayers <- lappend( lambdaLayers, 
-      splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i ) )
+    splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
+    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
     }
-  alexNetModel <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayers )
 
   # Conv3
-  alexNetModel <- alexNetModel %>% layer_max_pooling_2d( poolSize = c( 3, 3 ), 
+  outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), 
     strides = c( 2, 2 ) )
-  # Cross channel normalization  
-  alexNetModel <- alexNetModel %>% createCrossChannelNormalization()
+  normalizationLayer <- crossChannelNormalization2D()
+  outputs <- outputs %>% normalizationLayer
 
-  alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
-  alexNetModel <- alexNetModel %>% layer_conv_2d( numberOfFilters = 384 )
+  outputs <- outputs %>% layer_zero_padding_2d( padding = c( 2, 2 ) )
+  outputs <- outputs %>% layer_conv_2d( filters = 384, 
+    kernel_size = c( 3, 3 ), padding = 'same' )
 
   # Conv4
-  alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
-  convolutionLayer <- alexNetModel %>% layer_conv_2d( numberOfFilters = 128 )
+  outputs <- outputs %>% layer_zero_padding_2d( padding = c( 2, 2 ) )
+  convolutionLayer <- outputs %>% layer_conv_2d( filters = 192, 
+    kernel_size = c( 3, 3 ), padding = 'same' )
   lambdaLayers <- list( convolutionLayer )
-  for( i in 0:2 )
+  for( i in 1:2 )
     {
-    lambdaLayers <- lappend( lambdaLayers, 
-      splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i ) )
+    splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
+    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
     }
-  alexNetModel <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayers )
 
   # Conv5
-  alexNetModel <- alexNetModel %>% layer_zero_padding_2D( padding = c( 2, 2 ) )
-  # Cross channel normalization  
-  alexNetModel <- alexNetModel %>% createCrossChannelNormalization()
+  outputs <- outputs %>% layer_zero_padding_2d( padding = c( 2, 2 ) )
+  normalizationLayer <- crossChannelNormalization2D()
+  outputs <- outputs %>% normalizationLayer
 
-  convolutionLayer <- alexNetModel %>% layer_conv_2d( numberOfFilters = 128 )
+  convolutionLayer <- outputs %>% layer_conv_2d( filters = 128, 
+    kernel_size = c( 3, 3 ), padding = 'same' )
   lambdaLayers <- list( convolutionLayer )
-  for( i in 0:2 )
+  for( i in 1:2 )
     {
-    lambdaLayers <- lappend( lambdaLayers, 
-      splitTensor2D( alexNetModel, ratioSplit = 2, idSplit = i ) )
+    splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
+    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
     }
-  alexNetModel <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayers )
 
-
-  alexNetModel %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), strides = c(2, 2 ) )
-  alexNetModel %>% layer_flatten()
-  alexNetModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+  outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), strides = c(2, 2 ) )
+  outputs <- outputs %>% layer_flatten()
+  outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
   if( dropoutRate > 0.0 )
     {
-    alexNetModel %>% layer_dropout( rate = dropoutRate )
+    outputs <- outputs %>% layer_dropout( rate = dropoutRate )
     }
-  alexNetModel %>% layer_dense( units = denseUnits, activation = 'relu' )
+  outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
   if( dropoutRate > 0.0 )
     {
-    alexNetModel %>% layer_dropout( rate = dropoutRate )
+    outputs <- outputs %>% layer_dropout( rate = dropoutRate )
     }
-  alexNetModel %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+
+  alexNetModel <- keras_model( inputs = inputs, outputs = outputs )
 
   return( alexNetModel )
 }
