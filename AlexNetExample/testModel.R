@@ -9,13 +9,13 @@ library( ggplot2 )
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
 testingProportion <- 0.01
-testingImageSize <- c( 100, 100 )
+testingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, 'Images/' )
+dataDirectory <- paste0( baseDirectory, '../AlexNetExample/Images/' )
 modelDirectory <- paste0( baseDirectory, '../Models/' )
 
-source( paste0( modelDirectory, 'createVggModel.R' ) )
+source( paste0( modelDirectory, 'createAlexNetModel.R' ) )
 
 # Yeah, I know I'm double-dipping here but I'm just trying to get something
 # to work at this point.
@@ -94,23 +94,23 @@ Y_test <- to_categorical( testingClassifications, numberOfLabels )
 
 numberOfLabels <- length( unique( as.vector( testingClassifications ) ) )
 
-# vggModelTest <- createVggModel2D( c( dim( testingImageArrays[[1]] ), 1 ),
+# alexNetModelTest <- createAlexNetModel2D( c( dim( testingImageArrays[[1]] ), 1 ),
 #   numberOfClassificationLabels = numberOfLabels, style = 19 )
-vggModelTest <- createVggModel2D( dim( testingImageArrays[[1]] ),
-  numberOfClassificationLabels = numberOfLabels, style = 19 )
+alexNetModelTest <- createAlexNetModel2D( dim( testingImageArrays[[1]] ),
+  numberOfClassificationLabels = numberOfLabels )
 if( numberOfLabels == 2 )   
   {
-  vggModelTest %>% compile( loss = 'binary_crossentropy',
+  alexNetModelTest %>% compile( loss = 'binary_crossentropy',
     optimizer = optimizer_adam( lr = 0.0001 ),  
     metrics = c( 'binary_crossentropy', 'accuracy' ) )
   } else {
-  vggModelTest %>% compile( loss = 'categorical_crossentropy',
+  alexNetModelTest %>% compile( loss = 'categorical_crossentropy',
     optimizer = optimizer_adam( lr = 0.0001 ),  
     metrics = c( 'categorical_crossentropy', 'accuracy' ) )
   }
 
-load_model_weights_hdf5( vggModelTest, filepath = paste0( baseDirectory, 'vggWeights.h5' ) )
+load_model_weights_hdf5( alexNetModelTest, filepath = paste0( baseDirectory, 'alexNetWeights.h5' ) )
 
-testingMetrics <- vggModelTest %>% evaluate( X_test, Y_test )
-predictedData <- vggModelTest %>% predict( X_test, verbose = 1 )
+testingMetrics <- alexNetModelTest %>% evaluate( X_test, Y_test )
+predictedData <- alexNetModelTest %>% predict( X_test, verbose = 1 )
 
