@@ -21,6 +21,7 @@ A collection of well-known deep learning architectures ported to the R language.
     * [K. Simonyan and A. Zisserman, Very Deep Convolutional Networks for Large-Scale Image Recognition](https://arxiv.org/abs/1409.1556)
 * ResNet/ResNeXt (2-D, 3-D)
     * [Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.  Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
+    * [Saining Xie and Ross Girshick and Piotr Dollár and Zhuowen Tu and Kaiming He.  Aggregated Residual Transformations for Deep Neural Networks](https://arxiv.org/abs/1611.05431)
 * GoogLeNet (Inception v3) (2-D)
     * [C. Szegedy, W. Liu, Y. Jia, P. Sermanet, S. Reed, D. Anguelov, D. Erhan, V. Vanhoucke, A. Rabinovich, Going Deeper with Convolutions](https://arxiv.org/abs/1512.00567)
 
