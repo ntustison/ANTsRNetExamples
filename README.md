@@ -33,4 +33,5 @@ A collection of well-known deep learning architectures ported to the R language.
 # To do:
 
 * DenseNet [implementation](https://github.com/tdeboissiere/DeepLearningImplementations/blob/master/DenseNet/densenet.py) to R.
+* ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
 
