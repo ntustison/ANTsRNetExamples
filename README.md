@@ -28,4 +28,4 @@ A collection of well-known deep learning architectures ported to the R language.
     * [Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.  Deep Residual Learning for Image Recognition](https://arxiv.org/abs/1512.03385)
 
 * GoogLeNet (Inception v3) (2-D)
-    * (C. Szegedy, W. Liu, Y. Jia, P. Sermanet, S. Reed, D. Anguelov, D. Erhan, V. Vanhoucke, A. Rabinovich, Going Deeper with Convolutions)[https://arxiv.org/abs/1512.00567]
+    * [C. Szegedy, W. Liu, Y. Jia, P. Sermanet, S. Reed, D. Anguelov, D. Erhan, V. Vanhoucke, A. Rabinovich, Going Deeper with Convolutions](https://arxiv.org/abs/1512.00567)
