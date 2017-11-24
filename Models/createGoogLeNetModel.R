@@ -99,8 +99,7 @@
 #' }
 
 createGoogLeNetModel2D <- function( inputImageSize, 
-                                    numberOfClassificationLabels = 1000,
-                                    dropoutRate = 0.0
+                                    numberOfClassificationLabels = 1000
                                   )
 {
 
