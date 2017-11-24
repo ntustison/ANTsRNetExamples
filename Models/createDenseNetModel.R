@@ -222,7 +222,7 @@ createDenseNetModel2D <- function( inputImageSize,
   return( denseNetModel )
 }
 
-#' 2-D implementation of the DenseNet deep learning architecture.
+#' 3-D implementation of the DenseNet deep learning architecture.
 #'
 #' Creates a keras model of the DenseNet deep learning architecture for image 
 #' recognition based on the paper
