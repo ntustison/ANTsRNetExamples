@@ -24,6 +24,8 @@ A collection of well-known deep learning architectures ported to the R language.
     * [Saining Xie and Ross Girshick and Piotr Dollár and Zhuowen Tu and Kaiming He.  Aggregated Residual Transformations for Deep Neural Networks](https://arxiv.org/abs/1611.05431)
 * GoogLeNet (Inception v3) (2-D)
     * [C. Szegedy, W. Liu, Y. Jia, P. Sermanet, S. Reed, D. Anguelov, D. Erhan, V. Vanhoucke, A. Rabinovich, Going Deeper with Convolutions](https://arxiv.org/abs/1512.00567)
+* DenseNet (2-D, 3-D)
+    * [G. Huang, Z. Liu, K. Weinberger, and L. van der Maaten. Densely Connected Convolutional Networks Networks](https://arxiv.org/abs/1608.06993)
 
 # Misc topics
 
@@ -32,7 +34,6 @@ A collection of well-known deep learning architectures ported to the R language.
 
 # To do:
 
-* DenseNet [implementation](https://github.com/tdeboissiere/DeepLearningImplementations/blob/master/DenseNet/densenet.py) to R.
 * ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
 * Perhaps should change repo to _ANTsRNet_ --- ask Brian and Nick.
 * Fix examples in the image classification examples.  Currently we simply have the u-net example.
