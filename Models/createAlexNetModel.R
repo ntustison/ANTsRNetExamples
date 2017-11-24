@@ -494,7 +494,7 @@ createAlexNetModel3D <- function( inputImageSize,
   outputs <- layer_concatenate( lambdaLayers )
 
   outputs <- outputs %>% layer_max_pooling_3d( pool_size = c( 3, 3, 3 ), 
-                           strides = c( 2, 2, 2 ) )
+    strides = c( 2, 2, 2 ) )
   outputs <- outputs %>% layer_flatten()
   outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
   if( dropoutRate > 0.0 )
