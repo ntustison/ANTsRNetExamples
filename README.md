@@ -36,4 +36,5 @@ A collection of well-known deep learning architectures ported to the R language.
 * ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
 * Perhaps should change repo to _ANTsRNet_ --- ask Brian and Nick.
 * Fix examples in the image classification examples.  Currently we simply have the u-net example.
+* Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.
 
