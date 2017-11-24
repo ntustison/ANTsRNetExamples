@@ -30,11 +30,15 @@ A collection of well-known deep learning architectures ported to the R language.
 * GoogLeNet (Inception v3) (2-D)
     * [C. Szegedy, W. Liu, Y. Jia, P. Sermanet, S. Reed, D. Anguelov, D. Erhan, V. Vanhoucke, A. Rabinovich, Going Deeper with Convolutions](https://arxiv.org/abs/1512.00567)
 
-# Misc topics/papers
+# Misc topics
 
 * Optimizers
+
+* Nice [overview](https://adeshpande3.github.io/adeshpande3.github.io/The-9-Deep-Learning-Papers-You-Need-To-Know-About.html)
 
 # To do:
 
 * DenseNet [implementation](https://github.com/tdeboissiere/DeepLearningImplementations/blob/master/DenseNet/densenet.py) to R.
+
+* Nic
 
