@@ -3,8 +3,8 @@
 #' Creates a keras model of the AlexNet deep learning architecture for image 
 #' recognition based on the paper
 #' 
-#' K. Simonyan and A. Zisserman, ImageNet Classification with Deep Convolutional Neural 
-#'   Networks
+#' A. Krizhevsky, and I. Sutskever, and G. Hinton. ImageNet Classification 
+#'   with Deep Convolutional Neural Networks.
 #' 
 #' available here:
 #' 
@@ -259,8 +259,8 @@ createAlexNetModel2D <- function( inputImageSize,
 #' Creates a keras model of the AlexNet deep learning architecture for image 
 #' recognition based on the paper
 #' 
-#' K. Simonyan and A. Zisserman, ImageNet Classification with Deep Convolutional Neural 
-#'   Networks
+#' A. Krizhevsky, and I. Sutskever, and G. Hinton. ImageNet Classification 
+#'   with Deep Convolutional Neural Networks.
 #' 
 #' available here:
 #' 
