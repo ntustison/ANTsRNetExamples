@@ -159,7 +159,7 @@ createAlexNetModel2D <- function( inputImageSize,
   for( i in 1:2 )
     {
     splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
+    lambdaLayers[[i+1]] <- outputs %>% splitLayer
     }
   outputs <- layer_concatenate( lambdaLayers )
 
@@ -181,7 +181,7 @@ createAlexNetModel2D <- function( inputImageSize,
   for( i in 1:2 )
     {
     splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
+    lambdaLayers[[i+1]] <- outputs %>% splitLayer
     }
   outputs <- layer_concatenate( lambdaLayers )
 
@@ -196,7 +196,7 @@ createAlexNetModel2D <- function( inputImageSize,
   for( i in 1:2 )
     {
     splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
+    lambdaLayers[[i+1]] <- outputs %>% splitLayer
     }
   outputs <- layer_concatenate( lambdaLayers )
 
@@ -382,7 +382,7 @@ createAlexNetModel3D <- function( inputImageSize,
   for( i in 1:2 )
     {
     splitLayer <- splitTensor2D( axis = 5, ratioSplit = 2, idSplit = i )
-    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
+    lambdaLayers[[i+1]] <- outputs %>% splitLayer
     }
   outputs <- layer_concatenate( lambdaLayers )
 
@@ -404,7 +404,7 @@ createAlexNetModel3D <- function( inputImageSize,
   for( i in 1:2 )
     {
     splitLayer <- splitTensor3D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
+    lambdaLayers[[i+1]] <- outputs %>% splitLayer
     }
   outputs <- layer_concatenate( lambdaLayers )
 
@@ -419,7 +419,7 @@ createAlexNetModel3D <- function( inputImageSize,
   for( i in 1:2 )
     {
     splitLayer <- splitTensor3D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers <- lappend( lambdaLayers, outputs %>% splitLayer )
+    lambdaLayers[[i+1]] <- outputs %>% splitLayer
     }
   outputs <- layer_concatenate( lambdaLayers )
 
