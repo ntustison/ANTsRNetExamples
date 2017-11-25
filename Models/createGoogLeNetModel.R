@@ -24,78 +24,42 @@
 #' (i.e., number of training images) is not specified a priori. 
 #' @param numberOfClassificationLabels Number of segmentation labels.  
 #'
-#' @return a GoogLeNet keras model to be used with subsequent fitting
+#' @return a GoogLeNet keras model
 #' @author Tustison NJ
 #' @examples
-#' # Simple examples, must run successfully and quickly. These will be tested.
+#'
 #' \dontrun{ 
 #' 
-#'  library( ANTsR )
-#'
-#'  imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
-#'
-#'  # Perform simple 3-tissue segmentation.  For convenience we are going 
-#   # to use kmeans segmentation to define the "ground-truth" segmentations.
-#'  
-#'  segmentationLabels <- c( 1, 2, 3 )
-#'  
-#'  images <- list()
-#'  kmeansSegs <- list()
-#'
-#'  trainingImageArrays <- list()
-#'  trainingMaskArrays <- list()
-#'
-#'  for( i in 1:length( imageIDs ) )
-#'    {
-#'    cat( "Processing image", imageIDs[i], "\n" )
-#'    images[[i]] <- antsImageRead( getANTsRData( imageIDs[i] ) )
-#'    mask <- getMask( images[[i]] )
-#'    kmeansSegs[[i]] <- kmeansSegmentation( images[[i]], 
-#'      length( segmentationLabels ), mask, mrf = 0.0 )$segmentation
+#' library( keras )
 #' 
-#'    trainingImageArrays[[i]] <- as.array( images[[i]] )
-#'    trainingMaskArrays[[i]] <- as.array( mask )
-#'    }
-#'  
-#'  # reshape the training data to the format expected by keras
-#'  
-#'  trainingLabelData <- abind( trainingMaskArrays, along = 3 )  
-#'  trainingLabelData <- aperm( trainingLabelData, c( 3, 1, 2 ) )
-#'
-#'  trainingData <- abind( trainingImageArrays, along = 3 )   
-#'  trainingData <- aperm( trainingData, c( 3, 1, 2 ) )
-#'  
-#'  # Perform an easy normalization which is important for U-net. 
-#'  # Other normalization methods might further improve results.
-#'  
-#'  trainingData <- ( trainingData - mean( trainingData ) ) / sd( trainingData )
-#'
-#'  X_train <- array( trainingData, dim = c( dim( trainingData ), 
-#'    numberOfClassificationLabels = length( segmentationLabels ) ) )
-#'  Y_train <- array( trainingLabelData, dim = c( dim( trainingData ), 
-#'    numberOfClassificationLabels = length( segmentationLabels ) ) )
-#'  
-#'  # Create the model
-#'  
-#'  outputs <- createGoogLeNetModel2D( dim( trainingImageArrays[[1]] ), 
-#'    numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
-#'  
-#'  # Fit the model
-#'  
-#'  track <- outputs %>% fit( X_train, Y_train, 
-#'                 epochs = 100, batch_size = 32, verbose = 1, shuffle = TRUE,
-#'                 callbacks = list( 
-#'                   callback_model_checkpoint( paste0( baseDirectory, "weights.h5" ), 
-#'                      monitor = 'val_loss', save_best_only = TRUE ),
-#'                 #  callback_early_stopping( patience = 2, monitor = 'loss' ),
-#'                   callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
-#'                 ), 
-#'                 validation_split = 0.2 )
-#'
-#'  # Save the model and/or save the model weights
-#'
-#'  save_model_hdf5( unetModel, filepath = 'unetModel.h5' )
-#'  save_model_weights_hdf5( unetModel, filepath = 'unetModelWeights.h5' ) )
+#' mnistData <- dataset_mnist()
+#' 
+#' numberOfLabels <- length( unique( mnistData$train$y ) )
+#' 
+#' X_train <- array( mnistData$train$x, dim = c( dim( mnistData$train$x ), 1 ) )
+#' Y_train <- keras::to_categorical( mnistData$train$y, numberOfLabels )
+#' 
+#' # we add a dimension of 1 to specify the channel size
+#' inputImageSize <- c( dim( mnistData$train$x )[2:3], 1 )
+#' 
+#' googLeNetModel <- createGoogLeNetModel2D( inputImageSize = inputImageSize, 
+#'   numberOfClassificationLabels = numberOfLabels )
+#' 
+#' googLeNetModel %>% compile( loss = 'categorical_crossentropy',
+#'   optimizer = optimizer_adam( lr = 0.0001 ),  
+#'   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
+#' 
+#' track <- googLeNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32, 
+#'   verbose = 1, shuffle = TRUE, validation_split = 0.2 )
+#' 
+#' # Now test the model
+#' 
+#' X_test <- array( mnistData$test$x, dim = c( dim( mnistData$test$x ), 1 ) )
+#' Y_test <- keras::to_categorical( mnistData$test$y, numberOfLabels )
+#' 
+#' testingMetrics <- googLeNetModel %>% evaluate( X_test, Y_test )
+#' predictedData <- googLeNetModel %>% predict( X_test, verbose = 1 )
+#' 
 #' }
 
 createGoogLeNetModel2D <- function( inputImageSize, 
@@ -107,7 +71,6 @@ createGoogLeNetModel2D <- function( inputImageSize,
     {
     stop( "Please install the keras package." )
     }
-
   
   convolutionAndBatchNormalization2D <- function( model, 
                                                   numberOfFilters, 
