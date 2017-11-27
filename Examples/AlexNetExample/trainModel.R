@@ -9,12 +9,12 @@ library( jpeg )
 # Also use the human faces from:
 #    http://www.vision.caltech.edu/Image_Datasets/Caltech_10K_WebFaces/
 
-trainingProportion <- 0.2
+trainingProportion <- 0.02
 trainingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
-modelDirectory <- paste0( baseDirectory, '../Models/' )
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
 source( paste0( modelDirectory, 'createAlexNetModel.R' ) )
 
