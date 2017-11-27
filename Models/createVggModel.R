@@ -361,7 +361,7 @@ createVggModel3D <- function( inputImageSize,
         }  
       }
       
-    vggModel %>% layer_max_pooling_2d( pool_size = poolSize, strides = strides )
+    vggModel %>% layer_max_pooling_3d( pool_size = poolSize, strides = strides )
     }
 
   vggModel %>% layer_flatten()

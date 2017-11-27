@@ -155,13 +155,13 @@ createAlexNetModel2D <- function( inputImageSize,
 
   convolutionLayer <- outputs %>% layer_conv_2d( filters = 128, 
     kernel_size = c( 5, 5 ), padding = 'same' )
-  lambdaLayers <- list( convolutionLayer )
+  lambdaLayersConv2 <- list( convolutionLayer )
   for( i in 1:2 )
     {
     splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers[[i+1]] <- outputs %>% splitLayer
+    lambdaLayersConv2[[i+1]] <- outputs %>% splitLayer
     }
-  outputs <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayersConv2 )
 
   # Conv3
   outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), 
@@ -177,13 +177,13 @@ createAlexNetModel2D <- function( inputImageSize,
   outputs <- outputs %>% layer_zero_padding_2d( padding = c( 2, 2 ) )
   convolutionLayer <- outputs %>% layer_conv_2d( filters = 192, 
     kernel_size = c( 3, 3 ), padding = 'same' )
-  lambdaLayers <- list( convolutionLayer )
+  lambdaLayersConv4 <- list( convolutionLayer )
   for( i in 1:2 )
     {
     splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers[[i+1]] <- outputs %>% splitLayer
+    lambdaLayersConv4[[i+1]] <- outputs %>% splitLayer
     }
-  outputs <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayersConv4 )
 
   # Conv5
   outputs <- outputs %>% layer_zero_padding_2d( padding = c( 2, 2 ) )
@@ -192,13 +192,13 @@ createAlexNetModel2D <- function( inputImageSize,
 
   convolutionLayer <- outputs %>% layer_conv_2d( filters = 128, 
     kernel_size = c( 3, 3 ), padding = 'same' )
-  lambdaLayers <- list( convolutionLayer )
+  lambdaLayersConv5 <- list( convolutionLayer )
   for( i in 1:2 )
     {
     splitLayer <- splitTensor2D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers[[i+1]] <- outputs %>% splitLayer
+    lambdaLayersConv5[[i+1]] <- outputs %>% splitLayer
     }
-  outputs <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayersConv5 )
 
   outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), strides = c(2, 2 ) )
   outputs <- outputs %>% layer_flatten()
@@ -294,7 +294,7 @@ createAlexNetModel3D <- function( inputImageSize,
     stop( "Please install the keras package." )
     }
 
-  splitTensor3D <- function( axis = 4, ratioSplit = 1, idSplit = 1  )
+  splitTensor3D <- function( axis = 5, ratioSplit = 1, idSplit = 1  )
     {
     f <- function( X )
       {
@@ -308,7 +308,7 @@ createAlexNetModel3D <- function( inputImageSize,
         } else if( axis == 2 ) {
         output <- X[, axisSplit,,,]
         } else if( axis == 3 ) {
-        output <- X[,, axisSplit,,,]
+        output <- X[,, axisSplit,,]
         } else if( axis == 4 ) {
         output <- X[,,, axisSplit,]
         } else if( axis == 5 ) {
@@ -378,13 +378,13 @@ createAlexNetModel3D <- function( inputImageSize,
 
   convolutionLayer <- outputs %>% layer_conv_3d( filters = 128, 
     kernel_size = c( 5, 5, 5 ), padding = 'same' )
-  lambdaLayers <- list( convolutionLayer )
+  lambdaLayersConv2 <- list( convolutionLayer )
   for( i in 1:2 )
     {
-    splitLayer <- splitTensor2D( axis = 5, ratioSplit = 2, idSplit = i )
-    lambdaLayers[[i+1]] <- outputs %>% splitLayer
+    splitLayer <- splitTensor3D( axis = 5, ratioSplit = 2, idSplit = i )
+    lambdaLayersConv2[[i+1]] <- outputs %>% splitLayer
     }
-  outputs <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayersConv2 )
 
   # Conv3
   outputs <- outputs %>% layer_max_pooling_3d( pool_size = c( 3, 3, 3 ), 
@@ -400,13 +400,13 @@ createAlexNetModel3D <- function( inputImageSize,
   outputs <- outputs %>% layer_zero_padding_3d( padding = c( 2, 2, 2 ) )
   convolutionLayer <- outputs %>% layer_conv_3d( filters = 192, 
     kernel_size = c( 3, 3, 3 ), padding = 'same' )
-  lambdaLayers <- list( convolutionLayer )
+  lambdaLayersConv4 <- list( convolutionLayer )
   for( i in 1:2 )
     {
-    splitLayer <- splitTensor3D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers[[i+1]] <- outputs %>% splitLayer
+    splitLayer <- splitTensor3D( axis = 5, ratioSplit = 2, idSplit = i )
+    lambdaLayersConv4[[i+1]] <- outputs %>% splitLayer
     }
-  outputs <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayersConv4 )
 
   # Conv5
   outputs <- outputs %>% layer_zero_padding_3d( padding = c( 2, 2, 2 ) )
@@ -415,13 +415,13 @@ createAlexNetModel3D <- function( inputImageSize,
 
   convolutionLayer <- outputs %>% layer_conv_3d( filters = 128, 
     kernel_size = c( 3, 3, 3 ), padding = 'same' )
-  lambdaLayers <- list( convolutionLayer )
+  lambdaLayersConv5 <- list( convolutionLayer )
   for( i in 1:2 )
     {
-    splitLayer <- splitTensor3D( axis = 4, ratioSplit = 2, idSplit = i )
-    lambdaLayers[[i+1]] <- outputs %>% splitLayer
+    splitLayer <- splitTensor3D( axis = 5, ratioSplit = 2, idSplit = i )
+    lambdaLayersConv5[[i+1]] <- outputs %>% splitLayer
     }
-  outputs <- layer_concatenate( lambdaLayers )
+  outputs <- layer_concatenate( lambdaLayersConv5 )
 
   outputs <- outputs %>% layer_max_pooling_3d( pool_size = c( 3, 3, 3 ), 
     strides = c( 2, 2, 2 ) )
