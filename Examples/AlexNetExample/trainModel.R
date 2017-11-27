@@ -14,7 +14,7 @@ trainingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
-modelDirectory <- paste0( baseDirectory, '../Models/' )
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
 source( paste0( modelDirectory, 'createAlexNetModel.R' ) )
 
