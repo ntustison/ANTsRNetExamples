@@ -1,4 +1,4 @@
-# UNet
+# ANTsRNet
 
 A collection of well-known deep learning architectures ported to the R language.
 
