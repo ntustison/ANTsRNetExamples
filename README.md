@@ -32,6 +32,7 @@ A collection of well-known deep learning architectures ported to the R language.
 * Optimizers
 * [Blog:  Important papers](https://adeshpande3.github.io/adeshpande3.github.io/The-9-Deep-Learning-Papers-You-Need-To-Know-About.html)
 * [Blog:  Intuitive explanation of convnets](https://ujjwalkarn.me/2016/08/11/intuitive-explanation-convnets/)
+* [Deep learning book](http://www.deeplearningbook.org)
 
 # To do:
 
