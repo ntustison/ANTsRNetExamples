@@ -83,10 +83,15 @@ A collection of well-known deep learning architectures ported to the R language.
     * tensorflow/core/kernels/depthwise_conv_op_gpu.cu.cc (remove all instances of ``align(sizeof(T))``)
     * tensorflow/core/kernels/split_lib_gpu.cu.cc (remove all instances of ``align(sizeof(T))``)
     * tensorflow/core/kernels/concat_lib_gpu.impl.cu.cc (remove all instances of ``align(sizeof(T))``)
+* Since I ended up re-installing the NVIDIA drivers, I think I should have performed Step 3 before Step 2 in the Set-up above.  
+* I had to revert back to older Xcode and command line tools (8.3.2) and then switch back.  
+
+
 * Time differences on [MNIST example](https://github.com/ntustison/ANTsRNet/blob/master/Examples/mnist.R)
     * tensorflow-cpu on Mac Pro (Late 2013):  ~2100 seconds / epoch
     * tensorflow-gpu (the described set-up):  ~97 seconds / epoch
-* Since I ended up re-installing the NVIDIA drivers, I think I should have performed Step 3 before Step 2 in the Set-up above.  
-* I had to revert back to older Xcode and command line tools (8.3.2) and then switch back.  
+* Time differences on [U-net example](https://github.com/ntustison/ANTsRNet/tree/master/Examples/UnetExample)
+    * tensorflow-cpu on Mac Pro (Late 2013):  ~56 seconds / epoch
+    * tensorflow-gpu (the described set-up):  ~2 seconds / epoch
 
 
