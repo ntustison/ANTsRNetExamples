@@ -72,7 +72,7 @@ A collection of well-known deep learning architectures ported to the R language.
 3. [Install tensorflow-gpu](https://medium.com/@fabmilo/how-to-compile-tensorflow-with-cuda-support-on-osx-fd27108e27e1)    
 4. [Install keras with tensorflow-gpu](https://keras.rstudio.com)
 
-## Some notes.
+## Misc. notes
 
 * I originally set-up the hardware followed by the drivers (steps 1 and 2) but the tensorflow installation caused some problems.  I believe they were from ``csrutil enable --without kext`` instead of ``csrutil disable`` in step 2 so I ended up using the latter.
 * As described in the [comments](https://gist.github.com/smitshilu/53cf9ff0fd6cdb64cca69a7e2827ed0f), I had to change the following files:
@@ -80,7 +80,9 @@ A collection of well-known deep learning architectures ported to the R language.
     * tensorflow/core/kernels/depthwise_conv_op_gpu.cu.cc (remove all instances of ``align(sizeof(T))``)
     * tensorflow/core/kernels/split_lib_gpu.cu.cc (remove all instances of ``align(sizeof(T))``)
     * tensorflow/core/kernels/concat_lib_gpu.impl.cu.cc (remove all instances of ``align(sizeof(T))``)
-    
+* Time differences on [MNIST example](https://github.com/ntustison/ANTsRNet/blob/master/Examples/mnist.R)
+    * tensorflow-cpu on Mac Pro (Late 2013):  ~2100 seconds / epoch
+    * tensorflow-gpu (the described set-up):  ~97 seconds / epoch
 
 
 
