@@ -40,3 +40,53 @@ A collection of well-known deep learning architectures ported to the R language.
 * ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
 * Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.
 
+****************
+****************
+
+# My GPU set-up
+
+## Hardware
+
+* Computer 
+    * iMac (27-inch, Mid 2011)
+    * Processor 3.4 GHz Intel Core i7
+    * Memory 16 GB 1333 MHz DDR3 
+    * macOS High Sierra (Version 10.13.2)
+* GPU
+    * [NVIDIA Titan Xp](https://www.nvidia.com/en-us/titan/titan-xp/)
+    * [Akitio Node - Thunderbolt3 eGPU](https://www.akitio.com/expansion/node)
+    * [Thunderbolt 3 <--> Thunderbolt 2 adapter](https://www.apple.com/shop/product/MMEL2AM/A/thunderbolt-3-usb-c-to-thunderbolt-2-adapter)
+    * [Thunderbolt 2 cable](https://www.apple.com/shop/product/MD862LL/A/apple-thunderbolt-cable-2-m)
+
+## Software
+
+* Tensorflow-gpu
+* Keras in R
+* [NVIDIA CUDA toolkit 9.1](https://developer.nvidia.com/cuda-downloads?target_os=MacOSX&target_arch=x86_64&target_version=1012)
+* [NVIDIA CUDA Deep Neural Network library (cuDNN) 7.0](https://www.developer.nvidia.com/cudnn)
+* Python 3.6
+
+## Set-up
+
+1. [Put together Titan XP and Aikito node](https://becominghuman.ai/deep-learning-gaming-build-with-nvidia-titan-xp-and-macbook-pro-with-thunderbolt2-5ceee7167f8b)
+2. [Install web drivers and GPU support](https://egpu.io/forums/mac-setup/wip-nvidia-egpu-support-for-high-sierra/)
+3. Install NVIDIA toolkit and cuDNN
+4. Re-install web drivers and GPU support
+5. [Install tensorflow-gpu](https://medium.com/@fabmilo/how-to-compile-tensorflow-with-cuda-support-on-osx-fd27108e27e1)    
+6. [Install keras with tensorflow-gpu](https://keras.rstudio.com)
+
+## Misc. notes
+
+* I originally set-up the hardware followed by the drivers (steps 1 and 2) but the tensorflow installation caused some problems.  I believe they were from ``csrutil enable --without kext`` instead of ``csrutil disable`` in step 2 so I ended up using the latter.
+* As described in the [comments](https://gist.github.com/smitshilu/53cf9ff0fd6cdb64cca69a7e2827ed0f), I had to change the following files:
+    * tensorflow/third_party/gpus/cuda/BUILD.tpl (comment out line 113 ``linkopts = ["-lgomp"],``)
+    * tensorflow/core/kernels/depthwise_conv_op_gpu.cu.cc (remove all instances of ``align(sizeof(T))``)
+    * tensorflow/core/kernels/split_lib_gpu.cu.cc (remove all instances of ``align(sizeof(T))``)
+    * tensorflow/core/kernels/concat_lib_gpu.impl.cu.cc (remove all instances of ``align(sizeof(T))``)
+* Time differences on [MNIST example](https://github.com/ntustison/ANTsRNet/blob/master/Examples/mnist.R)
+    * tensorflow-cpu on Mac Pro (Late 2013):  ~2100 seconds / epoch
+    * tensorflow-gpu (the described set-up):  ~97 seconds / epoch
+* Since I ended up re-installing the NVIDIA drivers, I think I should have performed Step 3 before Step 2 in the Set-up above.  
+* I had to revert back to older Xcode and command line tools (8.3.2) and then switch back.  
+
+
