@@ -69,8 +69,9 @@ A collection of well-known deep learning architectures ported to the R language.
 
 1. [Put together Titan XP and Aikito node](https://becominghuman.ai/deep-learning-gaming-build-with-nvidia-titan-xp-and-macbook-pro-with-thunderbolt2-5ceee7167f8b)
 2. [Install web drivers and GPU support](https://egpu.io/forums/mac-setup/wip-nvidia-egpu-support-for-high-sierra/)
-3. [Install tensorflow-gpu](https://medium.com/@fabmilo/how-to-compile-tensorflow-with-cuda-support-on-osx-fd27108e27e1)    
-4. [Install keras with tensorflow-gpu](https://keras.rstudio.com)
+3. Install NVIDIA toolkit and cuDNN (I think I should've done this step before step 2 since I ultimately had to do step 2 again).
+4. [Install tensorflow-gpu](https://medium.com/@fabmilo/how-to-compile-tensorflow-with-cuda-support-on-osx-fd27108e27e1)    
+5. [Install keras with tensorflow-gpu](https://keras.rstudio.com)
 
 ## Misc. notes
 
