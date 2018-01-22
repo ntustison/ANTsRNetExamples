@@ -3,7 +3,7 @@ library( keras )
 library( abind )
 library( ggplot2 )
 
-baseDirectory <- './'f
+baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
 modelDirectory <- paste0( baseDirectory, '../../Models/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )

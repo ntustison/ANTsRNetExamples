@@ -61,6 +61,9 @@ unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ),
   numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
 load_model_weights_hdf5( unetModelTest, 
   filepath = paste0( baseDirectory, 'unetWeights.h5' ) )
+unetModelTest %>% compile( loss = loss_multilabel_dice_coefficient_error,
+  optimizer = optimizer_adam( lr = 0.0001 ),  
+  metrics = c( multilabel_dice_coefficient ) )
 
 testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
 
