@@ -69,9 +69,10 @@ A collection of well-known deep learning architectures ported to the R language.
 
 1. [Put together Titan XP and Aikito node](https://becominghuman.ai/deep-learning-gaming-build-with-nvidia-titan-xp-and-macbook-pro-with-thunderbolt2-5ceee7167f8b)
 2. [Install web drivers and GPU support](https://egpu.io/forums/mac-setup/wip-nvidia-egpu-support-for-high-sierra/)
-3. Install NVIDIA toolkit and cuDNN (I think I should've done this step before step 2 since I ultimately had to do step 2 again).
-4. [Install tensorflow-gpu](https://medium.com/@fabmilo/how-to-compile-tensorflow-with-cuda-support-on-osx-fd27108e27e1)    
-5. [Install keras with tensorflow-gpu](https://keras.rstudio.com)
+3. Install NVIDIA toolkit and cuDNN
+4. Re-install web drivers and GPU support
+5. [Install tensorflow-gpu](https://medium.com/@fabmilo/how-to-compile-tensorflow-with-cuda-support-on-osx-fd27108e27e1)    
+6. [Install keras with tensorflow-gpu](https://keras.rstudio.com)
 
 ## Misc. notes
 
@@ -84,6 +85,7 @@ A collection of well-known deep learning architectures ported to the R language.
 * Time differences on [MNIST example](https://github.com/ntustison/ANTsRNet/blob/master/Examples/mnist.R)
     * tensorflow-cpu on Mac Pro (Late 2013):  ~2100 seconds / epoch
     * tensorflow-gpu (the described set-up):  ~97 seconds / epoch
-
+* Since I ended up re-installing the NVIDIA drivers, I think I should have performed Step 3 before Step 2 in the Set-up above.  
+* I had to revert back to older Xcode and command line tools (8.3.2) and then switch back.  
 
 
