@@ -41,6 +41,7 @@ A collection of well-known deep learning architectures ported to the R language.
 * Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.
 
 ****************
+****************
 
 # My GPU set-up
 
