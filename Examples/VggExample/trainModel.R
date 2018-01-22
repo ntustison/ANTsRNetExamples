@@ -13,8 +13,8 @@ trainingProportion <- 0.5
 trainingImageSize <- c( 100, 100 )
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, 'Images/' )
-modelDirectory <- paste0( baseDirectory, '../Models/' )
+dataDirectory <- paste0( baseDirectory, './Images/' )
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
 source( paste0( modelDirectory, 'createVggModel.R' ) )
 

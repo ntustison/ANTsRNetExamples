@@ -12,8 +12,8 @@ testingProportion <- 0.01
 testingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, '../DenseNetExample/Images/' )
-modelDirectory <- paste0( baseDirectory, '../Models/' )
+dataDirectory <- paste0( baseDirectory, './Images/' )
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
 source( paste0( modelDirectory, 'createDenseNetModel.R' ) )
 

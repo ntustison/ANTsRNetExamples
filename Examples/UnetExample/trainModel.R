@@ -3,9 +3,9 @@ library( keras )
 library( abind )
 library( ggplot2 )
 
-baseDirectory <- './'
+baseDirectory <- './'f
 dataDirectory <- paste0( baseDirectory, 'Images/' )
-modelDirectory <- paste0( baseDirectory, '../Models/' )
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )
 
 source( paste0( modelDirectory, 'createUnetModel.R' ) )

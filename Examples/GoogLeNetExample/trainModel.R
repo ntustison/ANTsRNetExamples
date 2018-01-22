@@ -13,8 +13,8 @@ trainingProportion <- 0.2
 trainingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, '../VggExample/Images/' )
-modelDirectory <- paste0( baseDirectory, '../Models/' )
+dataDirectory <- paste0( baseDirectory, './Images/' )
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
 source( paste0( modelDirectory, 'createGoogLeNetModel.R' ) )
 
