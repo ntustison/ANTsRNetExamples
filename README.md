@@ -68,6 +68,8 @@ A collection of well-known deep learning architectures ported to the R language.
 
 ## Set-up
 
+(see note in Misc. about when to plug in/turn on eGPU)
+
 1. [Put together Titan XP and Aikito node](https://becominghuman.ai/deep-learning-gaming-build-with-nvidia-titan-xp-and-macbook-pro-with-thunderbolt2-5ceee7167f8b)
 2. [Install web drivers and GPU support](https://egpu.io/forums/mac-setup/wip-nvidia-egpu-support-for-high-sierra/)
 3. Install NVIDIA toolkit and cuDNN
@@ -94,4 +96,10 @@ A collection of well-known deep learning architectures ported to the R language.
     * tensorflow-cpu on Mac Pro (Late 2013):  ~56 seconds / epoch
     * tensorflow-gpu (the described set-up):  ~2 seconds / epoch
 
-
+* During a run a kernel panic resulted in the computer shutting down.  When it came back on, the GPU was no longer recognized but was listed as a "NVIDIA chip" in the "About this mac" --> "System Report" --> "Graphics/Displays".  Reinstalling the web driver and eGPU support didn't bring it back but then I read where I needed to 
+    1. unplug the eGPU
+    2. Boot into OSX
+    3. Login
+    4. Plug in the eGPU
+    5. Logout
+    6. Log back in
