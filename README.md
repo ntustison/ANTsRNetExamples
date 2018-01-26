@@ -36,6 +36,7 @@ A collection of well-known deep learning architectures ported to the R language.
 
 # To do:
 
+* Object localization.  (Overview)[https://towardsdatascience.com/deep-learning-for-object-detection-a-comprehensive-review-73930816d8d9].  Perhaps implement [SSD](https://github.com/pierluigiferrari/ssd_keras/blob/master/ssd300_training.ipynb).
 * deconvnet.R
 * ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
 * Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.
