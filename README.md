@@ -90,7 +90,7 @@ A collection of well-known deep learning architectures ported to the R language.
 * I had to revert back to older Xcode and command line tools (8.3.2) and then switch back.  
 
 
-* Time differences on [MNIST example](https://github.com/ntustison/ANTsRNet/blob/master/Examples/mnist.R)
+* Time differences on [MNIST example](https://github.com/ntustison/ANTsRNet/blob/master/Examples/AlexNetExample/mnist.R)
     * tensorflow-cpu on Mac Pro (Late 2013):  ~2100 seconds / epoch
     * tensorflow-gpu (the described set-up):  ~97 seconds / epoch
 * Time differences on [U-net example](https://github.com/ntustison/ANTsRNet/tree/master/Examples/UnetExample)
