@@ -27,6 +27,11 @@ A collection of well-known deep learning architectures ported to the R language.
 * DenseNet (2-D, 3-D)
     * [G. Huang, Z. Liu, K. Weinberger, and L. van der Maaten. Densely Connected Convolutional Networks Networks.](https://arxiv.org/abs/1608.06993)
 
+## Object detection
+
+* __WIP:__  Single Shot MultiBox Detector (2-D, 3-D)
+    * [W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, and A. Berg.  SSD: Single Shot MultiBox Detector.](https://arxiv.org/abs/1512.02325)
+
 # Misc topics
 
 * Optimizers
