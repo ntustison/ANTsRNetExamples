@@ -78,10 +78,9 @@ createGoogLeNetModel2D <- function( inputImageSize,
                                                   padding = 'same',
                                                   strides = c( 1, 1 ) )
     {
-    K <- keras::backend()
 
     channelAxis <- 1  
-    if( K$image_data_format() == 'channels_last' )
+    if( k_image_data_format() == 'channels_last' )
       {
       channelAxis <- 3 
       }
@@ -96,9 +95,8 @@ createGoogLeNetModel2D <- function( inputImageSize,
     return( model )
     }                                                    
 
-  K <- keras::backend()
   channelAxis <- 1  
-  if( K$image_data_format() == 'channels_last' )
+  if( k_image_data_format() == 'channels_last' )
     {
     channelAxis <- 3 
     }

@@ -42,14 +42,14 @@
 #' # we add a dimension of 1 to specify the channel size
 #' inputImageSize <- c( dim( mnistData$train$x )[2:3], 1 )
 #' 
-#' denseNetModel <- createResNetModel2D( inputImageSize = inputImageSize, 
+#' resNetModel <- createResNetModel2D( inputImageSize = inputImageSize, 
 #'   numberOfClassificationLabels = numberOfLabels )
 #' 
-#' denseNetModel %>% compile( loss = 'categorical_crossentropy',
+#' resNetModel %>% compile( loss = 'categorical_crossentropy',
 #'   optimizer = optimizer_adam( lr = 0.0001 ),  
 #'   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
 #' 
-#' track <- denseNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32, 
+#' track <- resNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32, 
 #'   verbose = 1, shuffle = TRUE, validation_split = 0.2 )
 #' 
 #' # Now test the model
@@ -57,8 +57,8 @@
 #' X_test <- array( mnistData$test$x, dim = c( dim( mnistData$test$x ), 1 ) )
 #' Y_test <- keras::to_categorical( mnistData$test$y, numberOfLabels )
 #' 
-#' testingMetrics <- denseNetModel %>% evaluate( X_test, Y_test )
-#' predictedData <- denseNetModel %>% predict( X_test, verbose = 1 )
+#' testingMetrics <- resNetModel %>% evaluate( X_test, Y_test )
+#' predictedData <- resNetModel %>% predict( X_test, verbose = 1 )
 #' 
 #' }
 
@@ -106,8 +106,7 @@ createResNetModel2D <- function( inputImageSize,
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
         {
-        K <- keras::backend()
-        K$set_image_dim_ordering( 'tf' ) 
+        k_set_image_data_format( 'channels_last' )
         z[,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )]
         } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
@@ -236,14 +235,14 @@ createResNetModel2D <- function( inputImageSize,
 #' # we add a dimension of 1 to specify the channel size
 #' inputImageSize <- c( dim( mnistData$train$x )[2:3], 1 )
 #' 
-#' denseNetModel <- createResNetModel2D( inputImageSize = inputImageSize, 
+#' resNetModel <- createResNetModel2D( inputImageSize = inputImageSize, 
 #'   numberOfClassificationLabels = numberOfLabels )
 #' 
-#' denseNetModel %>% compile( loss = 'categorical_crossentropy',
+#' resNetModel %>% compile( loss = 'categorical_crossentropy',
 #'   optimizer = optimizer_adam( lr = 0.0001 ),  
 #'   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
 #' 
-#' track <- denseNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32, 
+#' track <- resNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32, 
 #'   verbose = 1, shuffle = TRUE, validation_split = 0.2 )
 #' 
 #' # Now test the model
@@ -251,8 +250,8 @@ createResNetModel2D <- function( inputImageSize,
 #' X_test <- array( mnistData$test$x, dim = c( dim( mnistData$test$x ), 1 ) )
 #' Y_test <- keras::to_categorical( mnistData$test$y, numberOfLabels )
 #' 
-#' testingMetrics <- denseNetModel %>% evaluate( X_test, Y_test )
-#' predictedData <- denseNetModel %>% predict( X_test, verbose = 1 )
+#' testingMetrics <- resNetModel %>% evaluate( X_test, Y_test )
+#' predictedData <- resNetModel %>% predict( X_test, verbose = 1 )
 #' 
 #' }
 
@@ -300,8 +299,7 @@ createResNetModel3D <- function( inputImageSize,
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
         { 
-        K <- keras::backend()
-        K$set_image_dim_ordering( 'tf' ) 
+        k_set_image_data_format( 'channels_last' )
         z[,,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )]
         } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 

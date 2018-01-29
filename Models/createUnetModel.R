@@ -26,8 +26,6 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
 {
   smoothingFactor <- 1.0
 
-  K <- keras::backend()  
-
   # We set the dimension ordering to 'tf' since that is what I'm using to 
   # test this implementation although someone might want to use a Theano
   # backend.  Note the difference in ordering is:
@@ -36,9 +34,9 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   #  Theano (3D):      [batchSize, channelSize, widthSize, heightSize, depthSize]
   #  tensorflow (3D):  [batchSize, widthSize, heightSize, depthSize, channelSize]
 
-  K$set_image_dim_ordering( dim_ordering = 'tf' )
+  k_set_image_data_format( 'channels_last' )
 
-  y_dims <- unlist( K$int_shape( y_pred ) )
+  y_dims <- unlist( k_int_shape( y_pred ) )
   numberOfLabels <- y_dims[length( y_dims )]
 
   # Unlike native R, indexing starts at '0'.  However, we are 
@@ -47,37 +45,37 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   if( length( y_dims ) == 3 )
     {
     # 2-D image
-    y_true_permuted <- K$permute_dimensions( y_true, pattern = c( 3L, 0L, 1L, 2L ) )
-    y_pred_permuted <- K$permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) )
+    y_true_permuted <- k_permute_dimensions( y_true, pattern = c( 3L, 0L, 1L, 2L ) )
+    y_pred_permuted <- k_permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) )
     } else {
     # 3-D image  
-    y_true_permuted <- K$permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
-    y_pred_permuted <- K$permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
+    y_true_permuted <- k_permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
+    y_pred_permuted <- k_permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
     }
-  y_true_label <- K$gather( y_true_permuted, indices = c( 1L ) )
-  y_pred_label <- K$gather( y_pred_permuted, indices = c( 1L ) )
+  y_true_label <- k_gather( y_true_permuted, indices = c( 1L ) )
+  y_pred_label <- k_gather( y_pred_permuted, indices = c( 1L ) )
 
-  y_true_label_f <- K$flatten( y_true_label )
-  y_pred_label_f <- K$flatten( y_pred_label )
+  y_true_label_f <- k_flatten( y_true_label )
+  y_pred_label_f <- k_flatten( y_pred_label )
   intersection <-  y_true_label_f * y_pred_label_f
   union <- y_true_label_f + y_pred_label_f - intersection
 
-  numerator <- K$sum( intersection )
-  denominator <- K$sum( union )
+  numerator <- k_sum( intersection )
+  denominator <- k_sum( union )
 
   if( numberOfLabels > 2 )
     {
     for( j in 2L:( numberOfLabels - 1L ) )
       {
-      y_true_label <- K$gather( y_true_permuted, indices = c( j ) )
-      y_pred_label <- K$gather( y_pred_permuted, indices = c( j ) )
-      y_true_label_f <- K$flatten( y_true_label )
-      y_pred_label_f <- K$flatten( y_pred_label )
+      y_true_label <- k_gather( y_true_permuted, indices = c( j ) )
+      y_pred_label <- k_gather( y_pred_permuted, indices = c( j ) )
+      y_true_label_f <- k_flatten( y_true_label )
+      y_pred_label_f <- k_flatten( y_pred_label )
       intersection <-  y_true_label_f * y_pred_label_f
       union <- y_true_label_f + y_pred_label_f - intersection
 
-      numerator <- numerator + K$sum( intersection )
-      denominator <- denominator + K$sum( union )
+      numerator <- numerator + k_sum( intersection )
+      denominator <- denominator + k_sum( union )
       }
     }  
   unionOverlap <- numerator / denominator 

@@ -98,54 +98,121 @@ createSsdModel2D <- function( inputImageSize,
 
   # custom layer:  https://keras.rstudio.com/articles/custom_layers.html
 
-  l2NormalizationLayer2D <- R6::R6Class( "L2NormalizationLayer2D" ,
+  # L2 normalization layer described in 
+  #
+  # Wei Liu, Andrew Rabinovich, and Alexander C. Berg.  ParseNet: Looking Wider 
+  #     to See Better.
+  #
+  # available here:
+  #
+  #         https://arxiv.org/abs/1506.04579
+  # 
+  # Input arguments:
+  #     * scale:  feature scale (default = 20)
+  #
+  # Input shape:
+  #     Theano:  [batchSize, channelSize, widthSize, heightSize, depthSize]
+  #     tensorflow:  [batchSize, widthSize, heightSize, depthSize, channelSize]
+  #
+  # Output shape:
+  #     same as input
+  #
+
+  layer_l2_normalization_2d <- R6::R6Class( "layer_l2_normalization_2d" ,
                                     
     inherit = KerasLayer,
     
     public = list(
+
+      scale = NULL,
       
-      scale = 20,
+      channelAxis = NULL,
       
       initialize = function( scale ) 
         {
-        K <- keras::backend()  
-        if( K$image_data_format() == "channels_last" )
+        if( k_image_data_format() == "channels_last" )
           {
           self$channelAxis <- 4  
           } else {
           self$channelAxis <- 1  
           }
-        self$output_dim <- output_dim
+        self$scale <- scale  
         },
       
       build = function( input_shape ) 
         {
-        self$input_spec = [InputSpec(shape=input_shape)]
-
-        gamma =  scale
-
-        shape = (input_shape[self.axis],)
-        init_gamma = self.scale * np.ones(shape)
-        self.gamma = K.variable(init_gamma, name='{}_gamma'.format(self.name))
-        self.trainable_weights = [self.gamma]
+        initGamma <- self$scale * array( 1.0, input_shape[self$channelAxis] )
+        self$gamma <- 
+          k_variable( initGamma, name = paste0( '{}_gamma', self$name ) )
+        self$trainable_weights <- list( self$gamma )
         },
       
       call = function( x, mask = NULL ) 
         {
-        output <- k_l2_normalize( x, self.axis )
-        output *= self.gamma
-        return output  
-        k_dot( x, self$kernel )
+        output <- k_l2_normalize( x, self$channelAxis )
+        output <- output * self$gamma
         return( output )
+        }
+      )
+    )
+
+  # anchor box layer
+  # 
+  # Input arguments:
+  #     * inputImageSize: c()
+  #     * 
+  #
+  # Input shape:
+  #     Theano:  [batchSize, channelSize, widthSize, heightSize, depthSize]
+  #     tensorflow:  [batchSize, widthSize, heightSize, depthSize, channelSize]
+  #
+  # Output shape:
+  #     3-D tensor which shape [batchSize, numberOfBoxes, 8]
+  #
+
+  layer_anchor_box_2d <- R6::R6Class( "layer_anchor_box_2d" ,
+                                    
+    inherit = KerasLayer,
+    
+    public = list(
+      
+      scale = NULL,
+      
+      channelAxis = NULL,
+      
+      initialize = function( scale ) 
+        {
+
+        #  Theano:  [batchSize, channelSize, widthSize, heightSize]
+        #  tensorflow:  [batchSize, widthSize, heightSize, channelSize]
+
+        if( k_image_data_format() == "channels_last" )
+          {
+          self$channelAxis <- 4  
+          } else {
+          self$channelAxis <- 2 
+          }
+        self$scale <- scale  
         },
       
-      compute_output_shape = function(input_shape) {
-        list(input_shape[[1]], self$output_dim)
-      }
+      build = function( input_shape ) 
+        {
+        initGamma <- self$scale * array( 1.0, input_shape[self$channelAxis] )
+        self$gamma <- 
+          k_variable( initGamma, name = paste0( '{}_gamma', self$name ) )
+        self$trainable_weights <- list( self$gamma )
+        },
+      
+      call = function( x, mask = NULL ) 
+        {
+        output <- k_l2_normalize( x, self$channelAxis )
+        output <- output * self$gamma
+        return( output )
+        }
+      )
     )
-  )
 
-  K <- keras::backend()
+
   inputs <- layer_input( shape = inputImageSize )
 
   # Initial convolutions 1-4
@@ -157,10 +224,12 @@ createSsdModel2D <- function( inputImageSize,
   # ``numberOfBoxes`` * ``numberOfClasses``.
   boxConfidenceValues <- list()
 
-  # For each box we need to predict the 2^{ImageDih mension} coordinates.  The 
+  # For each box we need to predict the 2^imageDimension coordinates.  The 
   # output shape of these localization layers is:
-  #    (batchSize, imageHeight, imageWidth, numberOfBoxes * coordinatesLengt)
+  #    (batchSize, imageHeight, imageWidth, numberOfBoxes * 2^imageDimension )
   boxLocations <- list()
+  numberOfCoordinates <- 2^2
+  magicNumberAnchorBox <- 8
 
   outputs <- inputs
   for( i in 1:4 )
@@ -187,10 +256,15 @@ createSsdModel2D <- function( inputImageSize,
       strides = c( 2, 2 ), padding = 'same' )
     }
 
-  l2NormalizedOutputs <- outputs %>% L2NormalizationLayer2D( scale = 20 )
+  l2NormalizedOutputs <- outputs %>% layer_l2_normalization_2d( scale = 20 )
 
-  boxConfidenceValues[1] <- l2NormalizedOutputs %>% layer_conv_2d( 
+  boxConfidenceValues[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
     filters = numberOfBoxes[1] * numberOfClasses, kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
+
+  boxLocations[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
+    filters = numberOfBoxes[1] * numberOfCoordinates, kernel_size = c( 3, 3 ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
@@ -226,8 +300,13 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  boxConfidenceValues[2] <- outputs %>% layer_conv_2d( 
+  boxConfidenceValues[[2]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxes[2] * numberOfClasses, kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
+
+  boxLocations[[2]] <- outputs %>% layer_conv_2d( 
+    filters = numberOfBoxes[2] * numberOfCoordinates, kernel_size = c( 3, 3 ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
@@ -247,8 +326,13 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  boxConfidenceValues[3] <- outputs %>% layer_conv_2d( 
+  boxConfidenceValues[[3]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxes[3] * numberOfClasses, kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
+
+  boxLocations[[3]] <- outputs %>% layer_conv_2d( 
+    filters = numberOfBoxes[3] * numberOfCoordinates, kernel_size = c( 3, 3 ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
@@ -268,8 +352,13 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  boxConfidenceValues[4] <- outputs %>% layer_conv_2d( 
+  boxConfidenceValues[[4]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxes[4] * numberOfClasses, kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
+
+  boxLocations[[4]] <- outputs %>% layer_conv_2d( 
+    filters = numberOfBoxes[4] * numberOfCoordinates, kernel_size = c( 3, 3 ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
@@ -287,8 +376,13 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  boxConfidenceValues[5] <- outputs %>% layer_conv_2d( 
+  boxConfidenceValues[[5]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxes[5] * numberOfClasses, kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
+
+  boxLocations[[5]] <- outputs %>% layer_conv_2d( 
+    filters = numberOfBoxes[5] * numberOfCoordinates, kernel_size = c( 3, 3 ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
@@ -306,17 +400,54 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  boxConfidenceValues[6] <- outputs %>% layer_conv_2d( 
+  boxConfidenceValues[[6]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxes[6] * numberOfClasses, kernel_size = c( 3, 3 ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
-  # L2 normalization layer
+  boxLocations[[6]] <- outputs %>% layer_conv_2d( 
+    filters = numberOfBoxes[6] * numberOfCoordinates, kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
+
+  # Generate the anchor boxes.  Output shape of anchor boxes =
+  #   ``( batch, height, width, numberOfBoxes, 8 )``
+  anchorBoxes <- list()
+
+  for( i in 1:length( boxLocations ) )
+    {
+    anchorBoxes[[i]] <- boxLocations[[i]] %>% layer_anchor_box_2d( inputImageSize, 
+      currentScale = scales[i], nextScale = scales[i+1], ...
+      )
+    }
+
+  # Now reshape the box confidence values, box locations, and 
+  boxConfidenceValuesReshaped <- list()
+  boxLocationsReshaped <- list()
+  for( i in 1:length( boxConfidenceValues ) )
+    {
+    boxConfidenceValuesReshaped[[i]] <- boxConfidenceValues[[i]] %>% 
+      layer_reshape( target_shape = c( -1, numberOfCoordinates ) )
+    boxLocationsReshaped[[i]] <- boxLocations[[i]] %>% 
+      layer_reshape( target_shape = c( -1, numberOfClasses ) )  
+    anchorBoxesReshaped[[i]] <- anchorBoxes[[i]] %>% 
+      layer_reshape( target_shape = c( -1, magicNumberAnchorBox ) )
+    }  
   
-  
+  # Concatenate the predictions from the different layers
 
+  outputConfidenceValues <- 
+    layer_concatenate( boxConfidenceValuesReshaped, axis = 1 )
+  outputLocations <- layer_concatenate( boxLocationsReshaped, axis = 1 )
+  outputAnchorBoxes <- layer_concatenate( anchorBoxesReshaped, axis = 1 )
 
-  ssdModel <- keras_model( inputs = inputs, outputs = outputs )
+  confidenceActivation <- outputConfidenceValues %>% 
+    layer_activation( activation = "softmax" )
 
-  return( alexNetModel )
+  predictions <- layer_concatenate( list( 
+    confidenceActivation, outputLocations, outputAnchorBoxes ), axis = 2 )
+
+  ssdModel <- keras_model( inputs = inputs, outputs = predictions )
+
+  return( ssdModel )
 }
