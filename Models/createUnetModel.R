@@ -57,7 +57,7 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
 
   y_true_label_f <- k_flatten( y_true_label )
   y_pred_label_f <- k_flatten( y_pred_label )
-  intersection <-  y_true_label_f * y_pred_label_f
+  intersection <- y_true_label_f * y_pred_label_f
   union <- y_true_label_f + y_pred_label_f - intersection
 
   numerator <- k_sum( intersection )
@@ -71,7 +71,7 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
       y_pred_label <- k_gather( y_pred_permuted, indices = c( j ) )
       y_true_label_f <- k_flatten( y_true_label )
       y_pred_label_f <- k_flatten( y_pred_label )
-      intersection <-  y_true_label_f * y_pred_label_f
+      intersection <- y_true_label_f * y_pred_label_f
       union <- y_true_label_f + y_pred_label_f - intersection
 
       numerator <- numerator + k_sum( intersection )

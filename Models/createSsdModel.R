@@ -111,8 +111,8 @@ createSsdModel2D <- function( inputImageSize,
   #     * scale:  feature scale (default = 20)
   #
   # Input shape:
-  #     Theano:  [batchSize, channelSize, widthSize, heightSize, depthSize]
-  #     tensorflow:  [batchSize, widthSize, heightSize, depthSize, channelSize]
+  #     Theano:  [batchSize, channelSize, widthSize, heightSize]
+  #     tensorflow:  [batchSize, widthSize, heightSize, channelSize]
   #
   # Output shape:
   #     same as input
@@ -134,7 +134,7 @@ createSsdModel2D <- function( inputImageSize,
           {
           self$channelAxis <- 4  
           } else {
-          self$channelAxis <- 1  
+          self$channelAxis <- 2  
           }
         self$scale <- scale  
         },
@@ -159,12 +159,14 @@ createSsdModel2D <- function( inputImageSize,
   # anchor box layer
   # 
   # Input arguments:
-  #     * inputImageSize: c()
-  #     * 
+  #     * inputImageSize: 
+  #     * minBoxSize: 
+  #     * maxBoxSize:  
+  #     * aspectRatios:
   #
   # Input shape:
-  #     Theano:  [batchSize, channelSize, widthSize, heightSize, depthSize]
-  #     tensorflow:  [batchSize, widthSize, heightSize, depthSize, channelSize]
+  #     Theano:  [batchSize, channelSize, widthSize, heightSize]
+  #     tensorflow:  [batchSize, widthSize, heightSize, channelSize]
   #
   # Output shape:
   #     3-D tensor which shape [batchSize, numberOfBoxes, 8]
@@ -180,7 +182,8 @@ createSsdModel2D <- function( inputImageSize,
       
       channelAxis = NULL,
       
-      initialize = function( scale ) 
+      initialize = function( scale, imageSize, minSize, maxSize = NA, 
+        aspectRatios = NA ) 
         {
 
         #  Theano:  [batchSize, channelSize, widthSize, heightSize]
