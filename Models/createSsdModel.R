@@ -96,7 +96,12 @@ createSsdModel2D <- function( inputImageSize,
     stop( "Please install the keras package." )
     }
 
-  # custom layer:  https://keras.rstudio.com/articles/custom_layers.html
+  if ( ! usePkg( "abind" ) )
+    {
+    stop( "Please install the abind package." )
+    }
+
+  # custom layers:  https://keras.rstudio.com/articles/custom_layers.html
 
   # L2 normalization layer described in 
   #
@@ -118,7 +123,7 @@ createSsdModel2D <- function( inputImageSize,
   #     same as input
   #
 
-  layer_l2_normalization_2d <- R6::R6Class( "layer_l2_normalization_2d" ,
+  L2NormalizationLayer2D <- R6::R6Class( "L2NormalizationLayer2D",
                                     
     inherit = KerasLayer,
     
@@ -128,7 +133,7 @@ createSsdModel2D <- function( inputImageSize,
       
       channelAxis = NULL,
       
-      initialize = function( scale ) 
+      initialize = function( scale = 20 ) 
         {
         if( k_image_data_format() == "channels_last" )
           {
@@ -156,34 +161,48 @@ createSsdModel2D <- function( inputImageSize,
       )
     )
 
+  layer_l2_normalization_2d <- function( object ) {
+    create_layer( L2NormalizationLayer2D, object )
+  }
+
   # anchor box layer
   # 
   # Input arguments:
   #     * inputImageSize: 
-  #     * minBoxSize: 
-  #     * maxBoxSize:  
+  #     * minBoxSize (in pixels): 
   #     * aspectRatios:
+  #     * variances explained here:
+  #            https://github.com/rykov8/ssd_keras/issues/53
   #
   # Input shape:
   #     Theano:  [batchSize, channelSize, widthSize, heightSize]
   #     tensorflow:  [batchSize, widthSize, heightSize, channelSize]
   #
   # Output shape:
-  #     3-D tensor which shape [batchSize, numberOfBoxes, 8]
+  #     5-D tensor [batchSize, widthSize, heightSize, numberOfBoxes, 8]
+  #     In the last dimension, the first four correspond to the
+  #     xmin, xmax, ymin, ymax of the bounding boxes and the other
+  #     four are the variances
   #
 
-  layer_anchor_box_2d <- R6::R6Class( "layer_anchor_box_2d" ,
+  AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D" ,
                                     
     inherit = KerasLayer,
     
     public = list(
       
-      scale = NULL,
+      imageSize = NULL,
+
+      imageSizeAxes = NULL,
+
+      minSize = NULL,
+
+      aspectRatios = NULL,
+
+      variances = NULL,
       
-      channelAxis = NULL,
-      
-      initialize = function( scale, imageSize, minSize, maxSize = NA, 
-        aspectRatios = NA ) 
+      initialize = function( imageSize, minSize, 
+        aspectRatios = c( 0.5, 1.0, 2.0 ), variances = 1.0 )
         {
 
         #  Theano:  [batchSize, channelSize, widthSize, heightSize]
@@ -191,30 +210,108 @@ createSsdModel2D <- function( inputImageSize,
 
         if( k_image_data_format() == "channels_last" )
           {
-          self$channelAxis <- 4  
+          self$imageSizeAxes[1] <- 2  
+          self$imageSizeAxes[2] <- 3  
           } else {
-          self$channelAxis <- 2 
+          self$imageSizeAxes[1] <- 3  
+          self$imageSizeAxes[2] <- 4  
           }
-        self$scale <- scale  
+        self$minSize <- minSize
+
+        if( is.na( aspectRatios ) )
+          {
+          self$aspectRatios <- c( 1.0 )
+          } else {
+          self$aspectRatios <- aspectRatios
+          }
+
+        if( length( variances ) == 1 )
+          {
+          self$variances <- rep( variances, 4 )  
+          } else if( length( variances ) == 4 )
+          self$variances <- variances  
+          } else {
+          stop( "Error: Length of variances must be 1 or 4." )
+          }
         },
-      
-      build = function( input_shape ) 
-        {
-        initGamma <- self$scale * array( 1.0, input_shape[self$channelAxis] )
-        self$gamma <- 
-          k_variable( initGamma, name = paste0( '{}_gamma', self$name ) )
-        self$trainable_weights <- list( self$gamma )
-        },
-      
+            
       call = function( x, mask = NULL ) 
         {
-        output <- k_l2_normalize( x, self$channelAxis )
-        output <- output * self$gamma
-        return( output )
+        input_shape <- k_int_shape( x )
+        layerSize <- c()
+        layerSize[1] <- input_shape[self$imageSizeAxes[1]]
+        layerSize[2] <- input_shape[self$imageSizeAxes[2]]
+      
+        numberOfBoxes <- length( self$aspectRatios ) * prod( layerSize )
+
+        boxSizes <- list()
+        for( i in 1:length( self$aspectRatios ) )
+          {
+          boxSizes[[i]] <- c( self$minSize * sqrt( self$aspectRatios[i] ),
+                              self$minSize / sqrt( self$aspectRatios[i] ) )  
+          boxSizes[[i]] <- 0.5 * boxSizes[[i]]                    
+          }
+        stepSize <- self$imageSize / layerSize
+        stepSeq <- list()
+        for( i in 1:length( stepSize ) )
+          {
+          stepSeq[[i]] <- seq( 0.5 * stepSize[i], 
+            self$imageSize[1] - 0.5 * stepSize[i], length.out = layerSize[i] )
+          }
+
+        # Define c( xmin, ymin, xmax, ymax ) of each anchor box
+        # We set the initial shape to 
+        #    [4, batchSize, widthSize, heightSize, numberOfBoxes]
+        # because of the way the array function fills per the leftmost 
+        # ordering
+        
+        anchorBoxesTensor <- 
+          array( 0, c( 4, input_shape[0], self$imageSize, numberOfBoxes ) )
+        for( i = 1:length( self$aspectRatios ) )
+          {
+          for( j = 1:length( stepSeq[[1]] ) )
+            {
+            xmin <- stepSeq[[1]][j] - boxSizes[[i]][1]
+            xmax <- stepSeq[[1]][j] + boxSizes[[i]][1]
+            for( k = 1:length( stepSeq[[2]] ) )
+              {
+              ymin <- stepSeq[[2]][k] - boxSizes[[i]][2]
+              ymax <- stepSeq[[2]][k] + boxSizes[[i]][2]
+
+              anchorBoxCoords <- c( xmin, ymin, xmax, ymax )
+              
+              anchorBoxesTensor[,, j, k, i] <- array( anchorBoxCoords,
+                c( 4, input_shape[0], 1, 1, 1 ) )
+              count <- count + 1
+              }
+            }    
+          }
+        anchorVariancesTensor <- 
+          array( variances, c( 4, input_shape[0], self$imageSize, numberOfBoxes ) )  
+
+        permutationOrder <- c( 2:( length( dim( anchorBoxesTensor ) ) - 1 ), 1 )
+
+        anchorBoxesTensor <- 
+          aperm( abind( anchorBoxesTensor, anchorVariancesTensor, along = 1 ),          
+          perm = permutationOrder )
+
+        return( anchorBoxesTensor )  
+        },
+
+      compute_output_shape = function( input_shape ) 
+        {
+        layerSize <- c()
+        layerSize[1] <- input_shape[self$imageSizeChannels[1]]
+        layerSize[2] <- input_shape[self$imageSizeChannels[2]]
+        numberOfBoxes <- length( self$aspectRatios ) * prod( layerSize )
+        return ( c( input_shape[0], numberOfBoxes, 8 ) )
         }
       )
     )
 
+  layer_anchor_box_2d <- function( object ) {
+    create_layer( AnchorBoxLayer2D, object )
+  }
 
   inputs <- layer_input( shape = inputImageSize )
 
@@ -232,7 +329,6 @@ createSsdModel2D <- function( inputImageSize,
   #    (batchSize, imageHeight, imageWidth, numberOfBoxes * 2^imageDimension )
   boxLocations <- list()
   numberOfCoordinates <- 2^2
-  magicNumberAnchorBox <- 8
 
   outputs <- inputs
   for( i in 1:4 )
@@ -419,12 +515,12 @@ createSsdModel2D <- function( inputImageSize,
 
   for( i in 1:length( boxLocations ) )
     {
-    anchorBoxes[[i]] <- boxLocations[[i]] %>% layer_anchor_box_2d( inputImageSize, 
-      currentScale = scales[i], nextScale = scales[i+1], ...
-      )
+    anchorBoxes[[i]] <- boxLocations[[i]] %>% 
+      layer_anchor_box_2d( inputImageSize, minSize = , 
+        aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
     }
 
-  # Now reshape the box confidence values, box locations, and 
+  # Reshape the box confidence values, box locations, and 
   boxConfidenceValuesReshaped <- list()
   boxLocationsReshaped <- list()
   for( i in 1:length( boxConfidenceValues ) )
@@ -434,7 +530,7 @@ createSsdModel2D <- function( inputImageSize,
     boxLocationsReshaped[[i]] <- boxLocations[[i]] %>% 
       layer_reshape( target_shape = c( -1, numberOfClasses ) )  
     anchorBoxesReshaped[[i]] <- anchorBoxes[[i]] %>% 
-      layer_reshape( target_shape = c( -1, magicNumberAnchorBox ) )
+      layer_reshape( target_shape = c( -1, 8 ) )
     }  
   
   # Concatenate the predictions from the different layers
