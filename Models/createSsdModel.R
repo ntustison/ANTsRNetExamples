@@ -144,9 +144,9 @@ createSsdModel2D <- function( inputImageSize,
       )
     )
 
-  layer_l2_normalization_2d <- function( object, scale = 20, trainable = TRUE ) {
+  layer_l2_normalization_2d <- function( object, scale = 20 ) {
     create_layer( L2NormalizationLayer2D, object, 
-      list( scale = scale, trainable = trainable ) )
+      list( scale = scale ) )
   }
 
   # anchor box layer
@@ -178,8 +178,6 @@ createSsdModel2D <- function( inputImageSize,
       
       imageSize = NULL,
 
-      imageSizeAxes = NULL,
-
       minSize = NULL,
 
       maxSize = NULL,
@@ -187,6 +185,12 @@ createSsdModel2D <- function( inputImageSize,
       aspectRatios = NULL,
 
       variances = NULL,
+
+      imageSizeAxes = NULL,
+
+      channelAxis = NULL, 
+
+      numberOfBoxes = NULL,
       
       initialize = function( imageSize, minSize, maxSize,
         aspectRatios = c( 0.5, 1.0, 2.0 ), variances = 1.0 )
@@ -199,19 +203,24 @@ createSsdModel2D <- function( inputImageSize,
           {
           self$imageSizeAxes[1] <- 2  
           self$imageSizeAxes[2] <- 3  
+          self$channelAxis <- 4
           } else {
           self$imageSizeAxes[1] <- 3  
           self$imageSizeAxes[2] <- 4  
+          self$channelAxis <- 2
           }
         self$minSize <- minSize
         self$maxSize <- maxSize
 
-        if( is.na( aspectRatios ) )
+        self$imageSize <- imageSize
+
+        if( is.null( aspectRatios ) )
           {
           self$aspectRatios <- c( 1.0 )
           } else {
           self$aspectRatios <- aspectRatios
           }
+        self$numberOfBoxes <- length( aspectRatios )
 
         if( length( variances ) == 1 )
           {
@@ -230,8 +239,6 @@ createSsdModel2D <- function( inputImageSize,
         layerSize[1] <- input_shape[[self$imageSizeAxes[1]]]
         layerSize[2] <- input_shape[[self$imageSizeAxes[2]]]
       
-        numberOfBoxes <- length( self$aspectRatios ) * prod( layerSize )
-
         boxSizes <- list()
         for( i in 1:length( self$aspectRatios ) )
           {
@@ -255,12 +262,11 @@ createSsdModel2D <- function( inputImageSize,
 
         # Define c( xmin, ymin, xmax, ymax ) of each anchor box
         # We set the initial shape to 
-        #    [4, batchSize, widthSize, heightSize, numberOfBoxes]
+        #    [4, widthSize, heightSize, numberOfBoxes]
         # because of the way the array function fills per the leftmost 
         # ordering
         
-        anchorBoxesTensor <- 
-          array( 0, c( 4, input_shape[[0]], self$imageSize, numberOfBoxes ) )
+        anchorBoxesTensor <- array( 0, c( 4, layerSize, self$numberOfBoxes ) )
         for( i in 1:length( self$aspectRatios ) )
           {
           for( j in 1:length( stepSeq[[1]] ) )
@@ -274,17 +280,14 @@ createSsdModel2D <- function( inputImageSize,
 
               anchorBoxCoords <- c( xmin, ymin, xmax, ymax )
               
-              anchorBoxesTensor[,, j, k, i] <- array( anchorBoxCoords,
-                c( 4, input_shape[[0]], 1, 1, 1 ) )
-              count <- count + 1
+              anchorBoxesTensor[, j, k, i] <- anchorBoxCoords
               }
             }    
           }
-        anchorVariancesTensor <- array( variances, c( 4, input_shape[0], 
-          self$imageSize, numberOfBoxes ) )  
+        anchorVariancesTensor <- array( variances, c( 4, layer_size, 
+          self$numberOfBoxes ) )
 
-        permutationOrder <- 
-          c( 2:( length( dim( anchorBoxesTensor ) ) - 1 ), 1 )
+        permutationOrder <- c( 2:length( dim( anchorBoxesTensor ) ), 1 )
 
         anchorBoxesTensor <- 
           aperm( abind( anchorBoxesTensor, anchorVariancesTensor, along = 1 ),          
@@ -296,16 +299,20 @@ createSsdModel2D <- function( inputImageSize,
       compute_output_shape = function( input_shape ) 
         {
         layerSize <- c()
-        layerSize[1] <- input_shape[[self$imageSizeChannels[1]]]
-        layerSize[2] <- input_shape[[self$imageSizeChannels[2]]]
-        numberOfBoxes <- length( self$aspectRatios ) * prod( layerSize )
-        return ( c( input_shape[0], numberOfBoxes, 8 ) )
+        layerSize[1] <- input_shape[[self$imageSizeAxes[1]]]
+        layerSize[2] <- input_shape[[self$imageSizeAxes[2]]]
+        return ( list( input_shape[[self$channelAxis]], layerSize[1], 
+          layerSize[2], self$numberOfBoxes, 8 ) )
         }
       )
     )
 
-  layer_anchor_box_2d <- function( object ) {
-    create_layer( AnchorBoxLayer2D, object )
+  layer_anchor_box_2d <- function( object, 
+    imageSize, minSize, maxSize, aspectRatios, variances ) {
+    create_layer( AnchorBoxLayer2D, object, 
+      list( imageSize = imageSize, minSize = minSize, maxSize = maxSize, 
+            aspectRatios = aspectRatios, variances = variances )
+      )
   }
 
   inputs <- layer_input( shape = inputImageSize )
@@ -334,7 +341,9 @@ createSsdModel2D <- function( inputImageSize,
   # ( batchSize, imageHeight, imageWidth, 
   #      numberOfBoxesPerLayer * 2^imageDimension )
   boxLocations <- list()
-  numberOfCoordinates <- 2^2
+
+  imageDimension <- 2
+  numberOfCoordinates <- 2^imageDimension
 
   # Initial convolutions 1-4
 
@@ -360,8 +369,21 @@ createSsdModel2D <- function( inputImageSize,
 
       if( i == 4 )
         {
-        l2NormalizedOutputs <- outputs %>% 
-          layer_l2_normalization_2d( scale = 20 )
+        # l2NormalizedOutputs <- outputs %>% 
+        #   layer_l2_normalization_2d( scale = 20 )
+
+        boxClasses[[1]] <- outputs %>% layer_conv_2d( 
+          filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
+          kernel_size = c( 3, 3 ),
+          padding = 'same', kernel_initializer = initializer_he_normal(),
+          kernel_regularizer = regularizer_l2( l2Regularization ) )
+
+        boxLocations[[1]] <- outputs %>% layer_conv_2d( 
+          filters = numberOfBoxesPerLayer[1] * numberOfCoordinates,
+          kernel_size = c( 3, 3 ),
+          padding = 'same', kernel_initializer = initializer_he_normal(),
+          kernel_regularizer = regularizer_l2( l2Regularization ) )
+
         }
       }
 
@@ -369,17 +391,17 @@ createSsdModel2D <- function( inputImageSize,
       strides = c( 2, 2 ), padding = 'same' )
     }
 
-  boxClasses[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
-    filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
-    kernel_size = c( 3, 3 ),
-    padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+  # boxClasses[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
+  #   filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
+  #   kernel_size = c( 3, 3 ),
+  #   padding = 'same', kernel_initializer = initializer_he_normal(),
+  #   kernel_regularizer = regularizer_l2( l2Regularization ) )
 
-  boxLocations[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
-    filters = numberOfBoxesPerLayer[1] * numberOfCoordinates,
-    kernel_size = c( 3, 3 ),
-    padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+  # boxLocations[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
+  #   filters = numberOfBoxesPerLayer[1] * numberOfCoordinates,
+  #   kernel_size = c( 3, 3 ),
+  #   padding = 'same', kernel_initializer = initializer_he_normal(),
+  #   kernel_regularizer = regularizer_l2( l2Regularization ) )
 
   # Conv5
 
@@ -539,12 +561,14 @@ createSsdModel2D <- function( inputImageSize,
   #   ``( batch, height, width, numberOfBoxes, 8 )``
   anchorBoxes <- list()
 
-  shortImageSize <- min( inputImageSize[1:2] )
+  imageSize <- inputImageSize[1:imageDimension]
+  shortImageSize <- min( imageSize )
 
   for( i in 1:length( boxLocations ) )
     {
+    cat( "i = ", i, "\n" ) 
     anchorBoxes[[i]] <- boxLocations[[i]] %>% 
-      layer_anchor_box_2d( inputImageSize, 
+      layer_anchor_box_2d( imageSize, 
         minSize = ( scales[i] * shortImageSize ), 
         maxSize = ( scales[i+1] * shortImageSize ),
         aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
