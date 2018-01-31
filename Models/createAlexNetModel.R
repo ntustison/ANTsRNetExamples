@@ -99,7 +99,8 @@ createAlexNetModel2D <- function( inputImageSize,
     return( layer_lambda( f = f ) )
     }  
 
-  crossChannelNormalization2D <- function( alpha = 1e-4, k = 2, beta = 0.75, n = 5L )
+  crossChannelNormalization2D <- function( 
+    alpha = 1e-4, k = 2, beta = 0.75, n = 5L )
     {
     normalizeTensor2D <- function( X )
       {
@@ -119,7 +120,8 @@ createAlexNetModel2D <- function( inputImageSize,
       extraChannels <- k_spatial_2d_padding( 
         k_permute_dimensions( X2, c( 1L, 2L, 3L, 0L ) ), 
         padding = list( c( 0L, 0L ), c( half, half ) ) )
-      extraChannels <- k_permute_dimensions( extraChannels, c( 3L, 0L, 1L, 2L ) )  
+      extraChannels <- 
+        k_permute_dimensions( extraChannels, c( 3L, 0L, 1L, 2L ) )  
       scale <- k
 
       Xdims <- k_int_shape( X )
@@ -198,7 +200,8 @@ createAlexNetModel2D <- function( inputImageSize,
     }
   outputs <- layer_concatenate( lambdaLayersConv5 )
 
-  outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), strides = c(2, 2 ) )
+  outputs <- outputs %>% 
+    layer_max_pooling_2d( pool_size = c( 3, 3 ), strides = c( 2, 2 ) )
   outputs <- outputs %>% layer_flatten()
   outputs <- outputs %>% layer_dense( units = denseUnits, activation = 'relu' )
   if( dropoutRate > 0.0 )
@@ -210,7 +213,8 @@ createAlexNetModel2D <- function( inputImageSize,
     {
     outputs <- outputs %>% layer_dropout( rate = dropoutRate )
     }
-  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+  outputs <- outputs %>% 
+    layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
 
   alexNetModel <- keras_model( inputs = inputs, outputs = outputs )
 
@@ -320,7 +324,8 @@ createAlexNetModel3D <- function( inputImageSize,
     return( layer_lambda( f = f ) )
     }  
 
-  crossChannelNormalization3D <- function( alpha = 1e-4, k = 2, beta = 0.75, n = 5L )
+  crossChannelNormalization3D <- function( 
+    alpha = 1e-4, k = 2, beta = 0.75, n = 5L )
     {
     normalizeTensor3D <- function( X )
       {
@@ -340,7 +345,8 @@ createAlexNetModel3D <- function( inputImageSize,
       extraChannels <- k_spatial_3d_padding( 
         k_permute_dimensions( X2, c( 1L, 2L, 3L, 4L, 0L ) ), 
         padding = list( c( 0L, 0L ), c( 0L, 0L ), c( half, half ) ) )
-      extraChannels <- k_permute_dimensions( extraChannels, c( 4L, 0L, 1L, 2L, 3L ) )  
+      extraChannels <- 
+        k_permute_dimensions( extraChannels, c( 4L, 0L, 1L, 2L, 3L ) ) 
       scale <- k
 
       Xdims <- k_int_shape( X )
@@ -431,7 +437,8 @@ createAlexNetModel3D <- function( inputImageSize,
     {
     outputs <- outputs %>% layer_dropout( rate = dropoutRate )
     }
-  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, activation = 'softmax' )
+  outputs <- outputs %>% layer_dense( units = numberOfClassificationLabels, 
+    activation = 'softmax' )
 
   alexNetModel <- keras_model( inputs = inputs, outputs = outputs )
 
