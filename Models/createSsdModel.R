@@ -234,6 +234,8 @@ createSsdModel2D <- function( inputImageSize,
             
       call = function( x, mask = NULL ) 
         {
+        np <- reticulate::import( "numpy" )
+
         input_shape <- k_int_shape( x )
         layerSize <- c()
         layerSize[1] <- input_shape[[self$imageSizeAxes[1]]]
@@ -261,12 +263,11 @@ createSsdModel2D <- function( inputImageSize,
           }
 
         # Define c( xmin, ymin, xmax, ymax ) of each anchor box
-        # We set the initial shape to 
-        #    [4, widthSize, heightSize, numberOfBoxes]
-        # because of the way the array function fills per the leftmost 
-        # ordering
-        
-        anchorBoxesTensor <- array( 0, c( 4, layerSize, self$numberOfBoxes ) )
+                         
+        anchorBoxesTuple <- np$zeros( reticulate::tuple( 
+          layerSize[1], layerSize[2], self$numberOfBoxes, 4L ) )
+        anchorVariancesTuple <- np$zeros( reticulate::tuple( 
+          layerSize[1], layerSize[2], self$numberOfBoxes, 4L ) )
         for( i in 1:length( self$aspectRatios ) )
           {
           for( j in 1:length( stepSeq[[1]] ) )
@@ -280,18 +281,21 @@ createSsdModel2D <- function( inputImageSize,
 
               anchorBoxCoords <- c( xmin, ymin, xmax, ymax )
               
-              anchorBoxesTensor[, j, k, i] <- anchorBoxCoords
+              anchorBoxesTuple[j, k, i,] <- anchorBoxCoords
+              anchorVariancesTuple[j, k, i,] <- variances
               }
             }    
           }
-        anchorVariancesTensor <- array( variances, c( 4, layer_size, 
-          self$numberOfBoxes ) )
 
-        permutationOrder <- c( 2:length( dim( anchorBoxesTensor ) ), 1 )
+        anchorBoxesTensor <- np$concatenate( 
+          reticulate::tuple( anchorBoxesTuple, anchorVariancesTuple ), axis = -1L )
+        anchorBoxesTensor <- np$expand_dims( anchorBoxesTensor, axis = 0L )  
 
-        anchorBoxesTensor <- 
-          aperm( abind( anchorBoxesTensor, anchorVariancesTensor, along = 1 ),          
-          perm = permutationOrder )
+        anchorBoxesTensor <- k_constant( anchorBoxesTensor, dtype = 'float32' )
+#        anchorBoxesTensor <- k_tile( anchorBoxesTensor, 
+#          c( k_shape( x )[1], 1L, 1L, 1L, 1L ) )
+        anchorBoxesTensor <- keras::backend()$tile( anchorBoxesTensor, 
+          c( k_shape( x )[1], 1L, 1L, 1L, 1L ) )
 
         return( anchorBoxesTensor )  
         },
@@ -301,8 +305,9 @@ createSsdModel2D <- function( inputImageSize,
         layerSize <- c()
         layerSize[1] <- input_shape[[self$imageSizeAxes[1]]]
         layerSize[2] <- input_shape[[self$imageSizeAxes[2]]]
-        return ( list( input_shape[[self$channelAxis]], layerSize[1], 
-          layerSize[2], self$numberOfBoxes, 8 ) )
+
+        return( reticulate::tuple( input_shape[[1]], layerSize[1], 
+          layerSize[2], self$numberOfBoxes, 8L ) )
         }
       )
     )
@@ -566,7 +571,6 @@ createSsdModel2D <- function( inputImageSize,
 
   for( i in 1:length( boxLocations ) )
     {
-    cat( "i = ", i, "\n" ) 
     anchorBoxes[[i]] <- boxLocations[[i]] %>% 
       layer_anchor_box_2d( imageSize, 
         minSize = ( scales[i] * shortImageSize ), 
@@ -577,20 +581,32 @@ createSsdModel2D <- function( inputImageSize,
   # Reshape the box confidence values, box locations, and 
   boxClassesReshaped <- list()
   boxLocationsReshaped <- list()
+  anchorBoxesReshaped <- list()
   for( i in 1:length( boxClasses ) )
     {
-    boxClassesReshaped[[i]] <- boxClasses[[i]] %>% 
-      layer_reshape( target_shape = c( -1, numberOfClassificationLabels ) )
-    boxLocationsReshaped[[i]] <- boxLocations[[i]] %>% 
-      layer_reshape( target_shape = c( -1, numberOfCoordinates ) )  
-    anchorBoxesReshaped[[i]] <- anchorBoxes[[i]] %>% 
-      layer_reshape( target_shape = c( -1, 8 ) )
+    # reshape ``( batch, height, width, numberOfBoxes * numberOfClasses )``
+    #   to ``(batch, height * width * numberOfBoxes, numberOfClasses )``
+    inputShape <- k_int_shape( boxClasses[[i]] )
+    numberOfBoxes <- 
+      as.integer( inputShape[[4]] / numberOfClassificationLabels )
+    boxClassesReshaped[[i]] <- boxClasses[[i]] %>% layer_reshape( 
+      target_shape = c( inputShape[[2]] * inputShape[[3]] * numberOfBoxes, 
+        numberOfClassificationLabels ) )
+
+    # reshape ``( batch, height, width, numberOfBoxes * 4 )``
+    #   to `( batch, height * width * numberOfBoxes, 4 )`
+    boxLocationsReshaped[[i]] <- boxLocations[[i]] %>% layer_reshape( 
+      target_shape = c( inputShape[[2]] * inputShape[[3]] * numberOfBoxes, 4 ) )
+
+    # reshape ``( batch, height, width, numberOfBoxes * 8 )``
+    #   to `( batch, height * width * numberOfBoxes, 8 )`
+    anchorBoxesReshaped[[i]] <- anchorBoxes[[i]] %>% layer_reshape( 
+      target_shape = c( inputShape[[2]] * inputShape[[3]] * numberOfBoxes, 8 ) )
     }  
   
   # Concatenate the predictions from the different layers
 
-  outputClasses <- 
-    layer_concatenate( boxClassesReshaped, axis = 1 )
+  outputClasses <- layer_concatenate( boxClassesReshaped, axis = 1 )
   outputLocations <- layer_concatenate( boxLocationsReshaped, axis = 1 )
   outputAnchorBoxes <- layer_concatenate( anchorBoxesReshaped, axis = 1 )
 
