@@ -140,6 +140,11 @@ createSsdModel2D <- function( inputImageSize,
         output <- k_l2_normalize( x, self$channelAxis )
         output <- output * self$gamma
         return( output )
+        },
+
+      compute_output_shape = function( input_shape ) 
+        {
+        return( reticulate::tuple( input_shape ) )
         }
       )
     )
@@ -374,8 +379,8 @@ createSsdModel2D <- function( inputImageSize,
 
       if( i == 4 )
         {
-        # l2NormalizedOutputs <- outputs %>% 
-        #   layer_l2_normalization_2d( scale = 20 )
+        l2NormalizedOutputs <- outputs %>% 
+          layer_l2_normalization_2d( scale = 20 )
 
         boxClasses[[1]] <- outputs %>% layer_conv_2d( 
           filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
@@ -396,17 +401,17 @@ createSsdModel2D <- function( inputImageSize,
       strides = c( 2, 2 ), padding = 'same' )
     }
 
-  # boxClasses[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
-  #   filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
-  #   kernel_size = c( 3, 3 ),
-  #   padding = 'same', kernel_initializer = initializer_he_normal(),
-  #   kernel_regularizer = regularizer_l2( l2Regularization ) )
+  boxClasses[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
+    filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
+    kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
 
-  # boxLocations[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
-  #   filters = numberOfBoxesPerLayer[1] * numberOfCoordinates,
-  #   kernel_size = c( 3, 3 ),
-  #   padding = 'same', kernel_initializer = initializer_he_normal(),
-  #   kernel_regularizer = regularizer_l2( l2Regularization ) )
+  boxLocations[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
+    filters = numberOfBoxesPerLayer[1] * numberOfCoordinates,
+    kernel_size = c( 3, 3 ),
+    padding = 'same', kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ) )
 
   # Conv5
 
