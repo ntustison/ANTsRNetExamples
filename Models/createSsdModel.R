@@ -1,3 +1,160 @@
+#' Loss function for the SSD deep learning architecture.
+#'
+#' Creates an R6 class object for use with the SSD deep learning architecture
+#' based on the paper
+#' 
+#' W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, A. Berg. 
+#'     SSD: Single Shot MultiBox Detector.
+#' 
+#' available here:
+#' 
+#'         https://arxiv.org/abs/1512.02325
+#'
+#' This particular implementation was heavily influenced by the following 
+#' python and R implementations: 
+#' 
+#'         https://github.com/rykov8/ssd_keras
+#'         https://github.com/gsimchoni/ssdkeras/blob/master/R/ssd_loss.R
+#'
+#' @param backgroundRatio The maximum ratio of background to foreround
+#' for weighting in the loss function.  Is rounded to the nearest integer.
+#' Default is '3'.
+#' @param minNumberOfBackgroundBoxes The minimum number of background boxes
+#' to use in loss computation *per batch*.  Should reflect a value in 
+#' proportion to the batch size.  Default is 0.
+#' @param alpha Weighting factor for the localization loss in total loss 
+#' computation.
+#'
+#' @return an SSD loss function
+#' @author Tustison NJ
+#' @examples
+#'
+#' \dontrun{ 
+#' 
+#' library( keras )
+#' 
+#' }
+
+lossSsd <- R6::R6Class( "LossSSD",
+
+  public = list( 
+      
+    backgroundRatio = 3L, 
+    
+    minNumberOfBackgroundBoxes = 0L, 
+    
+    alpha = 1.0,
+                         
+    numberOfClassificationLabels = NULL,
+
+    # Can we generalize beyond tensorflow?
+    tf = tensorflow::tf,
+
+    initialize = function( backgroundRatio = 3L, 
+      minNumberOfBackgroundBoxes = 0L, alpha = 1.0, 
+      numberOfClassificationLabels = NULL ) 
+      {
+      self$backgroundRatio <- self$tf$constant( backgroundRatio )
+      self$minNumberOfBackgroundBoxes <- 
+        self$tf$constant( minNumberOfBackgroundBoxes )
+      self$alpha <- self$tf$constant( alpha )
+      self$numberOfClassificationLabels <- 
+        as.integer( numberOfClassificationLabels )
+      },
+      
+    smooth_l1_loss = function( y_true, y_pred ) 
+      {
+      y_true <- self$tf$cast( y_true, dtype = "float32" )
+      absoluteLoss <- self$tf$abs( y_true - y_pred )
+      squareLoss <- 0.5 * ( y_true - y_pred )^2
+      l1Loss <- self$tf$where( self$tf$less( absoluteLoss, 1.0 ), 
+        squareLoss, absoluteLoss - 0.5 )
+      return( self$tf$reduce_sum( l1Loss, axis = -1L ) )
+      },
+
+    log_loss = function( y_true, y_pred ) 
+      {
+      y_true <- self$tf$cast( y_true, dtype = "float32" )
+      y_pred <- self$tf$maximum( y_pred, 1e-15 )
+      logLoss <- 
+        -self$tf$reduce_sum( y_true * self$tf$log( y_pred ), axis = -1L )
+      return( logLoss )
+      },
+
+    compute_loss = function( y_true, y_pred ) 
+      {
+      y_true$set_shape( y_pred$get_shape() )
+      batchSize <- self$tf$shape( y_pred )[1] 
+      numberOfBoxesPerCell <- self$tf$shape( y_pred )[2] 
+
+      classificationLoss <- self$tf$to_float( self$log_loss( 
+         y_true[,, 1:self$numberOfClassificationLabels], 
+         y_pred[,, 1:self$numberOfClassificationLabels] ) ) 
+      localizationLoss <- self$tf$to_float( self$smooth_l1_loss( 
+        y_true[,, ( self$numberOfClassificationLabels + 1 ):
+                  ( self$numberOfClassificationLabels + 4 )], 
+        y_pred[,, ( self$numberOfClassificationLabels + 1 ):
+                  ( self$numberOfClassificationLabels + 4 )] ) )
+
+      backgroundBoxes <- y_true[,, 1] 
+      foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
+        y_true[,, 2:self$numberOfClassificationLabels], axis = -1L ) ) 
+
+      numberOfForegroundBoxes <- self$tf$reduce_sum( positiveBoxes )
+
+      foregroundClassLoss <- self$tf$reduce_sum( 
+        classificationLoss * foregroundBoxes, axis = -1L )
+
+      backgroundClassLossAll <- classificationLoss * backgroundBoxes
+      numberOfNegativeBoxes <- 
+        self$tf$count_nonzero( backgroundClassLossAll, dtype = self$tf$int32 )
+
+      numberOfBackgroundBoxesToKeep <- self$tf$minimum( self$tf$maximum( 
+        self$backgroundRatio * self$tf$to_int32( numberOfForegroundBoxes ), 
+        self$minNumberOfBackgroundBoxes ), numberOfNegativeBoxes )
+
+      f1 = function() 
+        {
+        return( self$tf$zeros( list( batchSize ) ) )
+        }
+
+      f2 = function() 
+        {
+        backgroundClassLossAll1d <- 
+          self$tf$reshape( backgroundClassLossAll, list( -1L ) )
+        topK <- self$tf$nn$top_k( 
+          backgroundClassLossAll1d, numberOfBackgroundBoxesToKeep, FALSE )
+        values <- topK$values
+        indices <- topK$indices
+
+        backgroundBoxesToKeep <- self$tf$scatter_nd( 
+          self$tf$expand_dims( indices, axis = 1L ), 
+          updates = self$tf$ones_like( indices, dtype = self$tf$int32 ), 
+          shape = self$tf$shape( backgroundClassLossAll1d ) ) 
+        backgroundBoxesToKeep <- self$tf$to_float( 
+          self$tf$reshape( backgroundBoxesToKeep, 
+          list( batchSize, numberOfBoxesPerCell ) ) )
+
+        return( self$tf$reduce_sum( 
+          classificationLoss * backgroundBoxesToKeep, axis = -1L ) )
+        }
+
+      backgroundClassLoss <- self$tf$cond( self$tf$equal( 
+        numberOfNegativeBoxes, self$tf$constant( 0L ) ), f1, f2 )
+
+      classLoss <- foregroundClassLoss + backgroundClassLoss
+
+      localizationLoss <- 
+        self$tf$reduce_sum( localizationLoss * foregroundBoxes, axis = -1L )
+
+      totalLoss <- ( classLoss + self$alpha * localizationLoss ) / 
+        self$tf$maximum( 1.0, numberOfForegroundBoxes ) 
+
+      return( totalLoss )
+      }
+    )
+  )
+
 #' 2-D implementation of the SSD deep learning architecture.
 #'
 #' Creates a keras model of the SSD deep learning architecture for image 
@@ -77,11 +234,6 @@ createSsdModel2D <- function( inputImageSize,
     {
     stop( "Please install the abind package." )
     }
-
-  #
-  # custom layers:  https://keras.rstudio.com/articles/custom_layers.html
-  # https://cran.rstudio.com/web/packages/keras/vignettes/about_keras_layers.html
-  #
 
   # L2 normalization layer described in 
   #
@@ -292,8 +444,8 @@ createSsdModel2D <- function( inputImageSize,
             }    
           }
 
-        anchorBoxesTensor <- np$concatenate( 
-          reticulate::tuple( anchorBoxesTuple, anchorVariancesTuple ), axis = -1L )
+        anchorBoxesTensor <- np$concatenate( reticulate::tuple( 
+          anchorBoxesTuple, anchorVariancesTuple ), axis = -1L )
         anchorBoxesTensor <- np$expand_dims( anchorBoxesTensor, axis = 0L )  
 
         anchorBoxesTensor <- k_constant( anchorBoxesTensor, dtype = 'float32' )
