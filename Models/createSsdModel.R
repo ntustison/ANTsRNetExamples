@@ -155,6 +155,48 @@ lossSsd <- R6::R6Class( "LossSSD",
     )
   )
 
+#' Encoding function for Y_train
+#'
+#' Function for translating the min/max ground truth box coordinates to 
+#' something readable by the network.
+#' 
+#' This particular implementation was heavily influenced by the following 
+#' python and R implementations: 
+#' 
+#'         https://github.com/rykov8/ssd_keras
+#'         https://github.com/gsimchoni/ssdkeras/blob/master/R/ssd_loss.R
+#'
+#' @param groundTruthLabels 
+#'
+#' @return a matrix encoding the ground truth box data
+#' @author Tustison NJ
+#' @examples
+#'
+#' \dontrun{ 
+#' 
+#' library( keras )
+#' 
+#' }
+
+encodeY <- function( groundTruthLabels, aspectRatiosPerLayer, minScale, maxScale )
+  {
+  np <- reticulate::import( "numpy" )  
+
+  numberOfBoxesPerLayer <- rep( 0, numberOfPredictorLayers )
+  for( i in 1:numberOfPredictorLayers )
+    {
+    numberOfBoxesPerLayer[i] <- length( aspectRatiosPerLayer[[i]] )  
+    }
+  numberOfBoxes <- sum( numberOfBoxesPerLayer )  
+
+  batchSize <- length( groundTruthLabels )
+  numberOfClasses <- length( unique( groundTruthLabels ) )
+
+  yEncoded <- np.zeros( c( batchSize, numberOfBoxes, numberOfClasses + 12 ) )
+
+  }
+
+
 #' 2-D implementation of the SSD deep learning architecture.
 #'
 #' Creates a keras model of the SSD deep learning architecture for image 
@@ -510,7 +552,9 @@ createSsdModel2D <- function( inputImageSize,
   # Initial convolutions 1-4
 
   outputs <- inputs
-  for( i in 1:4 )
+
+  numberOfLayers <- 4
+  for( i in 1:numberOfLayers )
     {
     outputs <- outputs %>% layer_conv_2d( filters = filterSizes[i], 
       kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
@@ -529,7 +573,7 @@ createSsdModel2D <- function( inputImageSize,
         kernel_initializer = initializer_he_normal(), 
         kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-      if( i == 4 )
+      if( i == numberOfLayers )
         {
         l2NormalizedOutputs <- outputs %>% 
           layer_l2_normalization_2d( scale = 20 )
@@ -541,7 +585,7 @@ createSsdModel2D <- function( inputImageSize,
           kernel_regularizer = regularizer_l2( l2Regularization ) )
 
         boxLocations[[1]] <- outputs %>% layer_conv_2d( 
-          filters = numberOfBoxesPerLayer[1] * numberOfCoordinates,
+          filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels,
           kernel_size = c( 3, 3 ),
           padding = 'same', kernel_initializer = initializer_he_normal(),
           kernel_regularizer = regularizer_l2( l2Regularization ) )
@@ -572,7 +616,7 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  outputs <- outputs %>% layer_conv_2d( filters = filterSizes[i], 
+  outputs <- outputs %>% layer_conv_2d( filters = filterSizes[4], 
     kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
@@ -621,7 +665,8 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  outputs <- outputs %>% layer_zero_padding_2d( padding = c( 1, 1 ) )  
+  outputs <- outputs %>% layer_zero_padding_2d( 
+    padding = list( c( 1, 1 ), c( 1, 1 ) ) )  
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[4],
     kernel_size = c( 3, 3 ), strides = c( 2, 2 ), 
@@ -649,7 +694,8 @@ createSsdModel2D <- function( inputImageSize,
     kernel_initializer = initializer_he_normal(), 
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
-  outputs <- outputs %>% layer_zero_padding_2d( padding = c( 1, 1 ) )  
+  outputs <- outputs %>% layer_zero_padding_2d( 
+    padding = list( c( 1, 1 ), c( 1, 1 ) ) ) 
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
     kernel_size = c( 3, 3 ), strides = c( 2, 2 ), 
@@ -710,18 +756,21 @@ createSsdModel2D <- function( inputImageSize,
     kernel_regularizer = regularizer_l2( l2Regularization ) ) 
 
   boxClasses[[6]] <- outputs %>% layer_conv_2d( 
-    filters = numberOfBoxesPerLayer[6] * numberOfClassificationLabels, kernel_size = c( 3, 3 ),
-    padding = 'same', kernel_initializer = initializer_he_normal(),
+    filters = numberOfBoxesPerLayer[6] * numberOfClassificationLabels, 
+    kernel_size = c( 3, 3 ), padding = 'same', 
+    kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
   boxLocations[[6]] <- outputs %>% layer_conv_2d( 
-    filters = numberOfBoxesPerLayer[6] * numberOfCoordinates, kernel_size = c( 3, 3 ),
-    padding = 'same', kernel_initializer = initializer_he_normal(),
+    filters = numberOfBoxesPerLayer[6] * numberOfCoordinates, 
+    kernel_size = c( 3, 3 ), padding = 'same', 
+    kernel_initializer = initializer_he_normal(),
     kernel_regularizer = regularizer_l2( l2Regularization ) )
 
   # Generate the anchor boxes.  Output shape of anchor boxes =
   #   ``( batch, height, width, numberOfBoxes, 8 )``
   anchorBoxes <- list()
+  predictorSizes <- list()
 
   imageSize <- inputImageSize[1:imageDimension]
   shortImageSize <- min( imageSize )
@@ -733,6 +782,8 @@ createSsdModel2D <- function( inputImageSize,
         minSize = ( scales[i] * shortImageSize ), 
         maxSize = ( scales[i+1] * shortImageSize ),
         aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
+
+    predictorSizes[[i]] <- unlist( boxClasses[[i]]$shape$as_list()[2:4] )
     }
 
   # Reshape the box confidence values, box locations, and 
@@ -775,5 +826,5 @@ createSsdModel2D <- function( inputImageSize,
 
   ssdModel <- keras_model( inputs = inputs, outputs = predictions )
 
-  return( ssdModel )
+  return( list( ssdModel = ssdModel, predictorSizes = predictorSizes ) )
 }
