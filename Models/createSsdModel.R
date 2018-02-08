@@ -155,20 +155,23 @@ lossSsd <- R6::R6Class( "LossSSD",
     )
   )
 
-#' Encoding function for Y_train
+#' Jaccard similarity between two sets of boxes
 #'
-#' Function for translating the min/max ground truth box coordinates to 
-#' something readable by the network.
-#' 
+#' Function for determinining the Jaccard or iou (intersection over union) 
+#' similarity measure between two sets of boxes.
+
 #' This particular implementation was heavily influenced by the following 
 #' python and R implementations: 
 #' 
-#'         https://github.com/rykov8/ssd_keras
-#'         https://github.com/gsimchoni/ssdkeras/blob/master/R/ssd_loss.R
+#'         https://github.com/gsimchoni/ssdkeras
 #'
-#' @param groundTruthLabels 
+#' @param boxes1 A 2-D array where each row corresponds to a single box 
+#' consisting of the format (xmin,xmax,ymin,ymax)
+#' @param boxes2 A 2-D array where each row corresponds to a single box 
+#' consisting of the format (xmin,xmax,ymin,ymax)
 #'
-#' @return a matrix encoding the ground truth box data
+#' @return a float determinining the similarity measure
+#'      
 #' @author Tustison NJ
 #' @examples
 #'
@@ -178,24 +181,86 @@ lossSsd <- R6::R6Class( "LossSSD",
 #' 
 #' }
 
-encodeY <- function( groundTruthLabels, aspectRatiosPerLayer, minScale, maxScale )
+jaccardSimilarity <- function( boxes1, boxes2 )
+  {
+  intersection <- pmax( rep( 0, nrow( boxes1 ) ), 
+    pmin( boxes1[, 2], boxes2[, 2] ) - pmax( boxes1[, 1], boxes2[, 1] ) ) *
+                  pmax( rep( 0, nrow( boxes1 ) ), 
+    pmin( boxes1[, 4], boxes2[, 4] ) - pmax( boxes1[, 3], boxes2[, 3] ) )
+
+  union <- ( boxes1[, 2] - boxes1[, 1] ) * ( boxes1[, 4] - boxes1[, 3] ) +
+    ( boxes2[, 2] - boxes2[, 1] ) * ( boxes2[, 4] - boxes2[, 3] ) - 
+    intersection
+  return( intersection / union )
+  }
+
+#' Encoding function for Y_train
+#'
+#' Function for translating the min/max ground truth box coordinates to 
+#' something expcted by the SSD network.  This is a SSD-specific analog
+#' for keras::to_categorical().
+#' 
+#' This particular implementation was heavily influenced by the following 
+#' python and R implementations: 
+#' 
+#'         https://github.com/pierluigiferrari/ssd_keras  
+#'         https://github.com/rykov8/ssd_keras
+#'         https://github.com/gsimchoni/ssdkeras
+#'
+#' @param groundTruthLabels A list of length `batchSize` that contains one 
+#' 2-D array per image.  Each 2-D array has k rows where each row corresponds
+#' to a single box consisting of the format 
+#' 
+#'          classId,xmin,xmax,ymin,max
+#'
+#' Note that `classId` must be greater than 0 since 0 is reserved for the 
+#' background label.
+#'
+#' @return a a 3-D array of shape 
+#'      
+#'         `(batchSize, numberOfBoxes, numberOfClasses + 4 + 4 + 4)`
+#'
+#' where the additional 4's along the third dimension correspond to 
+#'    * the box coordinates (xmin, xmax, ymin, ymax),
+#'    * dummy variables, and
+#'    * the variances.
+#'
+#' @author Tustison NJ
+#' @examples
+#'
+#' \dontrun{ 
+#' 
+#' library( keras )
+#' 
+#' }
+
+encodeY <- function( groundTruthLabels, variances )
   {
   np <- reticulate::import( "numpy" )  
 
-  numberOfBoxesPerLayer <- rep( 0, numberOfPredictorLayers )
-  for( i in 1:numberOfPredictorLayers )
-    {
-    numberOfBoxesPerLayer[i] <- length( aspectRatiosPerLayer[[i]] )  
-    }
-  numberOfBoxes <- sum( numberOfBoxesPerLayer )  
-
   batchSize <- length( groundTruthLabels )
-  numberOfClasses <- length( unique( groundTruthLabels ) )
+  numberOfBoxes <- 0L
+  classIds <- c()
+  for( i in 1:batchSize )
+    {
+    numberOfBoxes <- numberOfBoxes + nrow( groundTruthLabels[[i]] )
+    classIds <- append( classIds, groundTruthLabels[[i]][, 1] )
+    }
+  classIds <- sort( unique( classIds ) )
 
-  yEncoded <- np.zeros( c( batchSize, numberOfBoxes, numberOfClasses + 12 ) )
+  
+
+
+
+
+
+
+  yEncode <- np$zeros( reticulate::tuple( batchSize, numberOfBoxes, 4L ) )
+
+  yEncoded <- reticulate::tuple( 0, 
+    dim = c( batchSize, numberOfBoxes, length( classIds ) + 4 + 4 + 4 ) )
 
   }
-
 
 #' 2-D implementation of the SSD deep learning architecture.
 #'
@@ -390,6 +455,8 @@ createSsdModel2D <- function( inputImageSize,
       channelAxis = NULL, 
 
       numberOfBoxes = NULL,
+
+      anchorBoxesArray = NULL,
       
       initialize = function( imageSize, minSize, maxSize,
         aspectRatios = c( 0.5, 1.0, 2.0 ), variances = 1.0 )
@@ -461,12 +528,15 @@ createSsdModel2D <- function( inputImageSize,
             self$imageSize[1] - 0.5 * stepSize[i], length.out = layerSize[i] )
           }
 
-        # Define c( xmin, ymin, xmax, ymax ) of each anchor box
-                         
+        # Define c( xmin, xmax, ymin, ymax ) of each anchor box
+
+        coordCount <- 1
+        self$anchorBoxesArray <- array( NA, dim = c( 0, 4 ) )
+
         anchorBoxesTuple <- np$zeros( reticulate::tuple( 
           layerSize[1], layerSize[2], self$numberOfBoxes, 4L ) )
         anchorVariancesTuple <- np$zeros( reticulate::tuple( 
-          layerSize[1], layerSize[2], self$numberOfBoxes, 4L ) )
+          layerSize[1], layerSize[2], self$numberOfBoxes, 4L ) )  
         for( i in 1:length( self$aspectRatios ) )
           {
           for( j in 1:length( stepSeq[[1]] ) )
@@ -477,9 +547,18 @@ createSsdModel2D <- function( inputImageSize,
               {
               ymin <- stepSeq[[2]][k] - boxSizes[[i]][2]
               ymax <- stepSeq[[2]][k] + boxSizes[[i]][2]
-
-              anchorBoxCoords <- c( xmin, ymin, xmax, ymax )
               
+              anchorBoxCoords <- c( xmin, xmax, ymin, ymax )
+              
+              if( coordCount == 1 )
+                {
+                self$anchorBoxesArray <- anchorBoxCoords
+                } else {
+                self$anchorBoxesArray <- 
+                  rbind( self$anchorBoxesArray, anchorBoxCoords )
+                }
+              coordCount <- coordCount + 1
+
               anchorBoxesTuple[j, k, i,] <- anchorBoxCoords
               anchorVariancesTuple[j, k, i,] <- variances
               }
@@ -770,6 +849,7 @@ createSsdModel2D <- function( inputImageSize,
   # Generate the anchor boxes.  Output shape of anchor boxes =
   #   ``( batch, height, width, numberOfBoxes, 8 )``
   anchorBoxes <- list()
+  anchorBoxLayers <- list()
   predictorSizes <- list()
 
   imageSize <- inputImageSize[1:imageDimension]
@@ -777,19 +857,27 @@ createSsdModel2D <- function( inputImageSize,
 
   for( i in 1:length( boxLocations ) )
     {
-    anchorBoxes[[i]] <- boxLocations[[i]] %>% 
-      layer_anchor_box_2d( imageSize, 
-        minSize = ( scales[i] * shortImageSize ), 
-        maxSize = ( scales[i+1] * shortImageSize ),
-        aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
+    anchorBoxLayer <- layer_anchor_box_2d( imageSize = imageSize, 
+      minSize = ( scales[i] * shortImageSize ), 
+      maxSize = ( scales[i+1] * shortImageSize ),
+      aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
+    anchorBoxLayers[[i]] <- boxLocations[[i]] %>% anchorBoxLayer
 
-    predictorSizes[[i]] <- unlist( boxClasses[[i]]$shape$as_list()[2:4] )
+    # We calculate the anchor box values again to return as output for 
+    # encoding Y_train.  I'm guessing there's a better way to do this 
+    # but it's the cleanest I've found.
+    anchorBoxGenerator <- AnchorBoxLayer2D$new( imageSize = imageSize,
+      minSize = ( scales[i] * shortImageSize ), 
+      maxSize = ( scales[i+1] * shortImageSize ),
+      aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
+    anchorBoxGenerator$call( boxLocations[[i]] )  
+    anchorBoxes[[i]] <- anchorBoxGenerator$anchorBoxesArray
     }
 
   # Reshape the box confidence values, box locations, and 
   boxClassesReshaped <- list()
   boxLocationsReshaped <- list()
-  anchorBoxesReshaped <- list()
+  anchorBoxLayersReshaped <- list()
   for( i in 1:length( boxClasses ) )
     {
     # reshape ``( batch, height, width, numberOfBoxes * numberOfClasses )``
@@ -808,7 +896,7 @@ createSsdModel2D <- function( inputImageSize,
 
     # reshape ``( batch, height, width, numberOfBoxes * 8 )``
     #   to `( batch, height * width * numberOfBoxes, 8 )`
-    anchorBoxesReshaped[[i]] <- anchorBoxes[[i]] %>% layer_reshape( 
+    anchorBoxLayersReshaped[[i]] <- anchorBoxLayers[[i]] %>% layer_reshape( 
       target_shape = c( inputShape[[2]] * inputShape[[3]] * numberOfBoxes, 8 ) )
     }  
   
@@ -816,7 +904,7 @@ createSsdModel2D <- function( inputImageSize,
 
   outputClasses <- layer_concatenate( boxClassesReshaped, axis = 1 )
   outputLocations <- layer_concatenate( boxLocationsReshaped, axis = 1 )
-  outputAnchorBoxes <- layer_concatenate( anchorBoxesReshaped, axis = 1 )
+  outputAnchorBoxes <- layer_concatenate( anchorBoxLayersReshaped, axis = 1 )
 
   confidenceActivation <- outputClasses %>% 
     layer_activation( activation = "softmax" )
@@ -826,5 +914,5 @@ createSsdModel2D <- function( inputImageSize,
 
   ssdModel <- keras_model( inputs = inputs, outputs = predictions )
 
-  return( list( ssdModel = ssdModel, predictorSizes = predictorSizes ) )
+  return( list( ssdModel = ssdModel, anchorBoxes = anchorBoxes ) )
 }
