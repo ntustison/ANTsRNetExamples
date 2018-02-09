@@ -6,7 +6,6 @@ library( keras )
 library( ggplot2 )
 library( jpeg )
 
-
 parseXML <- function( xml, labels ) {
   
   frame <- xml %>%
