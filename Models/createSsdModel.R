@@ -155,56 +155,6 @@ lossSsd <- R6::R6Class( "LossSSD",
     )
   )
 
-#' Jaccard similarity between two sets of boxes
-#'
-#' Function for determinining the Jaccard or iou (intersection over union) 
-#' similarity measure between two sets of boxes.
-
-#' This particular implementation was heavily influenced by the following 
-#' python and R implementations: 
-#' 
-#'         https://github.com/gsimchoni/ssdkeras
-#'
-#' @param boxes1 A 2-D array where each row corresponds to a single box 
-#' consisting of the format (xmin,xmax,ymin,ymax)
-#' @param boxes2 A 2-D array where each row corresponds to a single box 
-#' consisting of the format (xmin,xmax,ymin,ymax)
-#'
-#' @return a float determinining the similarity measure
-#'      
-#' @author Tustison NJ
-#' @examples
-#'
-#' \dontrun{ 
-#' 
-#' library( keras )
-#' 
-#' }
-
-jaccardSimilarity <- function( boxes1, boxes2 )
-  {
-  np <- reticulate::import("numpy")  
-  
-  if( is.null( dim( boxes1 ) ) )
-    {
-    boxes1 <- np$expand_dims( boxes1, axis = 0L )  
-    }
-  if( is.null( dim( boxes2 ) ) )
-    {
-    boxes2 <- np$expand_dims( boxes2, axis = 0L )  
-    }
-
-  intersection <- np$maximum( 0, np$minimum( boxes1[, 2], boxes2[, 2] ) - 
-                                 np$maximum( boxes1[, 1], boxes2[, 1] ) ) * 
-                  np$maximum( 0, np$minimum( boxes1[, 4], boxes2[, 4] ) - 
-                                 np$maximum( boxes1[, 3], boxes2[, 3] ) )
-
-  union <- ( boxes1[, 2] - boxes1[, 1] ) * ( boxes1[, 4] - boxes1[, 3] ) +
-    ( boxes2[, 2] - boxes2[, 1] ) * ( boxes2[, 4] - boxes2[, 3] ) - 
-    intersection
-  return( intersection / union )
-  }
-
 #' Encoding function for Y_train
 #'
 #' Function for translating the min/max ground truth box coordinates to 
@@ -276,6 +226,36 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
   foregroundThreshold = 0.5, backgroundThreshold = 0.3 )
   {
   np <- reticulate::import( "numpy" )  
+
+  # Function for determinining the Jaccard or iou (intersection over union) 
+  # similarity measure between two sets of boxes.
+  #
+  # @param boxes1 A 2-D array where each row corresponds to a single box 
+  # consisting of the format (xmin,xmax,ymin,ymax)
+  # @param boxes2 A 2-D array where each row corresponds to a single box 
+  # consisting of the format (xmin,xmax,ymin,ymax)
+
+  jaccardSimilarity <- function( boxes1, boxes2 )
+    {
+    if( is.null( dim( boxes1 ) ) )
+      {
+      boxes1 <- np$expand_dims( boxes1, axis = 0L )  
+      }
+    if( is.null( dim( boxes2 ) ) )
+      {
+      boxes2 <- np$expand_dims( boxes2, axis = 0L )  
+      }
+
+    intersection <- np$maximum( 0, np$minimum( boxes1[, 2], boxes2[, 2] ) - 
+                                  np$maximum( boxes1[, 1], boxes2[, 1] ) ) * 
+                    np$maximum( 0, np$minimum( boxes1[, 4], boxes2[, 4] ) - 
+                                  np$maximum( boxes1[, 3], boxes2[, 3] ) )
+
+    union <- ( boxes1[, 2] - boxes1[, 1] ) * ( boxes1[, 4] - boxes1[, 3] ) +
+      ( boxes2[, 2] - boxes2[, 1] ) * ( boxes2[, 4] - boxes2[, 3] ) - 
+      intersection
+    return( intersection / union )
+    }
 
   batchSize <- length( groundTruthLabels )
   classIds <- c()

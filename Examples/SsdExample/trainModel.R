@@ -80,6 +80,7 @@ for( i in 1:numberOfTrainingData )
 trainingImageSize <- c( 300, 300 )
 trainingData <- array( dim = c( numberOfTrainingData, trainingImageSize, 3 ) )
 
+cat( "Reading images...\n" )
 pb <- txtProgressBar( min = 0, max = numberOfTrainingData, style = 3 )
 for ( i in 1:length( trainingImageFiles ) )
   {
@@ -110,10 +111,9 @@ for ( i in 1:length( trainingImageFiles ) )
 
   setTxtProgressBar( pb, i )
   }
-cat( "\n" )
+cat( "Done.\n" )
 
 X_train <- trainingData
-
 
 ###
 #
@@ -127,8 +127,6 @@ source( paste0( modelDirectory, 'createSsdModel.R' ) )
 inputImageSize <- c( trainingImageSize, 3 )
 ssdOutput <- createSsdModel2D( inputImageSize, 
   numberOfClassificationLabels = length( classes ) + 1,
-  minScale = minScale, maxScale = maxScale,
-  aspectRatiosPerLayer = aspectRatiosPerLayer
   )
 
 ssdModel <- ssdOutput$ssdModel 
@@ -139,8 +137,6 @@ anchorBoxes <- ssdOutput$anchorBoxes
 # Create the Y encoding
 #
 uniqueImageFiles <- levels( as.factor( data$frame ) )
-
-pb <- txtProgressBar( min = 0, max = length( uniqueImageFiles ), style = 3 )
 
 groundTruthLabels <- list()
 for( i in 1:length( uniqueImageFiles ) )
@@ -153,7 +149,6 @@ for( i in 1:length( uniqueImageFiles ) )
 
   setTxtProgressBar( pb, i )
   }
-cat( "\n" )  
 
 Y_train <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
 
@@ -163,14 +158,14 @@ optimizerAdam <- optimizer_adam(
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
 
-ssdModel %>% compile( loss = ssdLoss$computeLoss, optimizer = optimizerAdam )
+# ssdModel %>% compile( loss = ssdLoss$computeLoss, optimizer = optimizerAdam )
 
-track <- ssdModel %>% fit( X_train, Y_train, 
-                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
-                 callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
-                     monitor = 'val_loss', save_best_only = TRUE )
-                  # callback_early_stopping( patience = 2, monitor = 'loss' ),
-                  #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
-                 ), 
-                 validation_split = 0.2 )
+# track <- ssdModel %>% fit( X_train, Y_train, 
+#                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
+#                  callbacks = list( 
+#                    callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
+#                      monitor = 'val_loss', save_best_only = TRUE )
+#                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
+#                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
+#                  ), 
+#                  validation_split = 0.2 )
