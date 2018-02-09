@@ -158,14 +158,14 @@ optimizerAdam <- optimizer_adam(
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
 
-# ssdModel %>% compile( loss = ssdLoss$computeLoss, optimizer = optimizerAdam )
+ssdModel %>% compile( loss = ssdLoss$computeLoss, optimizer = optimizerAdam )
 
-# track <- ssdModel %>% fit( X_train, Y_train, 
-#                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
-#                  callbacks = list( 
-#                    callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
-#                      monitor = 'val_loss', save_best_only = TRUE )
-#                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
-#                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
-#                  ), 
-#                  validation_split = 0.2 )
+track <- ssdModel %>% fit( X_train, Y_train, 
+                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
+                 callbacks = list( 
+                   callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
+                     monitor = 'val_loss', save_best_only = TRUE )
+                  # callback_early_stopping( patience = 2, monitor = 'loss' ),
+                  #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
+                 ), 
+                 validation_split = 0.2 )
