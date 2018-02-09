@@ -100,7 +100,7 @@ lossSsd <- R6::R6Class( "LossSSD",
       foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
         y_true[,, 2:self$numberOfClassificationLabels], axis = -1L ) ) 
 
-      numberOfForegroundBoxes <- self$tf$reduce_sum( positiveBoxes )
+      numberOfForegroundBoxes <- self$tf$reduce_sum( foregoundBoxes )
 
       foregroundClassLoss <- self$tf$reduce_sum( 
         classificationLoss * foregroundBoxes, axis = -1L )
@@ -183,10 +183,21 @@ lossSsd <- R6::R6Class( "LossSSD",
 
 jaccardSimilarity <- function( boxes1, boxes2 )
   {
-  intersection <- pmax( rep( 0, nrow( boxes1 ) ), 
-    pmin( boxes1[, 2], boxes2[, 2] ) - pmax( boxes1[, 1], boxes2[, 1] ) ) *
-                  pmax( rep( 0, nrow( boxes1 ) ), 
-    pmin( boxes1[, 4], boxes2[, 4] ) - pmax( boxes1[, 3], boxes2[, 3] ) )
+  np <- reticulate::import("numpy")  
+  
+  if( is.null( dim( boxes1 ) ) )
+    {
+    boxes1 <- np$expand_dims( boxes1, axis = 0L )  
+    }
+  if( is.null( dim( boxes2 ) ) )
+    {
+    boxes2 <- np$expand_dims( boxes2, axis = 0L )  
+    }
+
+  intersection <- np$maximum( 0, np$minimum( boxes1[, 2], boxes2[, 2] ) - 
+                                 np$maximum( boxes1[, 1], boxes2[, 1] ) ) * 
+                  np$maximum( 0, np$minimum( boxes1[, 4], boxes2[, 4] ) - 
+                                 np$maximum( boxes1[, 3], boxes2[, 3] ) )
 
   union <- ( boxes1[, 2] - boxes1[, 1] ) * ( boxes1[, 4] - boxes1[, 3] ) +
     ( boxes2[, 2] - boxes2[, 1] ) * ( boxes2[, 4] - boxes2[, 3] ) - 
@@ -198,8 +209,15 @@ jaccardSimilarity <- function( boxes1, boxes2 )
 #'
 #' Function for translating the min/max ground truth box coordinates to 
 #' something expcted by the SSD network.  This is a SSD-specific analog
-#' for keras::to_categorical().
-#' 
+#' for keras::to_categorical().  For each image in the batch, we compare
+#' the ground truth boxes for that image with all the anchor boxes.  If 
+#' the overlap measure exceeds a specific threshold, we write the ground
+#' truth box coordinates and class to the specific position of the matched
+#' anchor box.  Note that the background class will be assigned to all the 
+#' anchor boxes for which there was no match with any ground truth box.
+#' However, an exception to this are the anchor boxes whose overlap measure
+#' is higher that the specified negative threshold. 
+#'
 #' This particular implementation was heavily influenced by the following 
 #' python and R implementations: 
 #' 
@@ -215,14 +233,34 @@ jaccardSimilarity <- function( boxes1, boxes2 )
 #'
 #' Note that `classId` must be greater than 0 since 0 is reserved for the 
 #' background label.
+#' @param anchorBoxes a list of 2-D arrays where each element comprises the
+#' anchor boxes for a specific aspect ratios layer.  The row of each 2-D array
+#' comprises a single box specified in the form
+#'
+#'          xmin, xmax, ymin, ymax
+#'
+#' @param variances A list of 4 floats > 0 with scaling factors (actually it's 
+#' not factors but divisors to be precise) for the encoded predicted box 
+#' coordinates. A variance value of 1.0 would apply no scaling at all to the 
+#' predictions, while values in (0,1) upscale the encoded predictions and 
+#' values greater than 1.0 downscale the encoded predictions. These are the same
+#' variances used to construct the model.
+#' @param foregroundThreshold float between 0 and 1 determining the min threshold 
+#' for matching an anchor box with a ground truth box and, thus, labeling an anchor 
+#' box as a non-background class.  If an anchor box exceeds the ``backgroundThreshold`` 
+#' but does not meet the foregroundThreshold for a ground truth box, then it is ignored 
+#' during training.  Default = 0.5.
+#' @param backgroundThreshold float between 0 and 1 determining the max threshold 
+#' for labeling an anchor box as `background`.  If an anchor box exceeds the 
+#' ``backgroundThreshold`` but does not meet the foregroundThreshold for a ground
+#' truth box, then it is ignored during training.  Default = 0.3.
 #'
 #' @return a a 3-D array of shape 
 #'      
 #'         `(batchSize, numberOfBoxes, numberOfClasses + 4 + 4 + 4)`
 #'
 #' where the additional 4's along the third dimension correspond to 
-#'    * the box coordinates (xmin, xmax, ymin, ymax),
-#'    * dummy variables, and
+#'    * the box coordinates (xmin, xmax, ymin, ymax), dummy variables, and
 #'    * the variances.
 #'
 #' @author Tustison NJ
@@ -234,32 +272,97 @@ jaccardSimilarity <- function( boxes1, boxes2 )
 #' 
 #' }
 
-encodeY <- function( groundTruthLabels, variances )
+encodeY <- function( groundTruthLabels, anchorBoxes, variances,
+  foregroundThreshold = 0.5, backgroundThreshold = 0.3 )
   {
   np <- reticulate::import( "numpy" )  
 
   batchSize <- length( groundTruthLabels )
-  numberOfBoxes <- 0L
   classIds <- c()
   for( i in 1:batchSize )
     {
-    numberOfBoxes <- numberOfBoxes + nrow( groundTruthLabels[[i]] )
     classIds <- append( classIds, groundTruthLabels[[i]][, 1] )
     }
-  classIds <- sort( unique( classIds ) )
+  classIds <- sort( unique( c( 0, classIds ) ) )
+  numberOfClassificationLabels <- length( classIds )
 
-  
+  numberOfBoxes <- 0L
+  for( i in 1:length( anchorBoxes ) )
+    {
+    numberOfBoxes <- numberOfBoxes + nrow( anchorBoxes[[i]] )  
+    }  
 
+  anchorBoxesList <- list()
+  for( i in 1:length( anchorBoxes ) )
+    {
+    anchorBoxExpanded <- np$expand_dims( anchorBoxes[[i]], axis = 0L )      
+    anchorBoxExpanded <- np$tile( anchorBoxes[[i]], c( batchSize, 1L, 1L ) )
+    anchorBoxesList[[i]] <- anchorBoxExpanded
+    }
+  boxesTensor <- np$concatenate( anchorBoxesList, axis = 1L )
+  classesTensor <- np$zeros( reticulate::tuple( 
+    batchSize, numberOfBoxes, numberOfClassificationLabels ) )
+  variancesTensor <- np$zeros_like( boxesTensor ) + variances
 
+  # ``boxesTensor`` is concatenated the second time as a space filler
+  yEncodedTemplate <- np$concatenate( reticulate::tuple( 
+    classesTensor, boxesTensor, boxesTensor, variancesTensor ), axis = 2L )
+  yEncoded = np$copy( yEncodedTemplate )
 
+  # We now fill in ``yEncoded``
 
+  # identity matrix used for one-hot encoding
+  classEye <- np$eye( numberOfClassificationLabels )
 
+  boxIndices <- 
+    ( numberOfClassificationLabels + 1 ):( numberOfClassificationLabels + 4 )
+  classIndices <- 1:(numberOfClassificationLabels + 4 )
+ 
+  for( i in 1:batchSize )
+    { 
+    availableBoxes <- np$ones( numberOfBoxes )
+    backgroundBoxes <- np$ones( numberOfBoxes )
 
-  yEncode <- np$zeros( reticulate::tuple( batchSize, numberOfBoxes, 4L ) )
+    for( j in 1:nrow( groundTruthLabels[[i]] ) )
+      {
+      groundTruthBox <- groundTruthLabels[[i]][j,]
+      groundTruthCoords <- as.numeric( groundTruthBox[-1] )
+      groundTruthLabel <- as.integer( groundTruthBox[1] )
 
-  yEncoded <- reticulate::tuple( 0, 
-    dim = c( batchSize, numberOfBoxes, length( classIds ) + 4 + 4 + 4 ) )
+      similarities <- jaccardSimilarity( 
+        yEncodedTemplate[i, , boxIndices], groundTruthCoords )
+      
+      # check to see which boxes exceed the background threshold and are no 
+      # longer potential background boxes.  Also, clear out those background 
+      # boxes from the ``similarities`` list.
+      backgroundBoxes[similarities >= backgroundThreshold] <- 0
+      similarities <- similarities * availableBoxes
 
+      availableAndThreshold <- np$copy( similarities )
+      availableAndThreshold[availableAndThreshold < foregroundThreshold] <- 0
+
+      nonZeroIndices <- np$nonzero( availableAndThreshold )[[1]] + 1
+      if( length( nonZeroIndices ) > 0 )
+        {
+        yEncoded[i, nonZeroIndices, classIndices] <- rep( 
+          np$concatenate( reticulate::tuple( classEye[groundTruthLabel + 1,],
+            groundTruthCoords ), axis = 0L ), each = length( nonZeroIndices ) )
+        availableBoxes[nonZeroIndices] <- 0
+        } else {
+        bestMatchIndex <- np$argmax( similarities ) + 1
+        yEncoded[i, bestMatchIndex, classIndices] <- 
+          np$concatenate( reticulate::tuple( classEye[groundTruthLabel + 1,], 
+            groundTruthCoords ), axis = 0L )
+        availableBoxes[bestMatchIndex] <- 0
+        backgroundBoxes[bestMatchIndex] <- 0
+        }
+      }
+    # Set the remaining background indices to the background class  
+    backgroundClassIndices = np$nonzero( backgroundBoxes )[[1]] + 1
+    yEncoded[i, backgroundClassIndices, 1] <- 1
+    }
+
+  return( yEncoded )
   }
 
 #' 2-D implementation of the SSD deep learning architecture.
@@ -292,7 +395,7 @@ encodeY <- function( groundTruthLabels, variances )
 #' boxes as a fraction of the shorter side of the input images.
 #' @param maxScale The largest scaling factor for the size of the anchor 
 #' boxes as a fraction of the shorter side of the input images. All scaling 
-#' factors between the smallest and the largest will be linearly interpolated. 
+#' factors between the smallest and the largest are linearly interpolated. 
 #' @param aspectRatiosPerLayer A list containing one aspect ratio list for
 #' each predictor layer.  The default lists follows the original 
 #' implementation.  This variable determines the number of prediction layers.
