@@ -146,8 +146,6 @@ for( i in 1:length( uniqueImageFiles ) )
     data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
-
-  setTxtProgressBar( pb, i )
   }
 
 Y_train <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
@@ -158,7 +156,7 @@ optimizerAdam <- optimizer_adam(
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
 
-ssdModel %>% compile( loss = ssdLoss$computeLoss, optimizer = optimizerAdam )
+ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
 
 track <- ssdModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,

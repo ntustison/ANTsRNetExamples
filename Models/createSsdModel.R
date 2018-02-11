@@ -100,18 +100,18 @@ lossSsd <- R6::R6Class( "LossSSD",
       foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
         y_true[,, 2:self$numberOfClassificationLabels], axis = -1L ) ) 
 
-      numberOfForegroundBoxes <- self$tf$reduce_sum( foregoundBoxes )
+      numberOfForegroundBoxes <- self$tf$reduce_sum( foregroundBoxes )
 
       foregroundClassLoss <- self$tf$reduce_sum( 
         classificationLoss * foregroundBoxes, axis = -1L )
 
       backgroundClassLossAll <- classificationLoss * backgroundBoxes
-      numberOfNegativeBoxes <- 
+      nonZeroIndices <- 
         self$tf$count_nonzero( backgroundClassLossAll, dtype = self$tf$int32 )
 
       numberOfBackgroundBoxesToKeep <- self$tf$minimum( self$tf$maximum( 
         self$backgroundRatio * self$tf$to_int32( numberOfForegroundBoxes ), 
-        self$minNumberOfBackgroundBoxes ), numberOfNegativeBoxes )
+        self$minNumberOfBackgroundBoxes ), nonZeroIndices )
 
       f1 = function() 
         {
@@ -140,7 +140,7 @@ lossSsd <- R6::R6Class( "LossSSD",
         }
 
       backgroundClassLoss <- self$tf$cond( self$tf$equal( 
-        numberOfNegativeBoxes, self$tf$constant( 0L ) ), f1, f2 )
+        nonZeroIndices, self$tf$constant( 0L ) ), f1, f2 )
 
       classLoss <- foregroundClassLoss + backgroundClassLoss
 
