@@ -29,7 +29,7 @@ A collection of well-known deep learning architectures ported to the R language.
 
 ## Object detection
 
-* Single Shot MultiBox Detector (2-D, 3-D)  
+* Single Shot MultiBox Detector (2-D)  
     * [W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, and A. Berg.  SSD: Single Shot MultiBox Detector.](https://arxiv.org/abs/1512.02325)
 
 # Misc topics
