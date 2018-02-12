@@ -67,10 +67,11 @@ if( ! file.exists( dataFile ) )
 
 ###
 #
-# Read in the training data
+# Read in the training data.  There are 1000 total images.  Read in 800
+# for training and then read the remaining data for testing/prediction.
 #
 
-numberOfTrainingData <- 1000
+numberOfTrainingData <- 800
 trainingImageFiles <- rep( NA, numberOfTrainingData )
 for( i in 1:numberOfTrainingData )
   {
@@ -161,7 +162,7 @@ ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
 track <- ssdModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
+                   callback_model_checkpoint( paste0( baseDirectory, "ssdWeights.h5" ), 
                      monitor = 'val_loss', save_best_only = TRUE )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
