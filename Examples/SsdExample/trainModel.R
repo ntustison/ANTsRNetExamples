@@ -70,7 +70,7 @@ if( ! file.exists( dataFile ) )
 # Read in the training data
 #
 
-numberOfTrainingData <- 3000
+numberOfTrainingData <- 1000
 trainingImageFiles <- rep( NA, numberOfTrainingData )
 for( i in 1:numberOfTrainingData )
   {
@@ -111,7 +111,7 @@ for ( i in 1:length( trainingImageFiles ) )
 
   setTxtProgressBar( pb, i )
   }
-cat( "Done.\n" )
+cat( "\nDone.\n" )
 
 X_train <- trainingData
 
