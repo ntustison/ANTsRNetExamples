@@ -78,8 +78,8 @@ for( i in 1:numberOfTrainingData )
   trainingImageFiles[i] <- paste0( imageDirectory, data$frame[i] )  
   }
 
-trainingImageSize <- c( 300, 300 )
-trainingData <- array( dim = c( numberOfTrainingData, trainingImageSize, 3 ) )
+inputImageSize <- c( 300, 300 )
+trainingData <- array( dim = c( numberOfTrainingData, inputImageSize, 3 ) )
 
 cat( "Reading images...\n" )
 pb <- txtProgressBar( min = 0, max = numberOfTrainingData, style = 3 )
@@ -90,15 +90,15 @@ for ( i in 1:length( trainingImageFiles ) )
 
   r <- as.matrix( resampleImage( 
         as.antsImage( trainingImage[,,1] ), 
-        trainingImageSize, useVoxels = TRUE ) )
+        inputImageSize, useVoxels = TRUE ) )
   r <- ( r - mean( r ) ) / sd( r )          
   g <- as.matrix( resampleImage( 
         as.antsImage( trainingImage[,,2] ), 
-        trainingImageSize, useVoxels = TRUE ) )
+        inputImageSize, useVoxels = TRUE ) )
   g <- ( g - mean( g ) ) / sd( g )      
   b <- as.matrix( resampleImage( 
         as.antsImage( trainingImage[,,3] ), 
-        trainingImageSize, useVoxels = TRUE ) )
+        inputImageSize, useVoxels = TRUE ) )
   b <- ( b - mean( b ) ) / sd( b )      
 
   trainingData[i,,,1] <- r 
@@ -125,7 +125,7 @@ source( paste0( modelDirectory, 'createSsdModel.R' ) )
 
 # Input size must be greater than >= 258 for a single dimension
 
-inputImageSize <- c( trainingImageSize, 3 )
+inputImageSize <- c( inputImageSize, 3 )
 ssdOutput <- createSsdModel2D( inputImageSize, 
   numberOfClassificationLabels = length( classes ) + 1,
   )
@@ -140,7 +140,7 @@ anchorBoxes <- ssdOutput$anchorBoxes
 uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 groundTruthLabels <- list()
-for( i in 1:length( numberOfTrainingData ) )
+for( i in 1:numberOfTrainingData )
   {
   groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
   groundTruthBoxes <- 
