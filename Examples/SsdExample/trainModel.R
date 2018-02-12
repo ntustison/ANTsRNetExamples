@@ -139,7 +139,7 @@ anchorBoxes <- ssdOutput$anchorBoxes
 uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 groundTruthLabels <- list()
-for( i in 1:length( uniqueImageFiles ) )
+for( i in 1:length( numberOfTrainingData ) )
   {
   groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
   groundTruthBoxes <- 

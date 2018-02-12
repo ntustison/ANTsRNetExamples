@@ -155,10 +155,54 @@ lossSsd <- R6::R6Class( "LossSSD",
     )
   )
 
+#' 2-D Jaccard similarity between two sets of boxes.
+#'
+#' Function for determinining the Jaccard or iou (intersection over union) 
+#' similarity measure between two sets of boxes.
+#'
+#' @param boxes1 A 2-D array where each row corresponds to a single box 
+#' consisting of the format (xmin,xmax,ymin,ymax)
+#' @param boxes2 A 2-D array where each row corresponds to a single box 
+#' consisting of the format (xmin,xmax,ymin,ymax)
+#'
+#' @return an SSD loss function
+#' @author Tustison NJ
+#' @examples
+#'
+#' \dontrun{ 
+#' 
+#' library( keras )
+#' 
+#' }
+
+jaccardSimilarity2D <- function( boxes1, boxes2 )
+  {
+  np <- reticulate::import( "numpy" )  
+
+  if( is.null( dim( boxes1 ) ) )
+    {
+    boxes1 <- np$expand_dims( boxes1, axis = 0L )  
+    }
+  if( is.null( dim( boxes2 ) ) )
+    {
+    boxes2 <- np$expand_dims( boxes2, axis = 0L )  
+    }
+
+  intersection <- np$maximum( 0, np$minimum( boxes1[, 2], boxes2[, 2] ) - 
+                                 np$maximum( boxes1[, 1], boxes2[, 1] ) ) * 
+                  np$maximum( 0, np$minimum( boxes1[, 4], boxes2[, 4] ) - 
+                                 np$maximum( boxes1[, 3], boxes2[, 3] ) )
+
+  union <- ( boxes1[, 2] - boxes1[, 1] ) * ( boxes1[, 4] - boxes1[, 3] ) +
+    ( boxes2[, 2] - boxes2[, 1] ) * ( boxes2[, 4] - boxes2[, 3] ) - 
+    intersection
+  return( intersection / union )
+  }
+
 #' Encoding function for Y_train
 #'
 #' Function for translating the min/max ground truth box coordinates to 
-#' something expcted by the SSD network.  This is a SSD-specific analog
+#' something expected by the SSD network.  This is a SSD-specific analog
 #' for keras::to_categorical().  For each image in the batch, we compare
 #' the ground truth boxes for that image with all the anchor boxes.  If 
 #' the overlap measure exceeds a specific threshold, we write the ground
@@ -205,13 +249,13 @@ lossSsd <- R6::R6Class( "LossSSD",
 #' ``backgroundThreshold`` but does not meet the foregroundThreshold for a ground
 #' truth box, then it is ignored during training.  Default = 0.3.
 #'
-#' @return a a 3-D array of shape 
+#' @return a 3-D array of shape 
 #'      
 #'         `(batchSize, numberOfBoxes, numberOfClasses + 4 + 4 + 4)`
 #'
 #' where the additional 4's along the third dimension correspond to 
-#'    * the box coordinates (xmin, xmax, ymin, ymax), dummy variables, and
-#'    * the variances.
+#' the box coordinates (xmin, xmax, ymin, ymax), dummy variables, and
+#' the variances.
 #'
 #' @author Tustison NJ
 #' @examples
@@ -226,36 +270,6 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
   foregroundThreshold = 0.5, backgroundThreshold = 0.3 )
   {
   np <- reticulate::import( "numpy" )  
-
-  # Function for determinining the Jaccard or iou (intersection over union) 
-  # similarity measure between two sets of boxes.
-  #
-  # @param boxes1 A 2-D array where each row corresponds to a single box 
-  # consisting of the format (xmin,xmax,ymin,ymax)
-  # @param boxes2 A 2-D array where each row corresponds to a single box 
-  # consisting of the format (xmin,xmax,ymin,ymax)
-
-  jaccardSimilarity <- function( boxes1, boxes2 )
-    {
-    if( is.null( dim( boxes1 ) ) )
-      {
-      boxes1 <- np$expand_dims( boxes1, axis = 0L )  
-      }
-    if( is.null( dim( boxes2 ) ) )
-      {
-      boxes2 <- np$expand_dims( boxes2, axis = 0L )  
-      }
-
-    intersection <- np$maximum( 0, np$minimum( boxes1[, 2], boxes2[, 2] ) - 
-                                  np$maximum( boxes1[, 1], boxes2[, 1] ) ) * 
-                    np$maximum( 0, np$minimum( boxes1[, 4], boxes2[, 4] ) - 
-                                  np$maximum( boxes1[, 3], boxes2[, 3] ) )
-
-    union <- ( boxes1[, 2] - boxes1[, 1] ) * ( boxes1[, 4] - boxes1[, 3] ) +
-      ( boxes2[, 2] - boxes2[, 1] ) * ( boxes2[, 4] - boxes2[, 3] ) - 
-      intersection
-    return( intersection / union )
-    }
 
   batchSize <- length( groundTruthLabels )
   classIds <- c()
@@ -309,7 +323,7 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
       groundTruthCoords <- as.numeric( groundTruthBox[-1] )
       groundTruthLabel <- as.integer( groundTruthBox[1] )
 
-      similarities <- jaccardSimilarity( 
+      similarities <- jaccardSimilarity2D( 
         yEncodedTemplate[i, , boxIndices], groundTruthCoords )
       
       # check to see which boxes exceed the background threshold and are no 
@@ -343,6 +357,117 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
     }
 
   return( yEncoded )
+  }
+
+#' Decoding function for Y_train
+#'
+#' Function for translating the predictions from the SSD model output to
+#' boxes, (xmin, xmax, ymin, ymax), for subsequent usage.
+#'
+#' This particular implementation was heavily influenced by the following 
+#' python and R implementations: 
+#' 
+#'         https://github.com/pierluigiferrari/ssd_keras  
+#'         https://github.com/rykov8/ssd_keras
+#'         https://github.com/gsimchoni/ssdkeras
+#'
+#' @param yPredicted The predicted output produced by the SSD model expected to
+#' be an array of shape
+#'
+#'         `(batchSize, numberOfBoxes, numberOfClasses + 4 + 4 + 4)`
+#'
+#' where the additional 4's along the third dimension correspond to the box 
+#' coordinates (xmin, xmax, ymin, ymax), dummy variables, and the variances.
+#' @param confidenceThreshold  Float between 0 and 1.  The minimum 
+#' classification value required for a given box to be considered a "positive
+#' prediction."  A lower value will result in better recall while a higher 
+#' value yields higher precision results.  Default = 0.5.
+#' @param overlapThreshold  'NULL' or a float between 0 and 1.  If 'NULL' then
+#' no non-maximum suppression will be performed.  Otherwise, a greedy non-
+#' maximal suppression is performed following confidence thresholding.  In
+#' other words all boxes with Jaccard similarities > ``overlapThreshold`` will
+#' be removed from the set of predictions.   Default = 0.45.
+#'
+#' @return a list of length ``batchSize`` where each element comprises a 2-D
+#' array where each row describes a single box using the following six elements
+#' 
+#'          `(classId, confidenceValue, xmin, xmax, ymin, ymax)`
+#'
+#' @author Tustison NJ
+#' @examples
+#'
+#' \dontrun{ 
+#' 
+#' library( keras )
+#' 
+#' }
+
+decodeY <- function( yPredicted, confidenceThreshold = 0.5, 
+  overlapThreshold = 0.45 )
+  {
+  np <- reticulate::import( "numpy" )  
+
+  greedyNonMaximalSuppression <- function( predictions,
+    overlapThreshold = 0.45 )
+    { 
+    predictionsLeft <- np$copy( predictions )
+
+    index <- 1
+    maximumBoxList <- list()
+    while( !is.null( dim( predictionsLeft ) ) 
+      && dim( predictionsLeft )[1] > 0 )
+      {
+      maximumIndex <- np$argmax( predictionsLeft[, 2] ) + 1L
+      maximumBox <- np$copy( predictionsLeft[maximumIndex, ] )
+      maximumBoxList[[index]] <- maximumBox
+      index <- index + 1
+      yPredictedLeft <- 
+        np$delete( predictionsLeft, maximumIndex - 1L, axis = 0L )
+      if( is.null( dim( predictionsLeft ) ) )
+        {
+        break  
+        }
+      similarities <- jaccardSimilarity2D( 
+        predictionsLeft[, 3:6], array( maximumBox[3:6], c( 1, 4 ) ) )
+      predictionsLeft <- predictionsLeft[similarities <= overlapThreshold, ]  
+      }
+    return( do.call( rbind, maximumBoxList ) )  
+    }
+  
+  numberOfClassificationLabels <- dim( yPredicted )[3] - 16L
+
+  yPredictedConverted <- np$copy( yPredicted[,, 
+    ( numberOfClassificationLabels - 1 ):( numberOfClassificationLabels + 4 ), 
+    drop = FALSE] )
+
+  # store class ID  
+  yPredictedConverted[,, 1] <- 
+    np$argmax( yPredicted[,, 1:numberOfClassificationLabels], axis = -1L )
+
+  # store confidence values  
+  yPredictedConverted[,, 2] <- 
+    np$amax( yPredicted[,, 1:numberOfClassificationLabels], axis = -1L )
+
+  yDecoded <- list()
+  for( i in seq_len( dim( yPredictedConverted )[1] ) )
+    {
+    ySingle <- yPredictedConverted[i,,]  
+
+    boxes <- ySingle[unlist( np$nonzero( ySingle[, 1] ) ) + 1,, drop = FALSE]
+    boxes <- boxes[boxes[, 2] >= confidenceThreshold,, drop = FALSE]
+
+    if( !is.null( overlapThreshold ) )
+      {
+      boxes <- greedyNonMaximalSuppression( boxes, overlapThreshold )  
+      }
+    if( is.null( boxes ) )
+      {  
+      yDecoded[[i]] <- matrix(, nrow = 0, ncol = 6 )
+      } else {
+      yDecoded[[i]] <- boxes  
+      }  
+    }
+  return( yDecoded )
   }
 
 #' 2-D implementation of the SSD deep learning architecture.
