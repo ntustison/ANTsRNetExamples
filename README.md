@@ -29,7 +29,7 @@ A collection of well-known deep learning architectures ported to the R language.
 
 ## Object detection
 
-* __WIP:__  Single Shot MultiBox Detector (2-D, 3-D)
+Single Shot MultiBox Detector (2-D, 3-D)
     * [W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, and A. Berg.  SSD: Single Shot MultiBox Detector.](https://arxiv.org/abs/1512.02325)
 
 # Misc topics
@@ -44,10 +44,9 @@ A collection of well-known deep learning architectures ported to the R language.
 
 # To do:
 
-* Object localization ([Overview](https://towardsdatascience.com/deep-learning-for-object-detection-a-comprehensive-review-73930816d8d9)).  Perhaps implement [SSD](https://github.com/pierluigiferrari/ssd_keras/blob/master/ssd300_training.ipynb).
 * deconvnet.R
 * ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
-* Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.
+* Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.  Actually, given that Theano is [no longer in active development](https://groups.google.com/forum/#!topic/theano-users/7Poq8BZutbY), perhaps we should just stick with a tensorflow backend.
 
 ****************
 ****************
