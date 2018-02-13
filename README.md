@@ -32,6 +32,8 @@ A collection of well-known deep learning architectures ported to the R language.
 
 * Single Shot MultiBox Detector (2-D)  
     * [W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, and A. Berg.  SSD: Single Shot MultiBox Detector.](https://arxiv.org/abs/1512.02325)
+ * __WIP:__ YOLO9000
+    * [Joseph Redmon, Ali Farhadi.  YOLO9000: Better, Faster, Stronger](https://arxiv.org/abs/1612.08242)
 
 # Misc topics
 
