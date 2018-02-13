@@ -32,9 +32,7 @@ A collection of well-known deep learning architectures ported to the R language.
 
 * Single Shot MultiBox Detector (2-D)  
     * [W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, and A. Berg.  SSD: Single Shot MultiBox Detector.](https://arxiv.org/abs/1512.02325)
- * __WIP:__ YOLO9000
-    * [Joseph Redmon, Ali Farhadi.  YOLO9000: Better, Faster, Stronger](https://arxiv.org/abs/1612.08242)
-
+ 
 # Misc topics
 
 * Optimizers
@@ -47,6 +45,9 @@ A collection of well-known deep learning architectures ported to the R language.
 
 # To do:
 
+* __WIP:__ YOLO9000
+    * [Joseph Redmon, Ali Farhadi.  YOLO9000: Better, Faster, Stronger](https://arxiv.org/abs/1612.08242)
+    * [Implementation](https://github.com/ykamikawa/yolov2)
 * deconvnet.R
 * ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
 * Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.  Actually, given that Theano is [no longer in active development](https://groups.google.com/forum/#!topic/theano-users/7Poq8BZutbY), perhaps we should just stick with a tensorflow backend.
