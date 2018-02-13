@@ -10,7 +10,7 @@ A collection of well-known deep learning architectures ported to the R language.
 
 ## Image segmentation
 
-* UNet (2-D, 3-D)
+* U-Net (2-D) or V-Net (3-D) with a [special multi-label Dice loss function](https://github.com/ntustison/ANTsRNet/blob/master/Models/createUnetModel.R#L1-L91)
     * [O. Ronneberger, P. Fischer, and T. Brox.  U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
     * [Fausto Milletari, Nassir Navab, Seyed-Ahmad Ahmadi. V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation](https://arxiv.org/pdf/1606.04797.pdf)
 
