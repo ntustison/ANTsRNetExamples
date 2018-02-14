@@ -1,5 +1,7 @@
 library( keras )
 
+source( "../../Models/createAlexNetModel.R" )
+
 mnistData <- dataset_mnist()
 
 numberOfLabels <- length( unique( mnistData$train$y ) )

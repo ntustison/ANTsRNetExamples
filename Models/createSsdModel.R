@@ -434,7 +434,7 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
     return( do.call( rbind, maximumBoxList ) )  
     }
   
-  numberOfClassificationLabels <- dim( yPredicted )[3] - 16L
+  numberOfClassificationLabels <- dim( yPredicted )[3] - 12L
 
   yPredictedConverted <- np$copy( yPredicted[,, 
     ( numberOfClassificationLabels - 1 ):( numberOfClassificationLabels + 4 ), 

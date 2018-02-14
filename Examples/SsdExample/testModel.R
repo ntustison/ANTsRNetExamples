@@ -84,7 +84,7 @@ for( i in ( numberOfTrainingData + 1 ):
   }
 
 inputImageSize <- c( 300, 300 )
-testData <- array( dim = c( numberOfTestingData, inputImageSize, 3 ) )
+testingData <- array( dim = c( numberOfTestingData, inputImageSize, 3 ) )
 
 cat( "Reading images...\n" )
 pb <- txtProgressBar( min = 0, max = numberOfTestingData, style = 3 )
