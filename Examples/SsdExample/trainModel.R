@@ -144,7 +144,7 @@ for( i in 1:numberOfTrainingData )
   {
   groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
   groundTruthBoxes <- 
-    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] )
+    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * 1.2  )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
   }

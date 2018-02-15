@@ -64,6 +64,7 @@ if( ! file.exists( dataFile ) )
   } else {
   data <- read.csv( dataFile )  
   }
+uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 ###
 #
@@ -72,14 +73,14 @@ if( ! file.exists( dataFile ) )
 #
 
 numberOfTrainingData <- 800
-numberOfTestingData <- 200
+numberOfTestingData <- 50
 testingImageFiles <- rep( NA, numberOfTestingData )
 
 count <- 1
 for( i in ( numberOfTrainingData + 1 ):
   ( numberOfTrainingData + numberOfTestingData ) )
   {
-  testingImageFiles[count] <- paste0( imageDirectory, data$frame[i] )  
+  testingImageFiles[count] <- paste0( imageDirectory, uniqueImageFiles[i] )  
   count <- count + 1
   }
 
@@ -125,21 +126,25 @@ X_test <- testingData
 #
 # Create the Y encoding for the test data
 #
-uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 groundTruthLabels <- list()
 for( i in 1:numberOfTestingData )
   {
   index <- numberOfTrainingData + i
   groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[index] ),]
+
+  image <- readJPEG( testingImageFiles[i] )
   groundTruthBoxes <- 
-    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] )
+   data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
+
+  cat( "Drawing", testingImageFiles[i], "\n" )
+  drawRectangles( image, groundTruthBoxes[, 2:5], groundTruthBoxes[, 1], captions = classes )
+  readline( prompt = "Press [enter] to continue " )
   }
-
+ 
 Y_test <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
-
 
 ###
 #

@@ -1,3 +1,89 @@
+#' Plotting function for 2-D object detection visualization.
+#'
+#' Renders boxes on objects within rasterized images
+#'
+#' @param image standard image using something like jpeg::readJPEG.
+#' @param boxes a data frame or comprising where each row has the following
+#' format:
+#'
+#'          xmin, xmax, ymin, ymax
+#'
+#' @param classIds Optional vector of length = ``numberOfBoxes`` used for 
+#' determining the colors of the different boxes.
+#' @param confidenceValues Optional vector of length = ``numberOfBoxes`` where
+#' each element is in the range [0, 1].  Used for determining border width.
+#' @param Optional vector of length = ``numberOfBoxes`` where
+#' each element is the caption rendered with each box.
+#'
+#' @author Tustison NJ
+#' @examples
+#'
+#' \dontrun{ 
+#' 
+#' library( keras )
+#' 
+#' }
+
+drawRectangles <- function( image, boxes, classIds = NULL, 
+  confidenceValues = NULL, captions = NULL )
+  {
+
+  # Need to flip the y-axis due to the way rectangles are superimposed on
+  # the rasterized image.  Also, we rescale the spatial domain to
+  # [0, 1] x [0, 1], again, because of the pecularities of the plotting 
+  # functionality in R.
+
+  scaledBoxes <- boxes
+  scaledBoxes[, 1] <- ( boxes[, 1] - 1 ) / ( dim( image )[1] - 1 )
+  scaledBoxes[, 2] <- ( boxes[, 2] - 1 ) / ( dim( image )[1] - 1 )
+  scaledBoxes[, 3] <- 1 - ( boxes[, 3] - 1 ) / ( dim( image )[2] - 1 )
+  scaledBoxes[, 4] <- 1 - ( boxes[, 4] - 1 ) / ( dim( image )[2] - 1 )
+
+  numberOfBoxes <- nrow( boxes )
+
+  boxColors <- rep( "red", numberOfBoxes )
+
+  if( !is.null( classIds ) )
+    {
+    if( length( classIds ) != numberOfBoxes )
+      {
+      stop( "Number of class ids doesn't match the number of boxes." )  
+      }
+    uniqueClassIds <- unique( classIds )  
+
+    for( i in 1:length( classIds ) )
+      {
+      if( !is.null( classIds ) )
+        { 
+        boxColors[i] <- rainbow( 
+          length( uniqueClassIds ) )[which( classIds[i] == uniqueClassIds )]
+        }
+      }
+    }
+
+  lineWidths <- rep( 1, numberOfBoxes )
+  if( !is.null( confidenceValues ) )
+    {
+    if( length( lineWidth ) != numberOfBoxes )
+      {
+      stop( "Number of confidenceValues doesn't match the number of boxes." )  
+      }
+    lineWidths <- confidenceValues 
+    }
+
+  plot.new()
+  rasterImage( image, xleft = 0, ybottom = 0, xright = 1, ytop = 1 )
+  rect( xleft = scaledBoxes[, 1], xright = scaledBoxes[, 2], 
+        ybottom = scaledBoxes[, 3], ytop = scaledBoxes[, 4],
+        border = boxColors, lwd = lineWidths )
+
+  if( !is.null( captions ) )      
+    {
+    text( x = scaledBoxes[, 1], y = scaledBoxes[, 4], labels = captions, 
+      adj = c( -0.1, -0.3 ), col = boxColors, cex = 0.8 )  
+    }
+  }
+
 #' Loss function for the SSD deep learning architecture.
 #'
 #' Creates an R6 class object for use with the SSD deep learning architecture
@@ -255,7 +341,7 @@ jaccardSimilarity2D <- function( boxes1, boxes2 )
 #'
 #' where the additional 4's along the third dimension correspond to 
 #' the box coordinates (xmin, xmax, ymin, ymax), dummy variables, and
-#' the variances.
+#' the variances, respectively.
 #'
 #' @author Tustison NJ
 #' @examples
@@ -409,9 +495,9 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
 
   greedyNonMaximalSuppression <- function( predictions,
     overlapThreshold = 0.45 )
-    { 
+    {   
     predictionsLeft <- np$copy( predictions )
-
+   
     index <- 1
     maximumBoxList <- list()
     while( !is.null( dim( predictionsLeft ) ) 
@@ -429,7 +515,7 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
         }
       similarities <- jaccardSimilarity2D( 
         predictionsLeft[, 3:6], array( maximumBox[3:6], c( 1, 4 ) ) )
-      predictionsLeft <- predictionsLeft[similarities <= overlapThreshold, ]  
+      predictionsLeft <- predictionsLeft[similarities <= overlapThreshold, ]
       }
     return( do.call( rbind, maximumBoxList ) )  
     }
