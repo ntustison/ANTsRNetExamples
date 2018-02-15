@@ -83,6 +83,10 @@ for( i in 1:numberOfTrainingData )
   trainingImageFiles[i] <- paste0( imageDirectory, uniqueImageFiles[i] )  
   }
 
+# original images are 250 x 250 so we need to multiply the points by 
+# 300 / 250 = 1.2
+scaleFactor <- 1.2
+
 inputImageSize <- c( 300, 300 )
 trainingData <- array( dim = c( numberOfTrainingData, inputImageSize, 3 ) )
 
@@ -96,15 +100,15 @@ for ( i in 1:length( trainingImageFiles ) )
   r <- as.matrix( resampleImage( 
         as.antsImage( trainingImage[,,1] ), 
         inputImageSize, useVoxels = TRUE ) )
-  r <- ( r - mean( r ) ) / sd( r )          
+  r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
   g <- as.matrix( resampleImage( 
         as.antsImage( trainingImage[,,2] ), 
         inputImageSize, useVoxels = TRUE ) )
-  g <- ( g - mean( g ) ) / sd( g )      
+  g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
   b <- as.matrix( resampleImage( 
         as.antsImage( trainingImage[,,3] ), 
         inputImageSize, useVoxels = TRUE ) )
-  b <- ( b - mean( b ) ) / sd( b )      
+  b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
 
   trainingData[i,,,1] <- r 
   trainingData[i,,,2] <- g 
@@ -148,9 +152,9 @@ groundTruthLabels <- list()
 for( i in 1:numberOfTrainingData )
   {
   groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
-  image <- readJPEG( trainingImageFiles[i] )
+  image <- trainingData[i,,,]
   groundTruthBoxes <- 
-    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5]  )
+    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * scaleFactor  )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
 
@@ -168,7 +172,7 @@ for( i in 1:numberOfTrainingData )
         length( classes ) )[which( classes[classIds[j]] == classes )]
       boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
       }
-
+   
     drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
       captions = boxCaptions )
     readline( prompt = "Press [enter] to continue " )
@@ -181,6 +185,56 @@ if( visuallyInspectEachImage == TRUE )
   }
 
 Y_train <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
+
+
+###
+#
+#  Debugging:  draw all anchor boxes
+#
+
+# image <- readJPEG( trainingImageFiles[1] )
+# for( i in 1:length( anchorBoxes) )
+#   {
+#   for( j in 1:nrow( anchorBoxes[[i]] ) )
+#     {
+#     cat( "Drawing anchor box", i, ",", j, "\n" )
+#     image <- trainingData[i,,,]
+#     drawRectangles( image, anchorBoxes[[i]][j,], boxColors = "red" )
+#     readline( prompt = "Press [enter] to continue\n" )
+#     }
+#   }
+
+
+###
+#
+#  Debugging:  visualize corresponding anchorBoxes
+#
+
+if( visuallyInspectEachImage == TRUE )
+  {
+  for( i in 1:numberOfTrainingData )
+    {
+    cat( "Drawing", trainingImageFiles[i], "\n" )
+    image <- trainingData[i,,,]
+
+    singleY <- Y_train[i,,]
+    singleY <- singleY[which( rowSums( 
+      singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
+    classIds <- max.col( singleY[,1:4] ) - 1
+
+    boxColors <- c()
+    boxCaptions <- c()
+    for( j in 1:length( classIds ) )
+      {
+      boxColors[j] <- rainbow( 
+        length( classes ) )[which( classes[classIds[j]] == classes )]
+      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+      }
+    drawRectangles( image, singleY[, 9:12], boxColors = boxColors )
+
+    readline( prompt = "Press [enter] to continue " )
+    }
+  }  
 
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
@@ -199,3 +253,5 @@ track <- ssdModel %>% fit( X_train, Y_train,
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
                  ), 
                  validation_split = 0.2 )
+
+

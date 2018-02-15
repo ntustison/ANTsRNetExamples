@@ -78,7 +78,7 @@ uniqueImageFiles <- levels( as.factor( data$frame ) )
 #
 
 numberOfTrainingData <- 800
-numberOfTestingData <- 50
+numberOfTestingData <- 1
 testingImageFiles <- rep( NA, numberOfTestingData )
 
 count <- 1
@@ -88,6 +88,10 @@ for( i in ( numberOfTrainingData + 1 ):
   testingImageFiles[count] <- paste0( imageDirectory, uniqueImageFiles[i] )  
   count <- count + 1
   }
+
+# original images are 250 x 250 so we need to multiply the points by 
+# 300 / 250 = 1.2
+scaleFactor <- 1.2
 
 inputImageSize <- c( 300, 300 )
 testingData <- array( dim = c( numberOfTestingData, inputImageSize, 3 ) )
@@ -100,17 +104,17 @@ for ( i in 1:length( testingImageFiles ) )
   testingImage <- readJPEG( testingImageFiles[i] )
 
   r <- as.matrix( resampleImage( 
-        as.antsImage( testingImage[,,1] ), 
+        as.antsImage( trainingImage[,,1] ), 
         inputImageSize, useVoxels = TRUE ) )
-  r <- ( r - mean( r ) ) / sd( r )          
+  r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
   g <- as.matrix( resampleImage( 
-        as.antsImage( testingImage[,,2] ), 
+        as.antsImage( trainingImage[,,2] ), 
         inputImageSize, useVoxels = TRUE ) )
-  g <- ( g - mean( g ) ) / sd( g )      
+  g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
   b <- as.matrix( resampleImage( 
-        as.antsImage( testingImage[,,3] ), 
+        as.antsImage( trainingImage[,,3] ), 
         inputImageSize, useVoxels = TRUE ) )
-  b <- ( b - mean( b ) ) / sd( b )      
+  b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
 
   testingData[i,,,1] <- r 
   testingData[i,,,2] <- g 
@@ -140,7 +144,7 @@ for( i in 1:numberOfTestingData )
 
   image <- readJPEG( testingImageFiles[i] )
   groundTruthBoxes <- 
-   data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] )
+   data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * 1.2 )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
 
@@ -158,7 +162,7 @@ for( i in 1:numberOfTestingData )
         length( classes ) )[which( classes[classIds[j]] == classes )]
       boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
       }
-
+    image <- testingData[i,,,]
     drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
       captions = boxCaptions )
     readline( prompt = "Press [enter] to continue " )
@@ -202,3 +206,51 @@ testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
 predictedDataDecoded <- decodeY( predictedData )
+
+
+image <- readJPEG( testingImageFiles[1] )
+for( i in 1:dim( predictedData )[2] )
+  {
+  cat( "Drawing box", i, "\n" )
+
+  boxes <- matrix( predictedData[1, ,5:8], ncol = 4 )
+  drawRectangles( image, boxes, boxColors = "red" )
+  cat( "   back : ", predictedData[1, i, 1], "\n" )
+  for( j in 1:length( classes ) )
+    {
+    cat( "  ", classes[j], ": ", predictedData[1, i, j+1], "\n" )
+    }
+  readline( prompt = "Press [enter] to continue\n" )
+  }
+
+
+###
+#
+#  Debugging:  visualize corresponding anchorBoxes
+#
+
+if( visuallyInspectEachImage == TRUE )
+  {
+  for( i in 1:numberOfTestingData )
+    {
+    cat( "Drawing", testingImageFiles[i], "\n" )
+    image <- readJPEG( testingImageFiles[i] )
+
+    singleY <- Y_test[i,,]
+    singleY <- singleY[which( rowSums( 
+      singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
+    classIds <- max.col( singleY[,1:4] ) - 1
+
+    boxColors <- c()
+    boxCaptions <- c()
+    for( j in 1:length( classIds ) )
+      {
+      boxColors[j] <- rainbow( 
+        length( classes ) )[which( classes[classIds[j]] == classes )]
+      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+      }
+    drawRectangles( image, singleY[, 9:12], boxColors = boxColors )
+
+    readline( prompt = "Press [enter] to continue " )
+    }
+  }

@@ -33,7 +33,7 @@ drawRectangles <- function( image, boxes, boxColors = "red",
   # [0, 1] x [0, 1], again, because of the pecularities of the plotting 
   # functionality in R.
 
-  scaledBoxes <- boxes
+  scaledBoxes <- as.matrix( boxes, ncol = 4 )
   scaledBoxes[, 1] <- ( boxes[, 1] - 1 ) / ( dim( image )[1] - 1 )
   scaledBoxes[, 2] <- ( boxes[, 2] - 1 ) / ( dim( image )[1] - 1 )
   scaledBoxes[, 3] <- 1 - ( boxes[, 3] - 1 ) / ( dim( image )[2] - 1 )
