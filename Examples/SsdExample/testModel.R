@@ -6,6 +6,18 @@ library( keras )
 library( ggplot2 )
 library( jpeg )
 
+visuallyInspectEachImage <- TRUE
+
+baseDirectory <- './'
+dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
+imageDirectory <- paste0( dataDirectory, 'Images/' )
+annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
+dataFile <- paste0( dataDirectory, 'data.csv' )
+
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
+
+source( paste0( modelDirectory, 'createSsdModel.R' ) )
+
 parseXML <- function( xml, labels ) {
   
   frame <- xml %>%
@@ -37,13 +49,6 @@ parseXML <- function( xml, labels ) {
     mutate(frame = as.character(frame))
   }
 
-baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
-imageDirectory <- paste0( dataDirectory, 'Images/' )
-annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
-dataFile <- paste0( dataDirectory, 'data.csv' )
-
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
 classes <- c( "eyes", "nose", "mouth" )
 
@@ -139,9 +144,30 @@ for( i in 1:numberOfTestingData )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
 
-  cat( "Drawing", testingImageFiles[i], "\n" )
-  drawRectangles( image, groundTruthBoxes[, 2:5], groundTruthBoxes[, 1], captions = classes )
-  readline( prompt = "Press [enter] to continue " )
+  if( visuallyInspectEachImage == TRUE )
+    {
+    cat( "Drawing", testingImageFiles[i], "\n" )
+
+    classIds <- groundTruthBoxes[, 1]
+
+    boxColors <- c()
+    boxCaptions <- c()
+    for( j in 1:length( classIds ) )
+      {
+      boxColors[j] <- rainbow( 
+        length( classes ) )[which( classes[classIds[j]] == classes )]
+      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+      }
+
+    drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
+      captions = boxCaptions )
+    readline( prompt = "Press [enter] to continue " )
+    }
+  }
+
+if( visuallyInspectEachImage == TRUE )
+  {
+  cat( "\n\nDone inspecting images.\n" )
   }
  
 Y_test <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
@@ -150,8 +176,6 @@ Y_test <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
 #
 # Create the SSD model
 #
-
-source( paste0( modelDirectory, 'createSsdModel.R' ) )
 
 # Input size must be greater than >= 258 for a single dimension
 

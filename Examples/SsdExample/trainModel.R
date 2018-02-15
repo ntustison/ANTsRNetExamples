@@ -6,6 +6,19 @@ library( keras )
 library( ggplot2 )
 library( jpeg )
 
+
+numberOfTrainingData <- 800
+
+visuallyInspectEachImage <- FALSE
+
+baseDirectory <- './'
+dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
+imageDirectory <- paste0( dataDirectory, 'Images/' )
+annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
+dataFile <- paste0( dataDirectory, 'data.csv' )
+
+modelDirectory <- paste0( baseDirectory, '../../Models/' )
+
 parseXML <- function( xml, labels ) {
   
   frame <- xml %>%
@@ -37,14 +50,6 @@ parseXML <- function( xml, labels ) {
     mutate(frame = as.character(frame))
   }
 
-baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
-imageDirectory <- paste0( dataDirectory, 'Images/' )
-annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
-dataFile <- paste0( dataDirectory, 'data.csv' )
-
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
-
 classes <- c( "eyes", "nose", "mouth" )
 
 if( ! file.exists( dataFile ) )
@@ -64,6 +69,7 @@ if( ! file.exists( dataFile ) )
   } else {
   data <- read.csv( dataFile )  
   }
+uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 ###
 #
@@ -71,11 +77,10 @@ if( ! file.exists( dataFile ) )
 # for training and then read the remaining data for testing/prediction.
 #
 
-numberOfTrainingData <- 800
 trainingImageFiles <- rep( NA, numberOfTrainingData )
 for( i in 1:numberOfTrainingData )
   {
-  trainingImageFiles[i] <- paste0( imageDirectory, data$frame[i] )  
+  trainingImageFiles[i] <- paste0( imageDirectory, uniqueImageFiles[i] )  
   }
 
 inputImageSize <- c( 300, 300 )
@@ -143,10 +148,36 @@ groundTruthLabels <- list()
 for( i in 1:numberOfTrainingData )
   {
   groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
+  image <- readJPEG( trainingImageFiles[i] )
   groundTruthBoxes <- 
-    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * 1.2  )
+    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5]  )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
+
+  if( visuallyInspectEachImage == TRUE )
+    {
+    cat( "Drawing", trainingImageFiles[i], "\n" )
+
+    classIds <- groundTruthBoxes[, 1]
+
+    boxColors <- c()
+    boxCaptions <- c()
+    for( j in 1:length( classIds ) )
+      {
+      boxColors[j] <- rainbow( 
+        length( classes ) )[which( classes[classIds[j]] == classes )]
+      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+      }
+
+    drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
+      captions = boxCaptions )
+    readline( prompt = "Press [enter] to continue " )
+    }
+  }  
+
+if( visuallyInspectEachImage == TRUE )
+  {
+  cat( "\n\nDone inspecting images.\n" )
   }
 
 Y_train <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )

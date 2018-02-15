@@ -1,6 +1,6 @@
 #' Plotting function for 2-D object detection visualization.
 #'
-#' Renders boxes on objects within rasterized images
+#' Renders boxes on objects within rasterized images.
 #'
 #' @param image standard image using something like jpeg::readJPEG.
 #' @param boxes a data frame or comprising where each row has the following
@@ -8,11 +8,11 @@
 #'
 #'          xmin, xmax, ymin, ymax
 #'
-#' @param classIds Optional vector of length = ``numberOfBoxes`` used for 
-#' determining the colors of the different boxes.
+#' @param boxColors Optional scalar or vector of length = ``numberOfBoxes`` 
+#' used for determining the colors of the different boxes.
 #' @param confidenceValues Optional vector of length = ``numberOfBoxes`` where
 #' each element is in the range [0, 1].  Used for determining border width.
-#' @param Optional vector of length = ``numberOfBoxes`` where
+#' @param captions Optional vector of length = ``numberOfBoxes`` where
 #' each element is the caption rendered with each box.
 #'
 #' @author Tustison NJ
@@ -24,7 +24,7 @@
 #' 
 #' }
 
-drawRectangles <- function( image, boxes, classIds = NULL, 
+drawRectangles <- function( image, boxes, boxColors = "red", 
   confidenceValues = NULL, captions = NULL )
   {
 
@@ -41,24 +41,9 @@ drawRectangles <- function( image, boxes, classIds = NULL,
 
   numberOfBoxes <- nrow( boxes )
 
-  boxColors <- rep( "red", numberOfBoxes )
-
-  if( !is.null( classIds ) )
+  if( length( boxColors ) != numberOfBoxes )
     {
-    if( length( classIds ) != numberOfBoxes )
-      {
-      stop( "Number of class ids doesn't match the number of boxes." )  
-      }
-    uniqueClassIds <- unique( classIds )  
-
-    for( i in 1:length( classIds ) )
-      {
-      if( !is.null( classIds ) )
-        { 
-        boxColors[i] <- rainbow( 
-          length( uniqueClassIds ) )[which( classIds[i] == uniqueClassIds )]
-        }
-      }
+    boxColors <- rep( boxColors[1], numberOfBoxes )
     }
 
   lineWidths <- rep( 1, numberOfBoxes )
