@@ -49,7 +49,7 @@ drawRectangles <- function( image, boxes, boxColors = "red",
   lineWidths <- rep( 1, numberOfBoxes )
   if( !is.null( confidenceValues ) )
     {
-    if( length( lineWidth ) != numberOfBoxes )
+    if( length( confidenceValues ) != numberOfBoxes )
       {
       stop( "Number of confidenceValues doesn't match the number of boxes." )  
       }
@@ -325,8 +325,9 @@ jaccardSimilarity2D <- function( boxes1, boxes2 )
 #'         `(batchSize, numberOfBoxes, numberOfClasses + 4 + 4 + 4)`
 #'
 #' where the additional 4's along the third dimension correspond to 
-#' the box coordinates (xmin, xmax, ymin, ymax), dummy variables, and
-#' the variances, respectively.
+#' the box coordinates (xmin, xmax, ymin, ymax), dummy variables, and the 
+#' variances, respectively.  ``numberOfClasses`` includes the background class.
+
 #'
 #' @author Tustison NJ
 #' @examples
@@ -381,7 +382,7 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
 
   boxIndices <- 
     ( numberOfClassificationLabels + 1 ):( numberOfClassificationLabels + 4 )
-  classIndices <- 1:(numberOfClassificationLabels + 4 )
+  classIndices <- 1:( numberOfClassificationLabels + 4 )
  
   for( i in 1:batchSize )
     { 
@@ -427,7 +428,32 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
     yEncoded[i, backgroundClassIndices, 1] <- 1
     }
 
-  return( yEncoded )
+  # Convert absolute coordinates to offsets from anchor boxes and normalize
+  indices <- numberOfClassificationLabels + 1:4
+  yEncoded[,, indices] <- yEncoded[,, indices] - yEncodedTemplate[,, indices]
+
+  yEncoded[,, numberOfClassificationLabels + 1] <-
+    yEncoded[,, numberOfClassificationLabels + 1] / 
+      ( yEncodedTemplate[,, numberOfClassificationLabels + 2] -
+        yEncodedTemplate[,, numberOfClassificationLabels + 1] ) 
+  yEncoded[,, numberOfClassificationLabels + 2] <-
+    yEncoded[,, numberOfClassificationLabels + 2] / 
+      ( yEncodedTemplate[,, numberOfClassificationLabels + 2] -
+        yEncodedTemplate[,, numberOfClassificationLabels + 1] ) 
+ 
+  yEncoded[,, numberOfClassificationLabels + 3] <-
+    yEncoded[,, numberOfClassificationLabels + 3] / 
+      ( yEncodedTemplate[,, numberOfClassificationLabels + 4] -
+        yEncodedTemplate[,, numberOfClassificationLabels + 3] ) 
+  yEncoded[,, numberOfClassificationLabels + 4] <-
+    yEncoded[,, numberOfClassificationLabels + 4] / 
+      ( yEncodedTemplate[,, numberOfClassificationLabels + 4] -
+        yEncodedTemplate[,, numberOfClassificationLabels + 3] ) 
+
+  indices2 <- numberOfClassificationLabels + 9:12
+  yEncoded[,, indices] <- yEncoded[,, indices] / yEncodedTemplate[,, indices2]
+
+  return( yEncoded ) 
   }
 
 #' Decoding function for Y_train
@@ -449,6 +475,7 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
 #'
 #' where the additional 4's along the third dimension correspond to the box 
 #' coordinates (xmin, xmax, ymin, ymax), dummy variables, and the variances.
+#' ``numberOfClasses`` includes the background class.
 #' @param confidenceThreshold  Float between 0 and 1.  The minimum 
 #' classification value required for a given box to be considered a "positive
 #' prediction."  A lower value will result in better recall while a higher 
@@ -505,11 +532,11 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
     return( do.call( rbind, maximumBoxList ) )  
     }
   
-  numberOfClassificationLabels <- dim( yPredicted )[3] - 12L
+  yPredictedDim3 <- dim( yPredicted )[3]
+  numberOfClassificationLabels <- yPredictedDim3 - 12L
 
-  yPredictedConverted <- np$copy( yPredicted[,, 
-    ( numberOfClassificationLabels - 1 ):( numberOfClassificationLabels + 4 ), 
-    drop = FALSE] )
+  indices <- numberOfClassificationLabels + -1:4
+  yPredictedConverted <- np$copy( yPredicted[,, indices, drop = FALSE] )
 
   # store class ID  
   yPredictedConverted[,, 1] <- 
@@ -518,6 +545,29 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
   # store confidence values  
   yPredictedConverted[,, 2] <- 
     np$amax( yPredicted[,, 1:numberOfClassificationLabels], axis = -1L )
+
+  # convert from predicted anchor box offsets to absolute coordinates
+  indices <- ( yPredictedDim3 - 3 ):yPredictedDim3
+  yPredictedConverted[,, 3:6] <- 
+    yPredictedConverted[,, 3:6] * yPredicted[,, indices]
+
+  yPredictedConverted[,, 3] <- yPredictedConverted[,, 3] * 
+    ( yPredicted[,, numberOfClassificationLabels + 6] - 
+      yPredicted[,, numberOfClassificationLabels + 5] )
+  yPredictedConverted[,, 4] <- yPredictedConverted[,, 4] * 
+    ( yPredicted[,, numberOfClassificationLabels + 6] - 
+      yPredicted[,, numberOfClassificationLabels + 5] )
+
+  yPredictedConverted[,, 5] <- yPredictedConverted[,, 5] * 
+    ( yPredicted[,, numberOfClassificationLabels + 8] - 
+      yPredicted[,, numberOfClassificationLabels + 7] )
+  yPredictedConverted[,, 6] <- yPredictedConverted[,, 6] * 
+    ( yPredicted[,, numberOfClassificationLabels + 8] - 
+      yPredicted[,, numberOfClassificationLabels + 7] )
+
+  indices <- numberOfClassificationLabels + 5:8
+  yPredictedConverted[,, 3:6] <- 
+    yPredictedConverted[,, 3:6] + yPredicted[,, indices]
 
   yDecoded <- list()
   for( i in seq_len( dim( yPredictedConverted )[1] ) )
@@ -605,7 +655,7 @@ createSsdModel2D <- function( inputImageSize,
                                       c( 1.0, 2.0, 0.5 ),
                                       c( 1.0, 2.0, 0.5 )
                                     ),
-                              variances = c( 0.1, 0.1, 0.1, 0.1 )                       
+                              variances = rep( 1.0, 4 )
                             )
 {
 
