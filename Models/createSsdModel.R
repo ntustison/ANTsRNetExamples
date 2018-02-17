@@ -33,11 +33,17 @@ drawRectangles <- function( image, boxes, boxColors = "red",
   # [0, 1] x [0, 1], again, because of the pecularities of the plotting 
   # functionality in R.
 
-  scaledBoxes <- as.matrix( boxes, ncol = 4 )
-  scaledBoxes[, 1] <- ( boxes[, 1] - 1 ) / ( dim( image )[1] - 1 )
-  scaledBoxes[, 2] <- ( boxes[, 2] - 1 ) / ( dim( image )[1] - 1 )
-  scaledBoxes[, 3] <- 1 - ( boxes[, 3] - 1 ) / ( dim( image )[2] - 1 )
-  scaledBoxes[, 4] <- 1 - ( boxes[, 4] - 1 ) / ( dim( image )[2] - 1 )
+  if( is.null( dim( boxes ) ) )
+    {
+    scaledBoxes <- matrix( boxes, ncol = 4 )  
+    } else {
+    scaledBoxes <- as.matrix( boxes, ncol = 4 )
+    }
+  
+  scaledBoxes[, 1] <- ( scaledBoxes[, 1] - 1 ) / ( dim( image )[1] - 1 )
+  scaledBoxes[, 2] <- ( scaledBoxes[, 2] - 1 ) / ( dim( image )[1] - 1 )
+  scaledBoxes[, 3] <- 1 - ( scaledBoxes[, 3] - 1 ) / ( dim( image )[2] - 1 )
+  scaledBoxes[, 4] <- 1 - ( scaledBoxes[, 4] - 1 ) / ( dim( image )[2] - 1 )
 
   numberOfBoxes <- nrow( boxes )
 
@@ -325,9 +331,8 @@ jaccardSimilarity2D <- function( boxes1, boxes2 )
 #'         `(batchSize, numberOfBoxes, numberOfClasses + 4 + 4 + 4)`
 #'
 #' where the additional 4's along the third dimension correspond to 
-#' the box coordinates (xmin, xmax, ymin, ymax), dummy variables, and the 
-#' variances, respectively.  ``numberOfClasses`` includes the background class.
-
+#' the 4 predicted box coordinate offsets, the 4 coordinates for
+#' the anchor boxes and the 4 variance values.
 #'
 #' @author Tustison NJ
 #' @examples
@@ -380,8 +385,7 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
   # identity matrix used for one-hot encoding
   classEye <- np$eye( numberOfClassificationLabels )
 
-  boxIndices <- 
-    ( numberOfClassificationLabels + 1 ):( numberOfClassificationLabels + 4 )
+  boxIndices <- numberOfClassificationLabels + 1:4
   classIndices <- 1:( numberOfClassificationLabels + 4 )
  
   for( i in 1:batchSize )
@@ -391,12 +395,12 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
 
     for( j in 1:nrow( groundTruthLabels[[i]] ) )
       {
-      groundTruthBox <- groundTruthLabels[[i]][j,]
+      groundTruthBox <- as.double( groundTruthLabels[[i]][j,] )
       groundTruthCoords <- as.numeric( groundTruthBox[-1] )
       groundTruthLabel <- as.integer( groundTruthBox[1] )
 
       similarities <- jaccardSimilarity2D( 
-        yEncodedTemplate[i, , boxIndices], groundTruthCoords )
+        yEncodedTemplate[i,, boxIndices], groundTruthCoords )
       
       # check to see which boxes exceed the background threshold and are no 
       # longer potential background boxes.  Also, clear out those background 
@@ -532,9 +536,10 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
     return( do.call( rbind, maximumBoxList ) )  
     }
   
-  yPredictedDim3 <- dim( yPredicted )[3]
-  numberOfClassificationLabels <- yPredictedDim3 - 12L
+  numberOfClassificationLabels <- dim( yPredicted )[3] - 12L
 
+  # slice out the four normalized offset predictions plus two more for
+  # later storage confidence values and class ids
   indices <- numberOfClassificationLabels + -1:4
   yPredictedConverted <- np$copy( yPredicted[,, indices, drop = FALSE] )
 
@@ -547,7 +552,7 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
     np$amax( yPredicted[,, 1:numberOfClassificationLabels], axis = -1L )
 
   # convert from predicted anchor box offsets to absolute coordinates
-  indices <- ( yPredictedDim3 - 3 ):yPredictedDim3
+  indices <- numberOfClassificationLabels + 9:12
   yPredictedConverted[,, 3:6] <- 
     yPredictedConverted[,, 3:6] * yPredicted[,, indices]
 
@@ -870,12 +875,15 @@ createSsdModel2D <- function( inputImageSize,
           {
           for( j in 1:length( stepSeq[[1]] ) )
             {
-            xmin <- stepSeq[[1]][j] - boxSizes[[i]][1]
-            xmax <- stepSeq[[1]][j] + boxSizes[[i]][1]
+            xmin <- max( 0, stepSeq[[1]][j] - boxSizes[[i]][1] )
+            xmax <-
+              min( self$imageSize[0] - 1, stepSeq[[1]][j] + boxSizes[[i]][1] )
+
             for( k in 1:length( stepSeq[[2]] ) )
               {
-              ymin <- stepSeq[[2]][k] - boxSizes[[i]][2]
-              ymax <- stepSeq[[2]][k] + boxSizes[[i]][2]
+              ymin <- max( 0, stepSeq[[2]][k] - boxSizes[[i]][2] )
+              ymax <- 
+                min( self$imageSize[1] - 1, stepSeq[[2]][k] + boxSizes[[i]][2] )
               
               anchorBoxCoords <- c( xmin, xmax, ymin, ymax )
               

@@ -204,7 +204,6 @@ Y_train <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
 #     }
 #   }
 
-
 ###
 #
 #  Debugging:  visualize corresponding anchorBoxes
