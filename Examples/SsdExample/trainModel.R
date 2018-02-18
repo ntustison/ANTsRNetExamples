@@ -110,9 +110,9 @@ for ( i in 1:length( trainingImageFiles ) )
         inputImageSize, useVoxels = TRUE ) )
   b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
 
-  trainingData[i,,,1] <- r 
-  trainingData[i,,,2] <- g 
-  trainingData[i,,,3] <- b 
+  trainingData[i,,,1] <- r
+  trainingData[i,,,2] <- g
+  trainingData[i,,,3] <- b
 
   if( i %% 100 == 0 )
     {
@@ -134,13 +134,15 @@ source( paste0( modelDirectory, 'createSsdModel.R' ) )
 
 # Input size must be greater than >= 258 for a single dimension
 
-inputImageSize <- c( inputImageSize, 3 )
-ssdOutput <- createSsdModel2D( inputImageSize, 
+ssdOutput <- createSsdModel2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1,
   )
 
 ssdModel <- ssdOutput$ssdModel 
 anchorBoxes <- ssdOutput$anchorBoxes
+
+yaml_string <- model_to_yaml( ssdModel )
+writeLines( yaml_string, paste0( baseDirectory, "ssdModelR.yaml" ) )
 
 ###
 #
@@ -184,8 +186,7 @@ if( visuallyInspectEachImage == TRUE )
   cat( "\n\nDone inspecting images.\n" )
   }
 
-Y_train <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
-
+Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
 #
@@ -195,13 +196,20 @@ Y_train <- encodeY( groundTruthLabels, anchorBoxes, rep( 1.0, 4 ) )
 # image <- readJPEG( trainingImageFiles[1] )
 # for( i in 1:length( anchorBoxes) )
 #   {
-#   for( j in 1:nrow( anchorBoxes[[i]] ) )
-#     {
-#     cat( "Drawing anchor box", i, ",", j, "\n" )
-#     image <- trainingData[i,,,]
-#     drawRectangles( image, anchorBoxes[[i]][j,], boxColors = "red" )
-#     readline( prompt = "Press [enter] to continue\n" )
-#     }
+#   image <- trainingData[i,,,]
+#   cat( "Drawing anchor box:", i, "\n" )
+#   anchorBox <- anchorBoxes[[i]]
+#   anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
+#   anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
+#   drawRectangles( image, anchorBox[,], 
+#     boxColors = rainbow( nrow( anchorBox[,] ) ) )
+#   readline( prompt = "Press [enter] to continue\n" )
+#   # for( j in 1:nrow( anchorBoxes[[i]] ) )
+#   #   {
+#   #   cat( "Drawing anchor box:", i, ",", j, "\n" )
+#   #   drawRectangles( image, anchorBoxes[[i]][j,], boxColors = "red" )
+#   #   readline( prompt = "Press [enter] to continue\n" )
+#   #   }
 #   }
 
 ###
@@ -216,20 +224,44 @@ if( visuallyInspectEachImage == TRUE )
     cat( "Drawing", trainingImageFiles[i], "\n" )
     image <- trainingData[i,,,]
 
+    # Get anchor boxes  
     singleY <- Y_train[i,,]
     singleY <- singleY[which( rowSums( 
       singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
-    classIds <- max.col( singleY[,1:4] ) - 1
 
-    boxColors <- c()
-    boxCaptions <- c()
-    for( j in 1:length( classIds ) )
+    xIndices <- numberOfClassificationLabels + 5:6
+    singleY[, xIndices] <- singleY[, xIndices] * ( inputImageSize[1] - 2 ) + 1
+    yIndices <- numberOfClassificationLabels + 7:8
+    singleY[, yIndices] <- singleY[, yIndices] * ( inputImageSize[2] - 2 ) + 1
+
+    anchorClassIds <- max.col( singleY[, 1:4] ) - 1
+
+    anchorBoxColors <- c()
+    anchorBoxCaptions <- c()
+    for( j in 1:length( anchorClassIds ) )
       {
-      boxColors[j] <- rainbow( 
-        length( classes ) )[which( classes[classIds[j]] == classes )]
-      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+      anchorBoxColors[j] <- rainbow( 
+        length( classes ) )[which( classes[anchorClassIds[j]] == classes )]
+      # anchorBoxCaptions[j] <- classes[which( classes[anchorClassIds[j]] == classes )]
       }
-    drawRectangles( image, singleY[, 9:12], boxColors = boxColors )
+
+    # Get truth boxes
+    truthLabel <- groundTruthLabels[[i]]
+    truthClassIds <- truthLabel[, 1]
+    truthColors <- c()
+    truthCaptions <- c()
+    for( j in 1:length( truthClassIds ) )
+      {
+      truthColors[j] <- rainbow( 
+        length( classes ) )[which( classes[truthClassIds[j]] == classes )]
+      truthCaptions[j] <- classes[which( classes[truthClassIds[j]] == classes )]
+      }
+
+    boxes <- rbind( singleY[, 9:12], as.matrix( truthLabel[, 2:5] ) )
+    boxColors <- c( anchorBoxColors, truthColors )
+    confidenceValues <- c( rep( 0.2, length( anchorBoxColors ) ), rep( 1.0, length( truthColors ) ) )
+
+    drawRectangles( image, boxes, boxColors = boxColors, confidenceValues = confidenceValues )
 
     readline( prompt = "Press [enter] to continue " )
     }

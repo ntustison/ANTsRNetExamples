@@ -45,7 +45,7 @@ drawRectangles <- function( image, boxes, boxColors = "red",
   scaledBoxes[, 3] <- 1 - ( scaledBoxes[, 3] - 1 ) / ( dim( image )[2] - 1 )
   scaledBoxes[, 4] <- 1 - ( scaledBoxes[, 4] - 1 ) / ( dim( image )[2] - 1 )
 
-  numberOfBoxes <- nrow( boxes )
+  numberOfBoxes <- nrow( scaledBoxes )
 
   if( length( boxColors ) != numberOfBoxes )
     {
@@ -164,14 +164,13 @@ lossSsd <- R6::R6Class( "LossSSD",
       batchSize <- self$tf$shape( y_pred )[1] 
       numberOfBoxesPerCell <- self$tf$shape( y_pred )[2] 
 
+      indices <- 1:self$numberOfClassificationLabels
       classificationLoss <- self$tf$to_float( self$log_loss( 
-         y_true[,, 1:self$numberOfClassificationLabels], 
-         y_pred[,, 1:self$numberOfClassificationLabels] ) ) 
+         y_true[,, indices], y_pred[,, indices] ) ) 
+
+      indices <- self$numberOfClassificationLabels + 1:4
       localizationLoss <- self$tf$to_float( self$smooth_l1_loss( 
-        y_true[,, ( self$numberOfClassificationLabels + 1 ):
-                  ( self$numberOfClassificationLabels + 4 )], 
-        y_pred[,, ( self$numberOfClassificationLabels + 1 ):
-                  ( self$numberOfClassificationLabels + 4 )] ) )
+        y_true[,, indices], y_pred[,, indices] ) )
 
       backgroundBoxes <- y_true[,, 1] 
       foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
@@ -310,12 +309,14 @@ jaccardSimilarity2D <- function( boxes1, boxes2 )
 #'
 #'          xmin, xmax, ymin, ymax
 #'
+#' @param inputImageSize 2-D vector specifying the spatial domain of the input 
+#' images.
 #' @param variances A list of 4 floats > 0 with scaling factors (actually it's 
 #' not factors but divisors to be precise) for the encoded predicted box 
 #' coordinates. A variance value of 1.0 would apply no scaling at all to the 
 #' predictions, while values in (0,1) upscale the encoded predictions and 
 #' values greater than 1.0 downscale the encoded predictions. These are the same
-#' variances used to construct the model.
+#' variances used to construct the model. Defaul = c( 1.0, 1.0, 1.0, 1.0 )
 #' @param foregroundThreshold float between 0 and 1 determining the min threshold 
 #' for matching an anchor box with a ground truth box and, thus, labeling an anchor 
 #' box as a non-background class.  If an anchor box exceeds the ``backgroundThreshold`` 
@@ -332,7 +333,7 @@ jaccardSimilarity2D <- function( boxes1, boxes2 )
 #'
 #' where the additional 4's along the third dimension correspond to 
 #' the 4 predicted box coordinate offsets, the 4 coordinates for
-#' the anchor boxes and the 4 variance values.
+#' the anchor boxes, and the 4 variance values.
 #'
 #' @author Tustison NJ
 #' @examples
@@ -343,8 +344,9 @@ jaccardSimilarity2D <- function( boxes1, boxes2 )
 #' 
 #' }
 
-encodeY <- function( groundTruthLabels, anchorBoxes, variances,
-  foregroundThreshold = 0.5, backgroundThreshold = 0.3 )
+encodeY <- function( groundTruthLabels, anchorBoxes, imageSize,
+  variances = rep( 1.0, 4 ), foregroundThreshold = 0.5, 
+  backgroundThreshold = 0.3 )
   {
   np <- reticulate::import( "numpy" )  
 
@@ -396,6 +398,11 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
     for( j in 1:nrow( groundTruthLabels[[i]] ) )
       {
       groundTruthBox <- as.double( groundTruthLabels[[i]][j,] )
+
+      # normalize coords based on image size
+      groundTruthBox[2:3] <- groundTruthBox[2:3] / imageSize[1]
+      groundTruthBox[4:5] <- groundTruthBox[4:5] / imageSize[2]
+
       groundTruthCoords <- as.numeric( groundTruthBox[-1] )
       groundTruthLabel <- as.integer( groundTruthBox[1] )
 
@@ -432,10 +439,11 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
     yEncoded[i, backgroundClassIndices, 1] <- 1
     }
 
-  # Convert absolute coordinates to offsets from anchor boxes and normalize
+  # Convert absolute coordinates to offsets from anchor boxes 
   indices <- numberOfClassificationLabels + 1:4
   yEncoded[,, indices] <- yEncoded[,, indices] - yEncodedTemplate[,, indices]
 
+  # and normalize
   yEncoded[,, numberOfClassificationLabels + 1] <-
     yEncoded[,, numberOfClassificationLabels + 1] / 
       ( yEncodedTemplate[,, numberOfClassificationLabels + 2] -
@@ -480,6 +488,8 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
 #' where the additional 4's along the third dimension correspond to the box 
 #' coordinates (xmin, xmax, ymin, ymax), dummy variables, and the variances.
 #' ``numberOfClasses`` includes the background class.
+#' @param inputImageSize 2-D vector specifying the spatial domain of the input 
+#' images.
 #' @param confidenceThreshold  Float between 0 and 1.  The minimum 
 #' classification value required for a given box to be considered a "positive
 #' prediction."  A lower value will result in better recall while a higher 
@@ -504,7 +514,7 @@ encodeY <- function( groundTruthLabels, anchorBoxes, variances,
 #' 
 #' }
 
-decodeY <- function( yPredicted, confidenceThreshold = 0.5, 
+decodeY <- function( yPredicted, imageSize, confidenceThreshold = 0.5, 
   overlapThreshold = 0.45 )
   {
   np <- reticulate::import( "numpy" )  
@@ -537,6 +547,8 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
     }
   
   numberOfClassificationLabels <- dim( yPredicted )[3] - 12L
+  batchSize <- dim( yPredicted )[1]
+  
 
   # slice out the four normalized offset predictions plus two more for
   # later storage confidence values and class ids
@@ -551,7 +563,7 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
   yPredictedConverted[,, 2] <- 
     np$amax( yPredicted[,, 1:numberOfClassificationLabels], axis = -1L )
 
-  # convert from predicted anchor box offsets to absolute coordinates
+  # convert from predicted normalized anchor box offsets to absolute coordinates
   indices <- numberOfClassificationLabels + 9:12
   yPredictedConverted[,, 3:6] <- 
     yPredictedConverted[,, 3:6] * yPredicted[,, indices]
@@ -574,8 +586,12 @@ decodeY <- function( yPredicted, confidenceThreshold = 0.5,
   yPredictedConverted[,, 3:6] <- 
     yPredictedConverted[,, 3:6] + yPredicted[,, indices]
 
+  # convert back to absolute coordinates
+  yPredictedConverted[,, 3:4] <- yPredictedConverted[,, 3:4] * imageSize[1]
+  yPredictedConverted[,, 5:6] <- yPredictedConverted[,, 5:6] * imageSize[2]
+
   yDecoded <- list()
-  for( i in seq_len( dim( yPredictedConverted )[1] ) )
+  for( i in 1:batchSize )
     {
     ySingle <- yPredictedConverted[i,,]  
 
@@ -741,10 +757,11 @@ createSsdModel2D <- function( inputImageSize,
         }
       )
     )
-
-  layer_l2_normalization_2d <- function( object, scale = 20 ) {
+ 
+  layer_l2_normalization_2d <- function( object, scale = 20, name = NULL, 
+    trainable = TRUE ) {
     create_layer( L2NormalizationLayer2D, object, 
-      list( scale = scale ) )
+      list( scale = scale, name = name, trainable = TRUE ) )
   }
 
   # anchor box layer
@@ -768,7 +785,7 @@ createSsdModel2D <- function( inputImageSize,
   #     four are the variances
   #
 
-  AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D" ,
+  AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
                                     
     inherit = KerasLayer,
     
@@ -875,16 +892,24 @@ createSsdModel2D <- function( inputImageSize,
           {
           for( j in 1:length( stepSeq[[1]] ) )
             {
-            xmin <- max( 0, stepSeq[[1]][j] - boxSizes[[i]][1] )
-            xmax <-
-              min( self$imageSize[0] - 1, stepSeq[[1]][j] + boxSizes[[i]][1] )
+            xmin <- stepSeq[[1]][j] - boxSizes[[i]][1]
+            xmax <- stepSeq[[1]][j] + boxSizes[[i]][1]
+
+            # clip to the boundaries of the image and normalize to [0, 1]
+            xmin <- ( max( 1, xmin ) - 1 ) / ( self$imageSize[1] - 1 )
+            xmax <- min( self$imageSize[1] - 1, xmax ) / 
+              ( self$imageSize[1] - 1 )
 
             for( k in 1:length( stepSeq[[2]] ) )
               {
-              ymin <- max( 0, stepSeq[[2]][k] - boxSizes[[i]][2] )
-              ymax <- 
-                min( self$imageSize[1] - 1, stepSeq[[2]][k] + boxSizes[[i]][2] )
+              ymin <- stepSeq[[2]][k] - boxSizes[[i]][2]
+              ymax <- stepSeq[[2]][k] + boxSizes[[i]][2]
               
+              # clip to the boundaries of the image and normalize to [0, 1]
+              ymin <- ( max( 1, ymin ) - 1 ) / ( self$imageSize[2] - 1 )
+              ymax <- min( self$imageSize[2] - 1, ymax ) / 
+                ( self$imageSize[2] - 1 )
+
               anchorBoxCoords <- c( xmin, xmax, ymin, ymax )
               
               if( coordCount == 1 )
@@ -927,15 +952,16 @@ createSsdModel2D <- function( inputImageSize,
       )
     )
 
-  layer_anchor_box_2d <- function( object, 
-    imageSize, minSize, maxSize, aspectRatios, variances ) {
+  layer_anchor_box_2d <- function( object, imageSize, minSize, maxSize, 
+    aspectRatios, variances, name = NULL, trainable = TRUE ) {
     create_layer( AnchorBoxLayer2D, object, 
       list( imageSize = imageSize, minSize = minSize, maxSize = maxSize, 
-            aspectRatios = aspectRatios, variances = variances )
+            aspectRatios = aspectRatios, variances = variances, name = name,
+            trainable = trainable )
       )
   }
 
-  inputs <- layer_input( shape = inputImageSize )
+  inputs <- layer_input( shape = inputImageSize, name = "input_4" )
 
   filterSizes <- c( 64, 128, 256, 512, 1024 ) 
 
@@ -973,215 +999,235 @@ createSsdModel2D <- function( inputImageSize,
   for( i in 1:numberOfLayers )
     {
     outputs <- outputs %>% layer_conv_2d( filters = filterSizes[i], 
-      kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
+      kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), 
+      activation = 'relu', padding = 'same', 
       kernel_initializer = initializer_he_normal(), 
-      kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+      kernel_regularizer = regularizer_l2( l2Regularization ), 
+      name = paste0( "conv", i, "_1" ) ) 
 
     outputs <- outputs %>% layer_conv_2d( filters = filterSizes[i], 
       kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
       kernel_initializer = initializer_he_normal(), 
-      kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+      kernel_regularizer = regularizer_l2( l2Regularization ), 
+      name = paste0( "conv", i, "_2" ) ) 
 
     if( i > 2 ) 
       {
       outputs <- outputs %>% layer_conv_2d( filters = filterSizes[i], 
-        kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
+        kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), 
+        activation = 'relu', padding = 'same', 
         kernel_initializer = initializer_he_normal(), 
-        kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+        kernel_regularizer = regularizer_l2( l2Regularization ),
+        name = paste0( "conv", i, "_3" ) )  
 
       if( i == numberOfLayers )
         {
         l2NormalizedOutputs <- outputs %>% 
-          layer_l2_normalization_2d( scale = 20 )
+          layer_l2_normalization_2d( scale = 20, name = "conv4_3_norm" )
 
-        boxClasses[[1]] <- outputs %>% layer_conv_2d( 
+        boxClasses[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
           filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
-          kernel_size = c( 3, 3 ),
+          kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
           padding = 'same', kernel_initializer = initializer_he_normal(),
-          kernel_regularizer = regularizer_l2( l2Regularization ) )
+          kernel_regularizer = regularizer_l2( l2Regularization ), 
+          name = "conv4_3_norm_mbox_conf" )
 
-        boxLocations[[1]] <- outputs %>% layer_conv_2d( 
+        boxLocations[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
           filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels,
-          kernel_size = c( 3, 3 ),
+          kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
           padding = 'same', kernel_initializer = initializer_he_normal(),
-          kernel_regularizer = regularizer_l2( l2Regularization ) )
-
+          kernel_regularizer = regularizer_l2( l2Regularization ), 
+          name = "conv4_3_norm_mbox_loc" )
         }
       }
 
     outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 2, 2 ), 
-      strides = c( 2, 2 ), padding = 'same' )
+      strides = c( 2, 2 ), padding = 'same',
+      name = paste0( "pool", i ) )
     }
-
-  boxClasses[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
-    filters = numberOfBoxesPerLayer[1] * numberOfClassificationLabels, 
-    kernel_size = c( 3, 3 ),
-    padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
-
-  boxLocations[[1]] <- l2NormalizedOutputs %>% layer_conv_2d( 
-    filters = numberOfBoxesPerLayer[1] * numberOfCoordinates,
-    kernel_size = c( 3, 3 ),
-    padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
 
   # Conv5
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[4], 
-    kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
+    activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv5_1" )
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[4], 
-    kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
+    activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv5_2" )
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[4], 
-    kernel_size = c( 3, 3 ), activation = 'relu', padding = 'same', 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
+    activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv5_3" )
 
   outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 3, 3 ), 
-    strides = c( 1, 1 ), padding = 'same' )
+    strides = c( 1, 1 ), padding = 'same', name = "pool5" )
 
   # fc6
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[5],
-    kernel_size = c( 3, 3 ), dilation_rate = c( 6, 6 ), 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 6L, 6L ), 
     activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), name = "fc6" ) 
 
   # fc7
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[5],
-    kernel_size = c( 1, 1 ), 
+    kernel_size = c( 1, 1 ), dilation_rate = c( 1L, 1L ),
     activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), name = "fc7" ) 
 
   boxClasses[[2]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[2] * numberOfClassificationLabels, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "fc7_mbox_conf" )
 
   boxLocations[[2]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[2] * numberOfCoordinates, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "fc7_mbox_loc" )
 
   # Conv6
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
-    kernel_size = c( 1, 1 ), 
+    kernel_size = c( 1, 1 ),  dilation_rate = c( 1L, 1L ),
     activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv6_1" )
 
   outputs <- outputs %>% layer_zero_padding_2d( 
-    padding = list( c( 1, 1 ), c( 1, 1 ) ) )  
+    padding = list( c( 1, 1 ), c( 1, 1 ) ), name = "conv6_padding" )  
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[4],
-    kernel_size = c( 3, 3 ), strides = c( 2, 2 ), 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), strides = c( 2, 2 ), 
     activation = 'relu', padding = 'valid', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ),
+    name = "conv6_2" ) 
 
   boxClasses[[3]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[3] * numberOfClassificationLabels, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv6_2_mbox_conf" )
 
   boxLocations[[3]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[3] * numberOfCoordinates, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv6_2_mbox_loc" )
 
   # Conv7
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[2],
-    kernel_size = c( 1, 1 ), 
+    kernel_size = c( 1, 1 ), dilation_rate = c( 1L, 1L ),
     activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ),
+    name = "conv7_1" ) 
 
   outputs <- outputs %>% layer_zero_padding_2d( 
-    padding = list( c( 1, 1 ), c( 1, 1 ) ) ) 
+    padding = list( c( 1, 1 ), c( 1, 1 ) ),
+    name = "conv7_padding" ) 
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
-    kernel_size = c( 3, 3 ), strides = c( 2, 2 ), 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), strides = c( 2, 2 ), 
     activation = 'relu', padding = 'valid', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ),
+    name = "conv7_2" ) 
 
   boxClasses[[4]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[4] * numberOfClassificationLabels, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv7_2_mbox_conf" )
 
   boxLocations[[4]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[4] * numberOfCoordinates, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv7_2_mbox_loc" )
 
   # Conv8
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[2],
-    kernel_size = c( 1, 1 ), 
+    kernel_size = c( 1, 1 ), dilation_rate = c( 1L, 1L ),
     activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv8_1" ) 
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
-    kernel_size = c( 3, 3 ), strides = c( 1, 1 ), 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), strides = c( 1, 1 ), 
     activation = 'relu', padding = 'valid', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv8_2" ) 
 
   boxClasses[[5]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[5] * numberOfClassificationLabels, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv8_2_mbox_conf" )
 
   boxLocations[[5]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[5] * numberOfCoordinates, 
-    kernel_size = c( 3, 3 ),
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ),
     padding = 'same', kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv8_2_mbox_loc" )
 
   # Conv9
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[2],
-    kernel_size = c( 1, 1 ), 
+    kernel_size = c( 1, 1 ), dilation_rate = c( 1L, 1L ),
     activation = 'relu', padding = 'same', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv9_1" ) 
 
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
-    kernel_size = c( 3, 3 ), strides = c( 1, 1 ), 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), strides = c( 1, 1 ), 
     activation = 'relu', padding = 'valid', 
     kernel_initializer = initializer_he_normal(), 
-    kernel_regularizer = regularizer_l2( l2Regularization ) ) 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv9_2" ) 
 
   boxClasses[[6]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[6] * numberOfClassificationLabels, 
-    kernel_size = c( 3, 3 ), padding = 'same', 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), padding = 'same', 
     kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv9_2_mbox_conf" )
 
   boxLocations[[6]] <- outputs %>% layer_conv_2d( 
     filters = numberOfBoxesPerLayer[6] * numberOfCoordinates, 
-    kernel_size = c( 3, 3 ), padding = 'same', 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), padding = 'same', 
     kernel_initializer = initializer_he_normal(),
-    kernel_regularizer = regularizer_l2( l2Regularization ) )
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv9_2_mbox_loc" )
 
   # Generate the anchor boxes.  Output shape of anchor boxes =
   #   ``( batch, height, width, numberOfBoxes, 8 )``
@@ -1192,12 +1238,16 @@ createSsdModel2D <- function( inputImageSize,
   imageSize <- inputImageSize[1:imageDimension]
   shortImageSize <- min( imageSize )
 
+  layerNames <- paste0( c( "conv4_3_norm", "fc7", "conv6_2", "conv7_2", 
+    "conv8_2", "conv9_2" ), "_mbox" )
+
   for( i in 1:length( boxLocations ) )
     {
     anchorBoxLayer <- layer_anchor_box_2d( imageSize = imageSize, 
       minSize = ( scales[i] * shortImageSize ), 
       maxSize = ( scales[i+1] * shortImageSize ),
-      aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
+      aspectRatios = aspectRatiosPerLayer[[i]], variances = variances, 
+      name = paste0( layerNames[i], "_priorbox" ) )
     anchorBoxLayers[[i]] <- boxLocations[[i]] %>% anchorBoxLayer
 
     # We calculate the anchor box values again to return as output for 
@@ -1222,32 +1272,39 @@ createSsdModel2D <- function( inputImageSize,
     inputShape <- k_int_shape( boxClasses[[i]] )
     numberOfBoxes <- 
       as.integer( inputShape[[4]] / numberOfClassificationLabels )
+
     boxClassesReshaped[[i]] <- boxClasses[[i]] %>% layer_reshape( 
-      target_shape = c( inputShape[[2]] * inputShape[[3]] * numberOfBoxes, 
-        numberOfClassificationLabels ) )
+      target_shape = c( -1, numberOfClassificationLabels ), 
+      name = paste0( layerNames[i], "_conf_reshape" ) )
 
     # reshape ``( batch, height, width, numberOfBoxes * 4 )``
     #   to `( batch, height * width * numberOfBoxes, 4 )`
     boxLocationsReshaped[[i]] <- boxLocations[[i]] %>% layer_reshape( 
-      target_shape = c( inputShape[[2]] * inputShape[[3]] * numberOfBoxes, 4 ) )
+      target_shape = c( -1, 4 ), 
+      name = paste0( layerNames[i], "_loc_reshape" ) )
 
     # reshape ``( batch, height, width, numberOfBoxes * 8 )``
     #   to `( batch, height * width * numberOfBoxes, 8 )`
     anchorBoxLayersReshaped[[i]] <- anchorBoxLayers[[i]] %>% layer_reshape( 
-      target_shape = c( inputShape[[2]] * inputShape[[3]] * numberOfBoxes, 8 ) )
+      target_shape = c( -1, 8 ), 
+      name = paste0( layerNames[i], "_priorbox_reshape" ) )
     }  
   
   # Concatenate the predictions from the different layers
 
-  outputClasses <- layer_concatenate( boxClassesReshaped, axis = 1 )
-  outputLocations <- layer_concatenate( boxLocationsReshaped, axis = 1 )
-  outputAnchorBoxes <- layer_concatenate( anchorBoxLayersReshaped, axis = 1 )
+  outputClasses <- layer_concatenate( boxClassesReshaped, 
+    axis = 1, trainable = TRUE, name = "mbox_conf" )
+  outputLocations <- layer_concatenate( boxLocationsReshaped, 
+    axis = 1, trainable = TRUE, name = "mbox_loc" )
+  outputAnchorBoxes <- layer_concatenate( anchorBoxLayersReshaped, 
+    axis = 1, trainable = TRUE, name = "mbox_priorbox" )
 
   confidenceActivation <- outputClasses %>% 
-    layer_activation( activation = "softmax" )
+    layer_activation( activation = "softmax", name = "mbox_conf_softmax" )
 
-  predictions <- layer_concatenate( list( 
-    confidenceActivation, outputLocations, outputAnchorBoxes ), axis = 2 )
+  predictions <- layer_concatenate( list( confidenceActivation, 
+    outputLocations, outputAnchorBoxes ), axis = 2, trainable = TRUE, 
+    name = "predictions" )
 
   ssdModel <- keras_model( inputs = inputs, outputs = predictions )
 
