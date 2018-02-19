@@ -45,6 +45,7 @@ A collection of well-known deep learning architectures ported to the R language.
 * Custom keras layers in R
     * [Link 1](https://keras.rstudio.com/articles/custom_layers.html)
     * [Link 2](https://cran.rstudio.com/web/packages/keras/vignettes/about_keras_layers.html)
+    * [Link 3](https://cran.rstudio.com/web/packages/keras/vignettes/custom_layers.html)
 
 # To do:
 
