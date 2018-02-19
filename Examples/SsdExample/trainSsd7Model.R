@@ -11,7 +11,7 @@ keras::backend()$clear_session()
 
 numberOfTrainingData <- 900
 
-visuallyInspectEachImage <- FALSE
+visuallyInspectEachImage <- TRUE
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
@@ -215,20 +215,22 @@ Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 
 # image <- readJPEG( trainingImageFiles[1] )
 # for( i in 1:length( anchorBoxes) )
 #   {
-#   image <- trainingData[i,,,]
-#   cat( "Drawing anchor box:", i, "\n" )
-#   anchorBox <- anchorBoxes[[i]]
-#   anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
-#   anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
-#   drawRectangles( image, anchorBox[,], 
-#     boxColors = rainbow( nrow( anchorBox[,] ) ) )
-#   readline( prompt = "Press [enter] to continue\n" )
-#   # for( j in 1:nrow( anchorBoxes[[i]] ) )
-#   #   {
-#   #   cat( "Drawing anchor box:", i, ",", j, "\n" )
-#   #   drawRectangles( image, anchorBoxes[[i]][j,], boxColors = "red" )
-#   #   readline( prompt = "Press [enter] to continue\n" )
-#   #   }
+#   # cat( "Drawing anchor box:", i, "\n" )
+#   # anchorBox <- anchorBoxes[[i]]
+#   # anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
+#   # anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
+#   # drawRectangles( image, anchorBox[,], 
+#   #   boxColors = rainbow( nrow( anchorBox[,] ) ) )
+#   # readline( prompt = "Press [enter] to continue\n" )
+#   for( j in 1:nrow( anchorBoxes[[i]] ) )
+#     {
+#     cat( "Drawing anchor box:", i, ",", j, "\n" )
+#     anchorBox <- anchorBoxes[[i]][j,]
+#     anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
+#     anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
+#     drawRectangles( image, anchorBox, boxColors = "red" )
+#     readline( prompt = "Press [enter] to continue\n" )
+#     }
 #   }
 
 ###

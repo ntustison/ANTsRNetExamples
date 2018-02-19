@@ -218,20 +218,22 @@ Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 
 # image <- readJPEG( trainingImageFiles[1] )
 # for( i in 1:length( anchorBoxes) )
 #   {
-#   image <- trainingData[i,,,]
-#   cat( "Drawing anchor box:", i, "\n" )
-#   anchorBox <- anchorBoxes[[i]]
-#   anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
-#   anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
-#   drawRectangles( image, anchorBox[,], 
-#     boxColors = rainbow( nrow( anchorBox[,] ) ) )
-#   readline( prompt = "Press [enter] to continue\n" )
-#   # for( j in 1:nrow( anchorBoxes[[i]] ) )
-#   #   {
-#   #   cat( "Drawing anchor box:", i, ",", j, "\n" )
-#   #   drawRectangles( image, anchorBoxes[[i]][j,], boxColors = "red" )
-#   #   readline( prompt = "Press [enter] to continue\n" )
-#   #   }
+#   # cat( "Drawing anchor box:", i, "\n" )
+#   # anchorBox <- anchorBoxes[[i]]
+#   # anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
+#   # anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
+#   # drawRectangles( image, anchorBox[,], 
+#   #   boxColors = rainbow( nrow( anchorBox[,] ) ) )
+#   # readline( prompt = "Press [enter] to continue\n" )
+#   for( j in 1:nrow( anchorBoxes[[i]] ) )
+#     {
+#     cat( "Drawing anchor box:", i, ",", j, "\n" )
+#     anchorBox <- anchorBoxes[[i]][j,]
+#     anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
+#     anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
+#     drawRectangles( image, anchorBox, boxColors = "red" )
+#     readline( prompt = "Press [enter] to continue\n" )
+#     }
 #   }
 
 ###
@@ -301,7 +303,7 @@ ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
 track <- ssdModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "ssdWeights.h5" ), 
+                   callback_model_checkpoint( paste0( baseDirectory, "ssd300Weights.h5" ), 
                      monitor = 'val_loss', save_best_only = TRUE )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )

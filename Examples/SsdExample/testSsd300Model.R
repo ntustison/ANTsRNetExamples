@@ -186,6 +186,10 @@ if( visuallyInspectEachImage == TRUE )
 #
 # Create the SSD model
 #
+source( paste0( modelDirectory, 'createSsd300Model.R' ) )
+source( paste0( modelDirectory, 'ssdUtilities.R' ) )
+
+inputImageSize <- c( 300, 300 )
 ssdOutput <- createSsd300Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1
   )
@@ -193,6 +197,9 @@ ssdOutput <- createSsd300Model2D( c( inputImageSize, 3 ),
 ssdModelTest <- ssdOutput$ssdModel 
 anchorBoxes <- ssdOutput$anchorBoxes
 
+load_model_weights_hdf5( ssdModelTest, 
+  filepath = paste0( baseDirectory, 'ssd300Weights.h5' ) )
+  
 Y_test <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
@@ -256,10 +263,6 @@ if( visuallyInspectEachImage == TRUE )
     readline( prompt = "Press [enter] to continue " )
     }
   }  
-
-
-load_model_weights_hdf5( ssdModelTest, 
-  filepath = paste0( baseDirectory, 'ssdWeights.h5' ) )
 
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )

@@ -176,8 +176,15 @@ if( visuallyInspectEachImage == TRUE )
 #
 # Create the SSD model
 #
+
 ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
-  numberOfClassificationLabels = length( classes ) + 1
+  numberOfClassificationLabels = length( classes ) + 1,
+  aspectRatiosPerLayer = 
+    list( c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),  
+          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
+          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
+          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 )
+        )
   )
 
 ssdModelTest <- ssdOutput$ssdModel 
