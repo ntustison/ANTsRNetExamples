@@ -210,13 +210,6 @@ if( visuallyInspectEachImage == TRUE )
 
 Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
-if( visuallyInspectEachImage == TRUE )
-  {
-  cat( "\n\nDone inspecting images.\n" )
-  }
-
-Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
-
 ###
 #
 #  Debugging:  draw all anchor boxes
@@ -258,6 +251,7 @@ if( visuallyInspectEachImage == TRUE )
     singleY <- singleY[which( rowSums( 
       singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
 
+    numberOfClassificationLabels <- length( classes ) + 1
     xIndices <- numberOfClassificationLabels + 5:6
     singleY[, xIndices] <- singleY[, xIndices] * ( inputImageSize[1] - 2 ) + 1
     yIndices <- numberOfClassificationLabels + 7:8

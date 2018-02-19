@@ -139,6 +139,12 @@ source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 
 ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1,
+  aspectRatiosPerLayer = 
+    list( c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),  
+          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
+          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
+          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 )
+        )
   )
 
 ssdModel <- ssdOutput$ssdModel 
@@ -242,6 +248,7 @@ if( visuallyInspectEachImage == TRUE )
     singleY <- singleY[which( rowSums( 
       singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
 
+    numberOfClassificationLabels <- length( classes ) + 1
     xIndices <- numberOfClassificationLabels + 5:6
     singleY[, xIndices] <- singleY[, xIndices] * ( inputImageSize[1] - 2 ) + 1
     yIndices <- numberOfClassificationLabels + 7:8

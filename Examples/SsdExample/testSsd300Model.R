@@ -107,20 +107,17 @@ for ( i in 1:length( testingImageFiles ) )
   r <- as.matrix( resampleImage( 
         as.antsImage( testingImage[,,1] ), 
         inputImageSize, useVoxels = TRUE ) )
-  # r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
-  r <- r - 123
+  r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
 
   g <- as.matrix( resampleImage( 
         as.antsImage( testingImage[,,2] ), 
         inputImageSize, useVoxels = TRUE ) )
-  # g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
-  g <- g - 117
+  g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
 
   b <- as.matrix( resampleImage( 
         as.antsImage( testingImage[,,3] ), 
         inputImageSize, useVoxels = TRUE ) )
-  # b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
-  b <- b - 104
+  b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
 
   testingData[i,,,1] <- r
   testingData[i,,,2] <- g
@@ -189,7 +186,7 @@ if( visuallyInspectEachImage == TRUE )
 #
 # Create the SSD model
 #
-ssdOutput <- createSsdModel2D( c( inputImageSize, 3 ), 
+ssdOutput <- createSsd300Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1
   )
 
