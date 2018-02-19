@@ -6,7 +6,11 @@ library( keras )
 library( ggplot2 )
 library( jpeg )
 
-visuallyInspectEachImage <- TRUE
+visuallyInspectEachImage <- FALSE
+
+numberOfTrainingData <- 900
+numberOfTestingData <- 100
+testingImageFiles <- rep( NA, numberOfTestingData )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
@@ -16,7 +20,8 @@ dataFile <- paste0( dataDirectory, 'data.csv' )
 
 modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
-source( paste0( modelDirectory, 'createSsdModel.R' ) )
+source( paste0( modelDirectory, 'createSsd7Model.R' ) )
+source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 
 parseXML <- function( xml, labels ) {
   
@@ -77,9 +82,6 @@ uniqueImageFiles <- levels( as.factor( data$frame ) )
 # for training.  We now read the remaining data for testing/prediction.
 #
 
-numberOfTrainingData <- 800
-numberOfTestingData <- 10
-testingImageFiles <- rep( NA, numberOfTestingData )
 
 count <- 1
 for( i in ( numberOfTrainingData + 1 ):
@@ -89,11 +91,7 @@ for( i in ( numberOfTrainingData + 1 ):
   count <- count + 1
   }
 
-# original images are 250 x 250 so we need to multiply the points by 
-# 300 / 250 = 1.2
-scaleFactor <- 1.2
-
-inputImageSize <- c( 300, 300 )
+inputImageSize <- c( 250, 250 )
 testingData <- array( dim = c( numberOfTestingData, inputImageSize, 3 ) )
 
 cat( "Reading images...\n" )
@@ -103,19 +101,14 @@ for ( i in 1:length( testingImageFiles ) )
   # cat( "Reading ", testingImageFiles[i], "\n" )
   testingImage <- readJPEG( testingImageFiles[i] )
 
-  r <- as.matrix( resampleImage( 
-        as.antsImage( testingImage[,,1] ), 
-        inputImageSize, useVoxels = TRUE ) )
+  r <- as.matrix( as.antsImage( testingImage[,,1] ) )
+  g <- as.matrix( as.antsImage( testingImage[,,2] ) )
+  b <- as.matrix( as.antsImage( testingImage[,,3] ) )
+  
   r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
-  g <- as.matrix( resampleImage( 
-        as.antsImage( testingImage[,,2] ), 
-        inputImageSize, useVoxels = TRUE ) )
   g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
-  b <- as.matrix( resampleImage( 
-        as.antsImage( testingImage[,,3] ), 
-        inputImageSize, useVoxels = TRUE ) )
   b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
-
+  
   testingData[i,,,1] <- r
   testingData[i,,,2] <- g
   testingData[i,,,3] <- b
@@ -144,7 +137,7 @@ for( i in 1:numberOfTestingData )
 
   image <- readJPEG( testingImageFiles[i] )
   groundTruthBoxes <- 
-   data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * scaleFactor )
+   data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] )
   colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
   groundTruthLabels[[i]] <- groundTruthBoxes
 
@@ -162,7 +155,12 @@ for( i in 1:numberOfTestingData )
         length( classes ) )[which( classes[classIds[j]] == classes )]
       boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
       }
-    image <- testingData[i,,,]
+    image <- array( 0, dim = c( inputImageSize, 3 ) )
+    for( k in 1:3 )
+      {
+      image[,,k] <- ( testingData[i,,,k] - min( testingData[i,,,k] ) ) / 
+        ( max( testingData[i,,,k] ) - min( testingData[i,,,k] ) )
+      }  
     drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
       captions = boxCaptions )
     readline( prompt = "Press [enter] to continue " )
@@ -174,19 +172,18 @@ if( visuallyInspectEachImage == TRUE )
   cat( "\n\nDone inspecting images.\n" )
   }
  
-Y_test <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
-
 ###
 #
 # Create the SSD model
 #
-ssdOutput <- createSsdModel2D( c( inputImageSize, 3 ), 
+ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1
   )
 
 ssdModelTest <- ssdOutput$ssdModel 
 anchorBoxes <- ssdOutput$anchorBoxes
 
+Y_test <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
 #
@@ -200,10 +197,15 @@ if( visuallyInspectEachImage == TRUE )
   for( i in 1:numberOfTestingData )
     {
     cat( "Drawing", testingImageFiles[i], "\n" )
-    image <- testingData[i,,,]
+    image <- array( 0, dim = c( inputImageSize, 3 ) )
+    for( k in 1:3 )
+      {
+      image[,,k] <- ( testingData[i,,,k] - min( testingData[i,,,k] ) ) / 
+        ( max( testingData[i,,,k] ) - min( testingData[i,,,k] ) )
+      }  
 
     # Get anchor boxes  
-    singleY <- Y_train[i,,]
+    singleY <- Y_test[i,,]
     singleY <- singleY[which( rowSums( 
       singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
 
@@ -247,10 +249,10 @@ if( visuallyInspectEachImage == TRUE )
 
 
 load_model_weights_hdf5( ssdModelTest, 
-  filepath = paste0( baseDirectory, 'ssdWeights.h5' ) )
+  filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
 
 optimizerAdam <- optimizer_adam( 
-  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
+  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
 
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
@@ -259,13 +261,20 @@ ssdModelTest %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam
 
 testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 
+X_test <- testingData
+
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
 predictedDataDecoded <- decodeY( predictedData, inputImageSize )
 
 for( i in 1:length( predictedDataDecoded ) )
   {
   cat( "Drawing", testingImageFiles[i], "\n" )
-  image <- testingData[i,,,]
+  image <- array( 0, dim = c( inputImageSize, 3 ) )
+  for( k in 1:3 )
+    {
+    image[,,k] <- ( testingData[i,,,k] - min( testingData[i,,,k] ) ) / 
+      ( max( testingData[i,,,k] ) - min( testingData[i,,,k] ) )
+    }  
 
   boxes <- predictedDataDecoded[[i]][, 3:6]
   classIds <- predictedDataDecoded[[i]][, 1]
@@ -286,19 +295,17 @@ for( i in 1:length( predictedDataDecoded ) )
   }
 
 
+# image <- readJPEG( testingImageFiles[1] )
+# for( i in 1:dim( predictedData )[2] )
+#   {
+#   cat( "Drawing box", i, "\n" )
 
-
-image <- readJPEG( testingImageFiles[1] )
-for( i in 1:dim( predictedData )[2] )
-  {
-  cat( "Drawing box", i, "\n" )
-
-  boxes <- matrix( predictedData[1,, 5:8], ncol = 4 )
-  drawRectangles( image, boxes, boxColors = "red" )
-  cat( "   back : ", predictedData[1, i, 1], "\n" )
-  for( j in 1:length( classes ) )
-    {
-    cat( "  ", classes[j], ": ", predictedData[1, i, j+1], "\n" )
-    }
-  readline( prompt = "Press [enter] to continue\n" )
-  }
+#   boxes <- matrix( predictedData[1,, 5:8], ncol = 4 )
+#   drawRectangles( image, boxes, boxColors = "red" )
+#   cat( "   back : ", predictedData[1, i, 1], "\n" )
+#   for( j in 1:length( classes ) )
+#     {
+#     cat( "  ", classes[j], ": ", predictedData[1, i, j+1], "\n" )
+#     }
+#   readline( prompt = "Press [enter] to continue\n" )
+#   }

@@ -7,7 +7,9 @@ library( ggplot2 )
 library( jpeg )
 
 
-numberOfTrainingData <- 800
+keras::backend()$clear_session()
+
+numberOfTrainingData <- 900
 
 visuallyInspectEachImage <- FALSE
 
@@ -83,12 +85,11 @@ for( i in 1:numberOfTrainingData )
   trainingImageFiles[i] <- paste0( imageDirectory, uniqueImageFiles[i] )  
   }
 
-# original images are 250 x 250 so we need to multiply the points by 
-# 300 / 250 = 1.2
-scaleFactor <- 1.2
+inputImageSize <- c( 250, 250 )
 
-inputImageSize <- c( 300, 300 )
-trainingData <- array( dim = c( numberOfTrainingData, inputImageSize, 3 ) )
+# training data consists of the original images and their horizontally
+# flipped counterparts
+trainingData <- array( dim = c( 2 * numberOfTrainingData, inputImageSize, 3 ) )
 
 cat( "Reading images...\n" )
 pb <- txtProgressBar( min = 0, max = numberOfTrainingData, style = 3 )
@@ -97,23 +98,26 @@ for ( i in 1:length( trainingImageFiles ) )
   # cat( "Reading ", trainingImageFiles[i], "\n" )
   trainingImage <- readJPEG( trainingImageFiles[i] )
 
-  r <- as.matrix( resampleImage( 
-        as.antsImage( trainingImage[,,1] ), 
-        inputImageSize, useVoxels = TRUE ) )
+  r <- as.matrix( as.antsImage( trainingImage[,,1] ) )
+  g <- as.matrix( as.antsImage( trainingImage[,,2] ) )
+  b <- as.matrix( as.antsImage( trainingImage[,,3] ) )
+  
   r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
-  g <- as.matrix( resampleImage( 
-        as.antsImage( trainingImage[,,2] ), 
-        inputImageSize, useVoxels = TRUE ) )
   g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
-  b <- as.matrix( resampleImage( 
-        as.antsImage( trainingImage[,,3] ), 
-        inputImageSize, useVoxels = TRUE ) )
   b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
 
-  trainingData[i,,,1] <- r
-  trainingData[i,,,2] <- g
-  trainingData[i,,,3] <- b
+  trainingData[2*i-1,,,1] <- r
+  trainingData[2*i-1,,,2] <- g
+  trainingData[2*i-1,,,3] <- b
 
+  # Flip the images horizontally
+
+  flipIndices <- seq( from = inputImageSize[1], to = 1, by = -1 )
+
+  trainingData[2*i,,,1] <- r[,flipIndices]
+  trainingData[2*i,,,2] <- g[,flipIndices]
+  trainingData[2*i,,,3] <- b[,flipIndices]
+  
   if( i %% 100 == 0 )
     {
     gc( verbose = FALSE )
@@ -130,11 +134,10 @@ X_train <- trainingData
 # Create the SSD model
 #
 
-source( paste0( modelDirectory, 'createSsdModel.R' ) )
+source( paste0( modelDirectory, 'createSsd7Model.R' ) )
+source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 
-# Input size must be greater than >= 258 for a single dimension
-
-ssdOutput <- createSsdModel2D( c( inputImageSize, 3 ), 
+ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1,
   )
 
@@ -142,7 +145,9 @@ ssdModel <- ssdOutput$ssdModel
 anchorBoxes <- ssdOutput$anchorBoxes
 
 yaml_string <- model_to_yaml( ssdModel )
-writeLines( yaml_string, paste0( baseDirectory, "ssdModelR.yaml" ) )
+writeLines( yaml_string, paste0( baseDirectory, "ssd7Model.yaml" ) )
+json_string <- model_to_json( ssdModel )
+writeLines( json_string, paste0( baseDirectory, "ssd7Model.json" ) )
 
 ###
 #
@@ -153,32 +158,40 @@ uniqueImageFiles <- levels( as.factor( data$frame ) )
 groundTruthLabels <- list()
 for( i in 1:numberOfTrainingData )
   {
-  groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
-  image <- trainingData[i,,,]
-  groundTruthBoxes <- 
-    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * scaleFactor  )
-  colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
-  groundTruthLabels[[i]] <- groundTruthBoxes
-
-  if( visuallyInspectEachImage == TRUE )
+  for( j in 0:1 )  
     {
-    cat( "Drawing", trainingImageFiles[i], "\n" )
-
-    classIds <- groundTruthBoxes[, 1]
-
-    boxColors <- c()
-    boxCaptions <- c()
-    for( j in 1:length( classIds ) )
+    groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
+    image <- trainingData[2*i-1+j,,,]
+    groundTruthBoxes <- 
+      data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5]  )
+    colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
+    if( j == 1 )
       {
-      boxColors[j] <- rainbow( 
-        length( classes ) )[which( classes[classIds[j]] == classes )]
-      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+      groundTruthBoxes[, 2:3] <- inputImageSize[1] - groundTruthBoxes[, 2:3] 
+      groundTruthBoxes[, 2:3] <- groundTruthBoxes[, seq( 3, 2, by = -1 )]
       }
-   
-    drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
-      captions = boxCaptions )
-    readline( prompt = "Press [enter] to continue " )
-    }
+    groundTruthLabels[[2*i-1+j]] <- groundTruthBoxes
+
+    if( visuallyInspectEachImage == TRUE )
+      {
+      cat( "Drawing", trainingImageFiles[i], "\n" )
+
+      classIds <- groundTruthBoxes[, 1]
+
+      boxColors <- c()
+      boxCaptions <- c()
+      for( j in 1:length( classIds ) )
+        {
+        boxColors[j] <- rainbow( 
+          length( classes ) )[which( classes[classIds[j]] == classes )]
+        boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+        }
+    
+      drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
+        captions = boxCaptions )
+      readline( prompt = "Press [enter] to continue " )
+      }
+    }  
   }  
 
 if( visuallyInspectEachImage == TRUE )
@@ -268,7 +281,7 @@ if( visuallyInspectEachImage == TRUE )
   }  
 
 optimizerAdam <- optimizer_adam( 
-  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
+  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
 
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
@@ -278,7 +291,7 @@ ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
 track <- ssdModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "ssdWeights.h5" ), 
+                   callback_model_checkpoint( paste0( baseDirectory, "ssd7Weights.h5" ), 
                      monitor = 'val_loss', save_best_only = TRUE )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
