@@ -1,6 +1,6 @@
-#' 2-D implementation of the SSD 300 deep learning architecture.
+#' 2-D implementation of the SSD 512 deep learning architecture.
 #'
-#' Creates a keras model of the SSD 300 deep learning architecture for 
+#' Creates a keras model of the SSD 512 deep learning architecture for 
 #' object detection based on the paper
 #' 
 #' W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, A. Berg. 
@@ -47,13 +47,14 @@
 #' 
 #' }
 
-createSsd300Model2D <- function( inputImageSize, 
+createSsd512Model2D <- function( inputImageSize, 
                               numberOfClassificationLabels,
                               l2Regularization = 0.0005,
                               minScale = 0.1,
                               maxScale = 0.9,
                               aspectRatiosPerLayer = 
                                 list( c( 1.0, 2.0, 0.5 ),
+                                      c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
                                       c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
                                       c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
                                       c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
@@ -70,7 +71,7 @@ createSsd300Model2D <- function( inputImageSize,
 
   filterSizes <- c( 64, 128, 256, 512, 1024 ) 
 
-  numberOfPredictorLayers <- 6 
+  numberOfPredictorLayers <- 7
   
   if( length( aspectRatiosPerLayer ) != numberOfPredictorLayers )
     {
@@ -291,6 +292,9 @@ createSsd300Model2D <- function( inputImageSize,
     kernel_regularizer = regularizer_l2( l2Regularization ), 
     name = "conv8_1" ) 
 
+  outputs <- outputs %>% layer_zero_padding_2d( 
+    padding = list( c( 1, 1 ), c( 1, 1 ) ), name = "conv8_padding" )  
+
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
     kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), strides = c( 1, 1 ), 
     activation = 'relu', padding = 'valid', 
@@ -321,6 +325,9 @@ createSsd300Model2D <- function( inputImageSize,
     kernel_regularizer = regularizer_l2( l2Regularization ), 
     name = "conv9_1" ) 
 
+  outputs <- outputs %>% layer_zero_padding_2d( 
+    padding = list( c( 1, 1 ), c( 1, 1 ) ), name = "conv9_padding" )  
+
   outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
     kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), strides = c( 1, 1 ), 
     activation = 'relu', padding = 'valid', 
@@ -342,6 +349,40 @@ createSsd300Model2D <- function( inputImageSize,
     kernel_regularizer = regularizer_l2( l2Regularization ), 
     name = "conv9_2_mbox_loc" )
 
+  # Conv10
+
+  outputs <- outputs %>% layer_conv_2d( filters = filterSizes[2],
+    kernel_size = c( 1, 1 ), dilation_rate = c( 1L, 1L ),
+    activation = 'relu', padding = 'same', 
+    kernel_initializer = initializer_he_normal(), 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv10_1" ) 
+
+  outputs <- outputs %>% layer_zero_padding_2d( 
+    padding = list( c( 1, 1 ), c( 1, 1 ) ), name = "conv10_padding" )  
+
+  outputs <- outputs %>% layer_conv_2d( filters = filterSizes[3],
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), strides = c( 1, 1 ), 
+    activation = 'relu', padding = 'valid', 
+    kernel_initializer = initializer_he_normal(), 
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv10_2" ) 
+
+  boxClasses[[7]] <- outputs %>% layer_conv_2d( 
+    filters = numberOfBoxesPerLayer[7] * numberOfClassificationLabels, 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), padding = 'same', 
+    kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv10_2_mbox_conf" )
+
+  boxLocations[[7]] <- outputs %>% layer_conv_2d( 
+    filters = numberOfBoxesPerLayer[7] * numberOfCoordinates, 
+    kernel_size = c( 3, 3 ), dilation_rate = c( 1L, 1L ), padding = 'same', 
+    kernel_initializer = initializer_he_normal(),
+    kernel_regularizer = regularizer_l2( l2Regularization ), 
+    name = "conv10_2_mbox_loc" )
+
+
   # Generate the anchor boxes.  Output shape of anchor boxes =
   #   ``( batch, height, width, numberOfBoxes, 8 )``
   anchorBoxes <- list()
@@ -352,7 +393,7 @@ createSsd300Model2D <- function( inputImageSize,
   shortImageSize <- min( imageSize )
 
   layerNames <- paste0( c( "conv4_3_norm", "fc7", "conv6_2", "conv7_2", 
-    "conv8_2", "conv9_2" ), "_mbox" )
+    "conv8_2", "conv9_2", "conv10_2" ), "_mbox" )
 
   for( i in 1:length( boxLocations ) )
     {
