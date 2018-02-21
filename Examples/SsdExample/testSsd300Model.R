@@ -6,6 +6,20 @@ library( keras )
 library( ggplot2 )
 library( jpeg )
 
+warning( paste0( 
+  "Note that the original architecture was initialized with the ",
+  "pre-trained VGG-16 weights which is not done here yet.  As mentioned here ",
+  "https://github.com/pierluigiferrari/ssd_keras \n",
+  "\"It is strongly recommended that you load the pre-trained VGG-16 ",
+  "weights when attempting to train an SSD300 or SSD512, otherwise ",
+  "your training will almost certainly be unsuccessful. Note that ",
+  "the original VGG-16 was trained layer-wise, so trying to train ",
+  "the even deeper SSD300 all at once from scratch will very likely ",
+  "fail. Also note that even with the pre-trained VGG-16 weights it ",
+  "will take at least ~20,000 training steps to get a half-decent ",
+  "performance out of SSD300.\"\n"
+  ) )
+
 visuallyInspectEachImage <- TRUE
 
 baseDirectory <- './'
