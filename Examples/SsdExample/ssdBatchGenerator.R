@@ -135,10 +135,10 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
             shift[2] <- sample( c( -1, 1 ), 1 ) * 
               as.integer( runif( 1, translate[[2]][1], translate[[2]][2] ) )
             shiftStringX <- ifelse( shift[1] > 0, 
-              str_c( "+", shift[1] ), as.character( shift[1] ) )  
+              paste0( "+", shift[1] ), as.character( shift[1] ) )  
             shiftStringY <- ifelse( shift[2] > 0, 
-              str_c( "+", shift[2] ), as.character( shift[2] ) )   
-            offsetString <- str_c( shiftStringX, shiftStringY )
+              paste0( "+", shift[2] ), as.character( shift[2] ) )   
+            offsetString <- paste0( shiftStringX, shiftStringY )
 
             tempImage <- image_read( batchX[i,,,] / 255 )
             tempX <- image_composite( blankImage, tempImage, 
@@ -153,8 +153,8 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
             {
             blankImage <- image_read( array( runif( 1 ), imageSize ) ) 
             scaleFactor <- round( runif( 1, scale[1], scale[2] ), 2 )
-            scaleString <- str_c( scaleFactor * 100, "%" )
-            scaleGeometryString <- str_c( scaleString, "x", scaleString )
+            scaleString <- paste0( scaleFactor * 100, "%" )
+            scaleGeometryString <- paste0( scaleString, "x", scaleString )
 
             tempImage <- image_read( batchX[i,,,] / 255 ) %>%
               image_scale( scaleGeometryString )
