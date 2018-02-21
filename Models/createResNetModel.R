@@ -70,7 +70,7 @@ createResNetModel2D <- function( inputImageSize,
                                  cardinality = 1
                                )
 {
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
@@ -263,7 +263,7 @@ createResNetModel3D <- function( inputImageSize,
                                  cardinality = 1
                                )
 {
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }

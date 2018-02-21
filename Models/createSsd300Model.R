@@ -63,7 +63,7 @@ createSsd300Model2D <- function( inputImageSize,
                               variances = rep( 1.0, 4 )
                             )
 {
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }

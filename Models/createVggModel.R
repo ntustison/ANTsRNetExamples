@@ -117,11 +117,11 @@ createVggModel2D <- function( inputImageSize,
                                style = 19
                              )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
+
   if( style != 19 && style != 16 )
     {
     stop( "Incorrect style.  Must be either '16' or '19'." )
@@ -308,11 +308,11 @@ createVggModel3D <- function( inputImageSize,
                                style = 19
                              )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
+
   if( style != 19 && style != 16 )
     {
     stop( "Incorrect style.  Must be either '16' or '19'." )

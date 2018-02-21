@@ -206,7 +206,7 @@ createUnetModel2D <- function( inputImageSize,
                                strides = c( 2, 2 )
                              )
 {
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
@@ -388,13 +388,12 @@ createUnetModel3D <- function( inputImageSize,
                                strides = c( 2, 2, 2 )
                              )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
 
-  inputs <- layer_input( shape = c( inputImageSize, numberOfClassificationLabels ) )
+  inputs <- layer_input( shape = inputImageSize )
 
   # Encoding path  
 

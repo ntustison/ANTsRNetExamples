@@ -77,8 +77,7 @@ createDenseNetModel2D <- function( inputImageSize,
                                    weightDecay = 1e-4
                                  )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
@@ -265,8 +264,7 @@ createDenseNetModel3D <- function( inputImageSize,
                                    weightDecay = 1e-4
                                  )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }

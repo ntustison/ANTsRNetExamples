@@ -66,8 +66,7 @@ createGoogLeNetModel2D <- function( inputImageSize,
                                     numberOfClassificationLabels = 1000
                                   )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }

@@ -84,12 +84,11 @@ for( i in 1:numberOfTrainingData )
   {
   trainingImageFiles[i] <- paste0( imageDirectory, uniqueImageFiles[i] )  
   }
-
 inputImageSize <- c( 250, 250 )
 
 # training data consists of the original images and their horizontally
 # flipped counterparts
-trainingData <- array( dim = c( 2 * numberOfTrainingData, inputImageSize, 3 ) )
+trainingData <- array( dim = c( numberOfTrainingData, inputImageSize, 3 ) )
 
 cat( "Reading images...\n" )
 pb <- txtProgressBar( min = 0, max = numberOfTrainingData, style = 3 )

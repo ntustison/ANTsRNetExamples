@@ -67,8 +67,7 @@ createAlexNetModel2D <- function( inputImageSize,
                                   dropoutRate = 0.0
                                 )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
@@ -290,8 +289,7 @@ createAlexNetModel3D <- function( inputImageSize,
                                   dropoutRate = 0.0
                                 )
 {
-
-  if ( ! usePkg( "keras" ) )
+  if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
