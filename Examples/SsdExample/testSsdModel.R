@@ -20,11 +20,7 @@ warning( paste0(
   "performance out of SSD300.\"\n"
   ) )
 
-keras::backend()$clear_session()
-
-numberOfTrainingData <- 800
-
-visuallyInspectEachImage <- FALSE
+visuallyInspectEachImage <- TRUE
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
@@ -33,6 +29,9 @@ annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
 dataFile <- paste0( dataDirectory, 'data.csv' )
 
 modelDirectory <- paste0( baseDirectory, '../../Models/' )
+
+source( paste0( modelDirectory, 'createSsdModel.R' ) )
+source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 
 parseXML <- function( xml, labels ) {
   
@@ -65,6 +64,7 @@ parseXML <- function( xml, labels ) {
     mutate(frame = as.character(frame))
   }
 
+
 classes <- c( "eyes", "nose", "mouth" )
 
 if( ! file.exists( dataFile ) )
@@ -88,14 +88,20 @@ uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 ###
 #
-# Read in the training data.  There are 1000 total images.  Read in 800
-# for training and then read the remaining data for testing/prediction.
+# Read in the testing data.  There are 1000 total images.  We used 800
+# for training.  We now read the remaining data for testing/prediction.
 #
 
-trainingImageFiles <- rep( NA, numberOfTrainingData )
-for( i in 1:numberOfTrainingData )
+numberOfTrainingData <- 800
+numberOfTestingData <- 10
+testingImageFiles <- rep( NA, numberOfTestingData )
+
+count <- 1
+for( i in ( numberOfTrainingData + 1 ):
+  ( numberOfTrainingData + numberOfTestingData ) )
   {
-  trainingImageFiles[i] <- paste0( imageDirectory, uniqueImageFiles[i] )  
+  testingImageFiles[count] <- paste0( imageDirectory, uniqueImageFiles[i] )  
+  count <- count + 1
   }
 
 # original images are 250 x 250 so we need to multiply the points by 
@@ -103,41 +109,34 @@ for( i in 1:numberOfTrainingData )
 scaleFactor <- 1.2
 
 inputImageSize <- c( 300, 300 )
-trainingData <- array( dim = c( 2 * numberOfTrainingData, inputImageSize, 3 ) )
+testingData <- array( dim = c( numberOfTestingData, inputImageSize, 3 ) )
 
 cat( "Reading images...\n" )
-pb <- txtProgressBar( min = 0, max = numberOfTrainingData, style = 3 )
-for ( i in 1:length( trainingImageFiles ) )
+pb <- txtProgressBar( min = 0, max = numberOfTestingData, style = 3 )
+for ( i in 1:length( testingImageFiles ) )
   {
-  # cat( "Reading ", trainingImageFiles[i], "\n" )
-  trainingImage <- readJPEG( trainingImageFiles[i] )
+  # cat( "Reading ", testingImageFiles[i], "\n" )
+  testingImage <- readJPEG( testingImageFiles[i] )
 
   r <- as.matrix( resampleImage( 
-        as.antsImage( trainingImage[,,1] ), 
+        as.antsImage( testingImage[,,1] ), 
         inputImageSize, useVoxels = TRUE ) )
-  g <- as.matrix( resampleImage( 
-        as.antsImage( trainingImage[,,2] ), 
-        inputImageSize, useVoxels = TRUE ) )
-  b <- as.matrix( resampleImage( 
-        as.antsImage( trainingImage[,,3] ), 
-        inputImageSize, useVoxels = TRUE ) )
-  
   r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
+
+  g <- as.matrix( resampleImage( 
+        as.antsImage( testingImage[,,2] ), 
+        inputImageSize, useVoxels = TRUE ) )
   g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
+
+  b <- as.matrix( resampleImage( 
+        as.antsImage( testingImage[,,3] ), 
+        inputImageSize, useVoxels = TRUE ) )
   b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
 
-  trainingData[2*i-1,,,1] <- r
-  trainingData[2*i-1,,,2] <- g
-  trainingData[2*i-1,,,3] <- b
+  testingData[i,,,1] <- r
+  testingData[i,,,2] <- g
+  testingData[i,,,3] <- b
 
-  # Flip the images horizontally
-
-  flipIndices <- seq( from = inputImageSize[1], to = 1, by = -1 )
-
-  trainingData[2*i,,,1] <- r[,flipIndices]
-  trainingData[2*i,,,2] <- g[,flipIndices]
-  trainingData[2*i,,,3] <- b[,flipIndices]
-  
   if( i %% 100 == 0 )
     {
     gc( verbose = FALSE )
@@ -147,126 +146,100 @@ for ( i in 1:length( trainingImageFiles ) )
   }
 cat( "\nDone.\n" )
 
-X_train <- trainingData
+X_test <- testingData
 
 ###
 #
-# Create the SSD model
+# Create the Y encoding for the test data
 #
-
-source( paste0( modelDirectory, 'createSsd300Model.R' ) )
-source( paste0( modelDirectory, 'ssdUtilities.R' ) )
-
-# Input size must be greater than >= 258 for a single dimension
-
-ssdOutput <- createSsd300Model2D( c( inputImageSize, 3 ), 
-  numberOfClassificationLabels = length( classes ) + 1,
-  )
-
-ssdModel <- ssdOutput$ssdModel 
-anchorBoxes <- ssdOutput$anchorBoxes
-
-yaml_string <- model_to_yaml( ssdModel )
-writeLines( yaml_string, paste0( baseDirectory, "ssd300Model.yaml" ) )
-json_string <- model_to_json( ssdModel )
-writeLines( json_string, paste0( baseDirectory, "ssd300Model.json" ) )
-
-###
-#
-# Create the Y encoding
-#
-uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 groundTruthLabels <- list()
-for( i in 1:numberOfTrainingData )
+for( i in 1:numberOfTestingData )
   {
-  for( j in 0:1 )  
+  index <- numberOfTrainingData + i
+  groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[index] ),]
+
+  image <- readJPEG( testingImageFiles[i] )
+  groundTruthBoxes <- 
+   data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * scaleFactor )
+  colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
+  groundTruthLabels[[i]] <- groundTruthBoxes
+
+  if( visuallyInspectEachImage == TRUE )
     {
-    groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
-    image <- trainingData[2*i-1+j,,,]
-    groundTruthBoxes <- 
-      data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5] * scaleFactor  )
-    colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
-    if( j == 1 )
+    cat( "Drawing", testingImageFiles[i], "\n" )
+
+    classIds <- groundTruthBoxes[, 1]
+
+    boxColors <- c()
+    boxCaptions <- c()
+    for( j in 1:length( classIds ) )
       {
-      groundTruthBoxes[, 2:3] <- inputImageSize[1] - groundTruthBoxes[, 2:3] 
-      groundTruthBoxes[, 2:3] <- groundTruthBoxes[, seq( 3, 2, by = -1 )]
+      boxColors[j] <- rainbow( 
+        length( classes ) )[which( classes[classIds[j]] == classes )]
+      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
       }
-    groundTruthLabels[[2*i-1+j]] <- groundTruthBoxes
-
-    if( visuallyInspectEachImage == TRUE )
+    image <- array( 0, dim = c( inputImageSize, 3 ) )
+    for( k in 1:3 )
       {
-      cat( "Drawing", trainingImageFiles[i], "\n" )
-
-      classIds <- groundTruthBoxes[, 1]
-
-      boxColors <- c()
-      boxCaptions <- c()
-      for( j in 1:length( classIds ) )
-        {
-        boxColors[j] <- rainbow( 
-          length( classes ) )[which( classes[classIds[j]] == classes )]
-        boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
-        }
-    
-      drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
-        captions = boxCaptions )
-      readline( prompt = "Press [enter] to continue " )
-      }
-    }  
-  }  
+      image[,,k] <- ( testingData[i,,,k] - min( testingData[i,,,k] ) ) / 
+        ( max( testingData[i,,,k] ) - min( testingData[i,,,k] ) )
+      }  
+    drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
+      captions = boxCaptions )
+    readline( prompt = "Press [enter] to continue " )
+    }
+  }
 
 if( visuallyInspectEachImage == TRUE )
   {
   cat( "\n\nDone inspecting images.\n" )
   }
-
-Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
-
+ 
 ###
 #
-#  Debugging:  draw all anchor boxes
+# Create the SSD model
 #
+source( paste0( modelDirectory, 'createSsdModel.R' ) )
+source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 
-# image <- readJPEG( trainingImageFiles[1] )
-# for( i in 1:length( anchorBoxes) )
-#   {
-#   # cat( "Drawing anchor box:", i, "\n" )
-#   # anchorBox <- anchorBoxes[[i]]
-#   # anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
-#   # anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
-#   # drawRectangles( image, anchorBox[,], 
-#   #   boxColors = rainbow( nrow( anchorBox[,] ) ) )
-#   # readline( prompt = "Press [enter] to continue\n" )
-#   for( j in 1:nrow( anchorBoxes[[i]] ) )
-#     {
-#     cat( "Drawing anchor box:", i, ",", j, "\n" )
-#     anchorBox <- anchorBoxes[[i]][j,]
-#     anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
-#     anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
-#     drawRectangles( image, anchorBox, boxColors = "red" )
-#     readline( prompt = "Press [enter] to continue\n" )
-#     }
-#   }
+inputImageSize <- c( 300, 300 )
+ssdOutput <- createSsdModel2D( c( inputImageSize, 3 ), 
+  numberOfClassificationLabels = length( classes ) + 1
+  )
+
+ssdModelTest <- ssdOutput$ssdModel 
+anchorBoxes <- ssdOutput$anchorBoxes
+
+load_model_weights_hdf5( ssdModelTest, 
+  filepath = paste0( baseDirectory, 'ssd300Weights.h5' ) )
+  
+Y_test <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
 #
 #  Debugging:  visualize corresponding anchorBoxes
 #
 
+numberOfClassificationLabels <- length( classes ) + 1
+
 if( visuallyInspectEachImage == TRUE )
   {
-  for( i in 1:numberOfTrainingData )
+  for( i in 1:numberOfTestingData )
     {
-    cat( "Drawing", trainingImageFiles[i], "\n" )
-    image <- trainingData[i,,,]
+    cat( "Drawing", testingImageFiles[i], "\n" )
+    image <- array( 0, dim = c( inputImageSize, 3 ) )
+    for( k in 1:3 )
+      {
+      image[,,k] <- ( testingData[i,,,k] - min( testingData[i,,,k] ) ) / 
+        ( max( testingData[i,,,k] ) - min( testingData[i,,,k] ) )
+      }  
 
     # Get anchor boxes  
-    singleY <- Y_train[i,,]
+    singleY <- Y_test[i,,]
     singleY <- singleY[which( rowSums( 
       singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
 
-    numberOfClassificationLabels <- length( classes ) + 1
     xIndices <- numberOfClassificationLabels + 5:6
     singleY[, xIndices] <- singleY[, xIndices] * ( inputImageSize[1] - 2 ) + 1
     yIndices <- numberOfClassificationLabels + 7:8
@@ -311,16 +284,57 @@ optimizerAdam <- optimizer_adam(
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
 
-ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
+ssdModelTest %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
 
-track <- ssdModel %>% fit( X_train, Y_train, 
-                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
-                 callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "ssd300Weights.h5" ), 
-                     monitor = 'val_loss', save_best_only = TRUE )
-                  # callback_early_stopping( patience = 2, monitor = 'loss' ),
-                  #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
-                 ), 
-                 validation_split = 0.2 )
+testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
+
+X_test <- testingData
+
+predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
+predictedDataDecoded <- decodeY( predictedData, inputImageSize )
+
+for( i in 1:length( predictedDataDecoded ) )
+  {
+  cat( "Drawing", testingImageFiles[i], "\n" )
+  image <- array( 0, dim = c( inputImageSize, 3 ) )
+  for( k in 1:3 )
+    {
+    image[,,k] <- ( testingData[i,,,k] - min( testingData[i,,,k] ) ) / 
+      ( max( testingData[i,,,k] ) - min( testingData[i,,,k] ) )
+    }  
+
+  boxes <- predictedDataDecoded[[i]][, 3:6]
+  classIds <- predictedDataDecoded[[i]][, 1]
+  confidenceValues <- predictedDataDecoded[[i]][, 2]
+
+  boxColors <- c()
+  boxCaptions <- c()
+  for( j in 1:length( classIds ) )
+    {
+    boxColors[j] <- rainbow( 
+      length( classes ) )[which( classes[classIds[j]] == classes )]
+    boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+    }
+  drawRectangles( image, boxes, boxColors = boxColors, captions = boxCaptions,
+    confidenceValues = confidenceValues )
+
+  readline( prompt = "Press [enter] to continue\n" )
+  }
 
 
+
+
+image <- readJPEG( testingImageFiles[1] )
+for( i in 1:dim( predictedData )[2] )
+  {
+  cat( "Drawing box", i, "\n" )
+
+  boxes <- matrix( predictedData[1,, 5:8], ncol = 4 )
+  drawRectangles( image, boxes, boxColors = "red" )
+  cat( "   back : ", predictedData[1, i, 1], "\n" )
+  for( j in 1:length( classes ) )
+    {
+    cat( "  ", classes[j], ": ", predictedData[1, i, j+1], "\n" )
+    }
+  readline( prompt = "Press [enter] to continue\n" )
+  }
