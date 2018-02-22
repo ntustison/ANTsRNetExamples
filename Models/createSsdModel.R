@@ -86,7 +86,7 @@ createSsdModel2D <- function( inputImageSize,
   if( length( aspectRatiosPerLayer ) != numberOfPredictorLayers )
     {
     stop( paste( "The number of sets of aspect ratios should be equal to",
-       numberOfPredictorLayers, "\n")
+       numberOfPredictorLayers, "\n") )
     }
 
   numberOfBoxesPerLayer <- rep( 0, numberOfPredictorLayers )
