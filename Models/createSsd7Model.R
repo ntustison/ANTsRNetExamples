@@ -78,7 +78,7 @@ createSsd7Model2D <- function( inputImageSize,
     length.out = numberOfPredictorLayers + 1 )
 
   imageDimension <- 2
-  numberOfCoordinates <- 2^imageDimension
+  numberOfCoordinates <- 2 * imageDimension
 
   # For each of the ``numberOfClassificationLabels``, we predict confidence 
   # values for each box.  This translates into each confidence predictor 
@@ -106,32 +106,34 @@ createSsd7Model2D <- function( inputImageSize,
       kernelSize <- c( 3, 3 )  
       }
 
-    outputs <- outputs %>% layer_conv_2d( filters = filterSizes[i], 
+    convolutionLayer <- outputs %>% layer_conv_2d( filters = filterSizes[i], 
       kernel_size = kernelSize, strides = c( 1, 1 ), 
-      padding = 'same' )
+      padding = 'same', name = paste0( 'conv', i ) )
 
-    outputs <- outputs %>% 
-      layer_batch_normalization( axis = 3, momentum = 0.99 )
+    convolutionLayer <- convolutionLayer %>% layer_batch_normalization( 
+      axis = 3, momentum = 0.99, name = paste0( 'bn', i ) )
      
-    outputs <- outputs %>% layer_activation_elu()
+    convolutionLayer <- convolutionLayer %>% 
+      layer_activation_elu( name = paste0( 'elu', i ) )
 
     if( i < length( filterSizes ) )
       {
-      outputs <- outputs %>% layer_max_pooling_2d( pool_size = c( 2, 2 ) )
+      outputs <- convolutionLayer %>% layer_max_pooling_2d( 
+        pool_size = c( 2, 2 ), name = paste0( 'pool', i ) )
       }
 
     if( i >= 4 )  
       {
       index <- i - 3  
-      boxClasses[[index]] <- outputs %>% layer_conv_2d( 
+      boxClasses[[index]] <- convolutionLayer %>% layer_conv_2d( 
         filters = numberOfBoxesPerLayer[index] * numberOfClassificationLabels, 
         kernel_size = c( 3, 3 ), strides = c( 1, 1 ),
-        padding = 'valid' )
+        padding = 'valid', name = paste0( 'classes', i ) )
 
-      boxLocations[[index]] <- outputs %>% layer_conv_2d( 
+      boxLocations[[index]] <- convolutionLayer %>% layer_conv_2d( 
         filters = numberOfBoxesPerLayer[index] * numberOfCoordinates, 
         kernel_size = c( 3, 3 ), strides = c( 1, 1 ),
-        padding = 'valid' )
+        padding = 'valid', name = paste0( 'boxes', i ) )
       }
 
     }
@@ -145,16 +147,13 @@ createSsd7Model2D <- function( inputImageSize,
   imageSize <- inputImageSize[1:imageDimension]
   shortImageSize <- min( imageSize )
 
-  layerNames <- paste0( c( "conv4_3_norm", "fc7", "conv6_2", "conv7_2", 
-    "conv8_2", "conv9_2" ), "_mbox" )
-
   for( i in 1:length( boxLocations ) )
     {
     anchorBoxLayer <- layer_anchor_box_2d( imageSize = imageSize, 
       minSize = ( scales[i] * shortImageSize ), 
       maxSize = ( scales[i+1] * shortImageSize ),
       aspectRatios = aspectRatiosPerLayer[[i]], variances = variances, 
-      name = paste0( layerNames[i], "_priorbox" ) )
+      name = paste0( 'anchors', i + 3 ) )
     anchorBoxLayers[[i]] <- boxLocations[[i]] %>% anchorBoxLayer
 
     # We calculate the anchor box values again to return as output for 
@@ -181,30 +180,35 @@ createSsd7Model2D <- function( inputImageSize,
       as.integer( inputShape[[4]] / numberOfClassificationLabels )
 
     boxClassesReshaped[[i]] <- boxClasses[[i]] %>% layer_reshape( 
-      target_shape = c( -1, numberOfClassificationLabels ) )
+      target_shape = c( -1, numberOfClassificationLabels ), 
+      name = paste0( 'classes', i + 3, '_reshape' ) )
 
     # reshape ``( batch, height, width, numberOfBoxes * 4 )``
     #   to `( batch, height * width * numberOfBoxes, 4 )`
     boxLocationsReshaped[[i]] <- boxLocations[[i]] %>% layer_reshape( 
-      target_shape = c( -1, 4 ) )
+      target_shape = c( -1, 4 ), name = paste0( 'boxes', i + 3, '_reshape' ) )
 
     # reshape ``( batch, height, width, numberOfBoxes * 8 )``
     #   to `( batch, height * width * numberOfBoxes, 8 )`
     anchorBoxLayersReshaped[[i]] <- anchorBoxLayers[[i]] %>% layer_reshape( 
-      target_shape = c( -1, 8 ) )
+      target_shape = c( -1, 8 ), 
+      name = paste0( 'anchors', i + 3, '_reshape' ) )
     }  
   
   # Concatenate the predictions from the different layers
 
-  outputClasses <- layer_concatenate( boxClassesReshaped, axis = 1 )
-  outputLocations <- layer_concatenate( boxLocationsReshaped, axis = 1 )
-  outputAnchorBoxes <- layer_concatenate( anchorBoxLayersReshaped, axis = 1 )
+  outputClasses <- layer_concatenate( boxClassesReshaped, axis = 1,
+    name = 'classes_concat' )
+  outputLocations <- layer_concatenate( boxLocationsReshaped, axis = 1, 
+    name = 'boxes_concat' )
+  outputAnchorBoxes <- layer_concatenate( anchorBoxLayersReshaped, axis = 1,
+    name = 'anchors_concat' )
 
   confidenceActivation <- outputClasses %>% 
-    layer_activation( activation = "softmax", name = "mbox_conf_softmax" )
+    layer_activation( activation = "softmax", name = "classes_softmax" )
 
   predictions <- layer_concatenate( list( confidenceActivation, 
-    outputLocations, outputAnchorBoxes ), axis = 2 )
+    outputLocations, outputAnchorBoxes ), axis = 2, name = 'predictions' )
 
   ssdModel <- keras_model( inputs = inputs, outputs = predictions )
 

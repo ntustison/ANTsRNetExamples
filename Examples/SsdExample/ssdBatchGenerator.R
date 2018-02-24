@@ -81,28 +81,31 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
           {
           boxes[, 1:2] <- boxes[, 1:2] + shift[1]
           boxes[, 3:4] <- boxes[, 3:4] + shift[2]
+          return( boxes )
           }
 
         # Boxes format is numberOfBoxes x ( xmin, xmax, ymin, ymax )
         flipHorizontalBoxes <- function( boxes, imageWidth )
           {
-          boxes[, 1:2] <- imageWidth - boxes[, 2:1] + imageWidth
+          boxes[, 1:2] <- imageWidth - boxes[, 2:1] + 1
+          return( boxes )
           }
 
         # Boxes format is numberOfBoxes x ( xmin, xmax, ymin, ymax )
         scaleBoxes <- function( boxes, scaleFactor )
           {
-          boxes <- boxes * scaleFactor
+          boxes <- round( boxes * scaleFactor )
+          return( boxes )
           }
 
         for( i in seq_len( batchSize ) )
           {
-          if( equalize ) 
+          if( !is.null( equalize ) )
             {
-            tempX <- image_read( batchX[i,,,] / 255 ) %>%
+            tempX <- image_read( batchX[i,,,] ) %>%
               image_equalize() %>%  
               .[[1]] %>% as.numeric()
-            batchX[i,,,] <- tempX[,, 1:3] * 255
+            batchX[i,,,] <- tempX[,, 1:3]
             }
 
           if( !is.null( brightness ) )  
@@ -110,18 +113,18 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
             brightValue <- as.integer( 
               runif( 1, min = brightness[1], max = brightness[2] ) * 100 )
 
-            tempX <- image_read( batchX[i,,,] / 255 ) %>%
+            tempX <- image_read( batchX[i,,,] ) %>%
               image_modulate( brightValue ) %>%
               .[[1]] %>% as.numeric()
-            batchX[i,,,] <- tempX[,, 1:3] * 255
+            batchX[i,,,] <- tempX[,, 1:3]
             }
 
           if( !is.null( flipHorizontally ) && runif( 1 ) < flipHorizontally )  
             {
-            tempX <- image_read( batchX[i,,,] / 255 ) %>%
+            tempX <- image_read( batchX[i,,,] ) %>%
               image_flop() %>%  
               .[[1]] %>% as.numeric()
-            batchX[i,,,] <- tempX[,, 1:3] * 255
+            batchX[i,,,] <- tempX[,, 1:3]
             batchY[[i]][,2:5] <- 
               flipHorizontalBoxes( batchY[[i]][,2:5], imageSize[1] )
             }
@@ -140,13 +143,13 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
               paste0( "+", shift[2] ), as.character( shift[2] ) )   
             offsetString <- paste0( shiftStringX, shiftStringY )
 
-            tempImage <- image_read( batchX[i,,,] / 255 )
+            tempImage <- image_read( batchX[i,,,] )
             tempX <- image_composite( blankImage, tempImage, 
               offset = offsetString ) %>%  
               .[[1]] %>% as.numeric()
 
-            batchX[i,,,] <- tempX[,, 1:3] * 255
-            batchY[[i]][,2:5] <- translateBoxes( batchY[[i]][,2:5], shift )
+            batchX[i,,,] <- tempX[,, 1:3]
+            batchY[[i]][,2:5] <- translateBoxes( batchY[[i]][, 2:5], shift )
             }
 
           if( !is.null( scale ) && runif( 1 ) < scale[3] )  
@@ -156,12 +159,12 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
             scaleString <- paste0( scaleFactor * 100, "%" )
             scaleGeometryString <- paste0( scaleString, "x", scaleString )
 
-            tempImage <- image_read( batchX[i,,,] / 255 ) %>%
+            tempImage <- image_read( batchX[i,,,] ) %>%
               image_scale( scaleGeometryString )
             tempX <- image_composite( blankImage, tempImage ) %>%
               .[[1]] %>% as.numeric()
 
-            batchX[i,,,] <- tempX[,, 1:3] * 255
+            batchX[i,,,] <- tempX[,, 1:3]
             batchY[[i]][, 2:5] <- scaleBoxes( batchY[[i]][, 2:5], scaleFactor )
             }
           }

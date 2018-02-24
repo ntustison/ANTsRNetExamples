@@ -8,7 +8,7 @@ library( stringr )
 
 keras::backend()$clear_session()
 
-numberOfTrainingData <- 900
+numberOfTrainingData <- 1000
 inputImageSize <- c( 250, 250 )
 
 visuallyInspectEachImage <- FALSE
@@ -99,10 +99,10 @@ if( visuallyInspectEachImage == TRUE )
 ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1,
   aspectRatiosPerLayer = 
-    list( c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),  
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 )
+    list( c( 1.0, 2.0, 0.5 ),  
+          c( 1.0, 2.0, 0.5 ),
+          c( 1.0, 2.0, 0.5 ),
+          c( 1.0, 2.0, 0.5 )
         )
   )
 
@@ -110,7 +110,7 @@ ssdModel <- ssdOutput$ssdModel
 anchorBoxes <- ssdOutput$anchorBoxes
 
 optimizerAdam <- optimizer_adam( 
-  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
+  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
 
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
@@ -130,22 +130,22 @@ writeLines( json_string, paste0( baseDirectory, "ssd7Model.json" ) )
 # image <- readJPEG( trainingImageFiles[1] )
 # for( i in 1:length( anchorBoxes) )
 #   {
-#   # cat( "Drawing anchor box:", i, "\n" )
-#   # anchorBox <- anchorBoxes[[i]]
-#   # anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
-#   # anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
-#   # drawRectangles( image, anchorBox[,], 
-#   #   boxColors = rainbow( nrow( anchorBox[,] ) ) )
-#   # readline( prompt = "Press [enter] to continue\n" )
-#   for( j in 1:nrow( anchorBoxes[[i]] ) )
-#     {
-#     cat( "Drawing anchor box:", i, ",", j, "\n" )
-#     anchorBox <- anchorBoxes[[i]][j,]
-#     anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
-#     anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
-#     drawRectangles( image, anchorBox, boxColors = "red" )
-#     readline( prompt = "Press [enter] to continue\n" )
-#     }
+#   cat( "Drawing anchor box:", i, "\n" )
+#   anchorBox <- anchorBoxes[[i]]
+#   anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
+#   anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
+#   drawRectangles( image, anchorBox[,], 
+#     boxColors = rainbow( nrow( anchorBox[,] ) ) )
+#   readline( prompt = "Press [enter] to continue\n" )
+#   # for( j in 1:nrow( anchorBoxes[[i]] ) )
+#   #   {
+#   #   cat( "Drawing anchor box:", i, ",", j, "\n" )
+#   #   anchorBox <- anchorBoxes[[i]][j,]
+#   #   anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
+#   #   anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
+#   #   drawRectangles( image, anchorBox, boxColors = "red" )
+#   #   readline( prompt = "Press [enter] to continue\n" )
+#   #   }
 #   }
 
 ###
@@ -216,7 +216,7 @@ batchSize <- 32L
 # training the model.
 sampleIndices <- sample( numberOfTrainingData )
 
-validationSplit <- round( ( 1 - 0.2 ) * numberOfTrainingData )
+validationSplit <- 946 # round( ( 1 - 0.2 ) * numberOfTrainingData )
 trainingIndices <- sampleIndices[1:validationSplit]
 validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfTrainingData]
 
@@ -224,8 +224,13 @@ trainingData <- ssdImageBatchGenerator$new(
   imageList = trainingImages[trainingIndices], 
   labels = groundTruthLabels[trainingIndices] )
 
+# trainingDataGenerator <- trainingData$generate( batchSize = batchSize,
+#   anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = NULL,
+#   brightness = NULL, flipHorizontally = NULL, translate = NULL, 
+#   scale = NULL )
+
 trainingDataGenerator <- trainingData$generate( batchSize = batchSize,
-  anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = FALSE,
+  anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = NULL,
   brightness = c( 0.5, 2, 0.5 ), flipHorizontally = 0.5, 
   translate = list( c( 5, 50 ), c( 3, 30 ), 0.5 ), 
   scale = c( 0.75, 1.3, 0.5 ) )
@@ -235,10 +240,10 @@ validationData <- ssdImageBatchGenerator$new(
   labels = groundTruthLabels[validationIndices] )
 
 validationDataGenerator <- validationData$generate( batchSize = batchSize,
-  anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = FALSE,
-  brightness = c( 0.5, 2, 0.5 ), flipHorizontally = 0.5, 
-  translate = list( c( 5, 50 ), c( 3, 30 ), 0.5 ), 
-  scale = c( 0.75, 1.3, 0.5 ) )
+  anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = NULL,
+  brightness = NULL, flipHorizontally = NULL, 
+  translate = NULL, 
+  scale = NULL )
 
 ###
 #
@@ -253,7 +258,12 @@ track <- ssdModel$fit_generator(
   validation_steps = ceiling( length( validationIndices ) / batchSize ),
   callbacks = list( 
     callback_model_checkpoint( paste0( baseDirectory, "ssd7Weights.h5" ), 
-      monitor = 'val_loss', save_best_only = TRUE )
+      monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
+      verbose = 1, mode = 'auto', period = 1 ),
+    callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
+      patience = 10 ),
+    callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.5,
+      patience = 0, epsilon = 0.001, cooldown = 0 )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
     )
   )

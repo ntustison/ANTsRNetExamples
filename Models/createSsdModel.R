@@ -110,7 +110,7 @@ createSsdModel2D <- function( inputImageSize,
   boxLocations <- list()
 
   imageDimension <- 2
-  numberOfCoordinates <- 2^imageDimension
+  numberOfCoordinates <- 2 * imageDimension
 
   # Initial convolutions 1-4
 

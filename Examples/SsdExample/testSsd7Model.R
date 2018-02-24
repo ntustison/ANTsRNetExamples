@@ -8,8 +8,8 @@ library( jpeg )
 
 visuallyInspectEachImage <- FALSE
 
-numberOfTrainingData <- 900
-numberOfTestingData <- 100
+numberOfTrainingData <- 946
+numberOfTestingData <- 54
 testingImageFiles <- rep( NA, numberOfTestingData )
 
 baseDirectory <- './'
@@ -180,10 +180,10 @@ if( visuallyInspectEachImage == TRUE )
 ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1,
   aspectRatiosPerLayer = 
-    list( c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),  
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 )
+    list( c( 1.0, 2.0, 0.5 ),  
+          c( 1.0, 2.0, 0.5 ),
+          c( 1.0, 2.0, 0.5 ),
+          c( 1.0, 2.0, 0.5 )
         )
   )
 
@@ -255,8 +255,11 @@ if( visuallyInspectEachImage == TRUE )
   }  
 
 
+# load_model_weights_hdf5( ssdModelTest, 
+#   filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
+
 load_model_weights_hdf5( ssdModelTest, 
-  filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
+  filepath = '/Users/ntustison/Pkg/ssdkeras/checkpoints3.h5' )
 
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
