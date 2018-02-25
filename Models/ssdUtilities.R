@@ -701,8 +701,8 @@ layer_l2_normalization_2d <- function( object, scale = 20, name = NULL,
 #'     tensorflow:  [batchSize, widthSize, heightSize, channelSize]
 #'
 #' @param imageSize size of the input image.
-#' @param minSize min size of each box (in pixels).
-#' @param maxSize max size of each box (in pixels).
+#' @param scale scale of each box (in pixels).
+#' @param nextScale next scale of each box (in pixels).
 #' @param aspectRatios vector describing the geometries of the anchor
 #' boxes for this layer.
 #' @param variances explained here:
@@ -733,9 +733,9 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
     
     imageSize = NULL,
 
-    minSize = NULL,
+    scale = NULL,
 
-    maxSize = NULL,
+    nextScale = NULL,
 
     aspectRatios = NULL,
 
@@ -745,11 +745,11 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
 
     channelAxis = NULL, 
 
-    numberOfBoxes = NULL,
+    numberOfBoxes = NULL, 
 
     anchorBoxesArray = NULL,
     
-    initialize = function( imageSize, minSize, maxSize,
+    initialize = function( imageSize, scale, nextScale,
       aspectRatios = c( 0.5, 1.0, 2.0 ), variances = 1.0 )
       {
 
@@ -766,8 +766,8 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
         self$imageSizeAxes[2] <- 4  
         self$channelAxis <- 2
         }
-      self$minSize <- minSize
-      self$maxSize <- maxSize
+      self$scale <- scale
+      self$nextScale <- nextScale
 
       self$imageSize <- imageSize
 
@@ -775,9 +775,8 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
         {
         self$aspectRatios <- c( 1.0 )
         } else {
-        self$aspectRatios <- aspectRatios
+        self$aspectRatios <- sort( aspectRatios )
         }
-      self$numberOfBoxes <- length( aspectRatios )
 
       if( length( variances ) == 1 )
         {
@@ -797,26 +796,38 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
       layerSize <- c()
       layerSize[1] <- input_shape[[self$imageSizeAxes[1]]]
       layerSize[2] <- input_shape[[self$imageSizeAxes[2]]]
-      
+
+      minImageSize = min( self$imageSize[1], self$imageSize[2] )
+
       boxSizes <- list()
+      boxCount <- 1
       for( i in 1:length( self$aspectRatios ) )
         {
-        if( i > 1 && self$aspectRatios[i] == 1 )  
+        if( self$aspectRatios[i] == 1 )  
           {
-          boxSizes[[i]] <- c( sqrt( self$minSize * self$maxSize ),
-                              sqrt( self$minSize * self$maxSize ) )
+          size <- self$scale * minImageSize
+          boxSizes[[boxCount]] <- c( size, size )
+          boxCount <- boxCount + 1
+
+          size <- sqrt( self$scale * self$nextScale ) * minImageSize
+          boxSizes[[boxCount]] <- c( size, size )
+          boxCount <- boxCount + 1
           } else {
-          boxSizes[[i]] <- c( self$minSize * sqrt( self$aspectRatios[i] ),
-                              self$minSize / sqrt( self$aspectRatios[i] ) )
+          aspectRatio <- self$aspectRatios[i] 
+          boxSizes[[boxCount]] <- c( 
+            self$scale * minImageSize * sqrt( aspectRatio ),
+            self$scale * minImageSize / sqrt( aspectRatio ) )
+          boxCount <- boxCount + 1
           }
-        boxSizes[[i]] <- 0.5 * boxSizes[[i]]
         }
+      self$numberOfBoxes <- length( boxSizes ) 
+
       stepSize <- self$imageSize / layerSize
       stepSeq <- list()
       for( i in 1:length( stepSize ) )
         {
         stepSeq[[i]] <- seq( 0.5 * stepSize[i],
-        self$imageSize[1] - 0.5 * stepSize[i], length.out = layerSize[i] )
+        self$imageSize[i] - 0.5 * stepSize[i], length.out = layerSize[i] )
         }
 
       # Define c( xmin, xmax, ymin, ymax ) of each anchor box
@@ -828,9 +839,9 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
           layerSize[1], layerSize[2], self$numberOfBoxes, 4L ) )
       anchorVariancesTuple <- np$zeros( reticulate::tuple( 
           layerSize[1], layerSize[2], self$numberOfBoxes, 4L ) )  
-      for( i in 1:length( self$aspectRatios ) )
-          {
-          for( j in 1:length( stepSeq[[1]] ) )
+      for( i in 1:self$numberOfBoxes )
+        {
+        for( j in 1:length( stepSeq[[1]] ) )
           {
           xmin <- stepSeq[[1]][j] - boxSizes[[i]][1]
           xmax <- stepSeq[[1]][j] + boxSizes[[i]][1]
@@ -864,18 +875,18 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
             anchorBoxesTuple[j, k, i,] <- anchorBoxCoords
             anchorVariancesTuple[j, k, i,] <- self$variances
             }
-          }    
+          }
         }
 
       anchorBoxesTensor <- np$concatenate( reticulate::tuple( 
-          anchorBoxesTuple, anchorVariancesTuple ), axis = -1L )
+        anchorBoxesTuple, anchorVariancesTuple ), axis = -1L )
       anchorBoxesTensor <- np$expand_dims( anchorBoxesTensor, axis = 0L )  
 
       anchorBoxesTensor <- k_constant( anchorBoxesTensor, dtype = 'float32' )
   #        anchorBoxesTensor <- k_tile( anchorBoxesTensor, 
   #          c( k_shape( x )[1], 1L, 1L, 1L, 1L ) )
       anchorBoxesTensor <- keras::backend()$tile( anchorBoxesTensor, 
-          c( k_shape( x )[1], 1L, 1L, 1L, 1L ) )
+        c( k_shape( x )[1], 1L, 1L, 1L, 1L ) )
 
       return( anchorBoxesTensor )  
       },
@@ -892,10 +903,10 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
   )
 )
 
-layer_anchor_box_2d <- function( object, imageSize, minSize, maxSize, 
+layer_anchor_box_2d <- function( object, imageSize, scale, nextScale, 
 aspectRatios, variances, name = NULL, trainable = TRUE ) {
 create_layer( AnchorBoxLayer2D, object, 
-    list( imageSize = imageSize, minSize = minSize, maxSize = maxSize, 
+    list( imageSize = imageSize, scale = scale, nextScale = nextScale, 
         aspectRatios = aspectRatios, variances = variances, name = name,
         trainable = trainable )
     )

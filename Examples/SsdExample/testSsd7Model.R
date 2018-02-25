@@ -255,11 +255,11 @@ if( visuallyInspectEachImage == TRUE )
   }  
 
 
-# load_model_weights_hdf5( ssdModelTest, 
-#   filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
-
 load_model_weights_hdf5( ssdModelTest, 
-  filepath = '/Users/ntustison/Pkg/ssdkeras/checkpoints3.h5' )
+  filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
+
+# load_model_weights_hdf5( ssdModelTest, 
+#   filepath = '/Users/ntustison/Pkg/ssdkeras/checkpoints3.h5' )
 
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
@@ -274,7 +274,8 @@ testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 X_test <- testingData
 
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
-predictedDataDecoded <- decodeY( predictedData, inputImageSize )
+predictedDataDecoded <- decodeY( predictedData, inputImageSize, 
+  confidenceThreshold = 0.1, overlapThreshold = NULL )
 
 for( i in 1:length( predictedDataDecoded ) )
   {

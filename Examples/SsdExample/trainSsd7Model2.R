@@ -127,26 +127,26 @@ writeLines( json_string, paste0( baseDirectory, "ssd7Model.json" ) )
 #  Debugging:  draw all anchor boxes
 #
 
-# image <- readJPEG( trainingImageFiles[1] )
-# for( i in 1:length( anchorBoxes) )
-#   {
-#   cat( "Drawing anchor box:", i, "\n" )
-#   anchorBox <- anchorBoxes[[i]]
-#   anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
-#   anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
-#   drawRectangles( image, anchorBox[,], 
-#     boxColors = rainbow( nrow( anchorBox[,] ) ) )
-#   readline( prompt = "Press [enter] to continue\n" )
-#   # for( j in 1:nrow( anchorBoxes[[i]] ) )
-#   #   {
-#   #   cat( "Drawing anchor box:", i, ",", j, "\n" )
-#   #   anchorBox <- anchorBoxes[[i]][j,]
-#   #   anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
-#   #   anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
-#   #   drawRectangles( image, anchorBox, boxColors = "red" )
-#   #   readline( prompt = "Press [enter] to continue\n" )
-#   #   }
-#   }
+image <- readJPEG( trainingImageFiles[1] )
+for( i in 1:length( anchorBoxes) )
+  {
+  cat( "Drawing anchor box:", i, "\n" )
+  anchorBox <- anchorBoxes[[i]]
+  anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
+  anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
+  drawRectangles( image, anchorBox[,], 
+    boxColors = rainbow( nrow( anchorBox[,] ) ) )
+  readline( prompt = "Press [enter] to continue\n" )
+  # for( j in 1:nrow( anchorBoxes[[i]] ) )
+  #   {
+  #   cat( "Drawing anchor box:", i, ",", j, "\n" )
+  #   anchorBox <- anchorBoxes[[i]][j,]
+  #   anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
+  #   anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
+  #   drawRectangles( image, anchorBox, boxColors = "red" )
+  #   readline( prompt = "Press [enter] to continue\n" )
+  #   }
+  }
 
 ###
 #
@@ -159,7 +159,7 @@ if( visuallyInspectEachImage == TRUE )
 
   for( i in 1:numberOfTrainingData )
     {
-    cat( "Drawing", trainingImageFiles[i], "\n" )
+    cat( "Drawing", i, "\n" )
     image <- trainingImages[[i]]
 
     # Get anchor boxes  

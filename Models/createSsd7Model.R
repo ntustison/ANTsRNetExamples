@@ -72,6 +72,10 @@ createSsd7Model2D <- function( inputImageSize,
   for( i in 1:numberOfPredictorLayers )
     {
     numberOfBoxesPerLayer[i] <- length( aspectRatiosPerLayer[[i]] )  
+    if( 1 %in% aspectRatiosPerLayer[[i]] )
+      {
+      numberOfBoxesPerLayer[i] <- numberOfBoxesPerLayer[i] + 1   
+      }
     }
 
   scales <- seq( from = minScale, to = maxScale, 
@@ -145,13 +149,11 @@ createSsd7Model2D <- function( inputImageSize,
   predictorSizes <- list()
 
   imageSize <- inputImageSize[1:imageDimension]
-  shortImageSize <- min( imageSize )
 
   for( i in 1:length( boxLocations ) )
     {
     anchorBoxLayer <- layer_anchor_box_2d( imageSize = imageSize, 
-      minSize = ( scales[i] * shortImageSize ), 
-      maxSize = ( scales[i+1] * shortImageSize ),
+      scale = scales[i], nextScale = scales[i + 1],
       aspectRatios = aspectRatiosPerLayer[[i]], variances = variances, 
       name = paste0( 'anchors', i + 3 ) )
     anchorBoxLayers[[i]] <- boxLocations[[i]] %>% anchorBoxLayer
@@ -160,8 +162,7 @@ createSsd7Model2D <- function( inputImageSize,
     # encoding Y_train.  I'm guessing there's a better way to do this 
     # but it's the cleanest I've found.
     anchorBoxGenerator <- AnchorBoxLayer2D$new( imageSize = imageSize,
-      minSize = ( scales[i] * shortImageSize ), 
-      maxSize = ( scales[i+1] * shortImageSize ),
+      scales[i], scales[i + 1],
       aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
     anchorBoxGenerator$call( boxLocations[[i]] )  
     anchorBoxes[[i]] <- anchorBoxGenerator$anchorBoxesArray
