@@ -1,122 +1,46 @@
 library( ANTsR )
-library( xml2 )
-library( tidyverse )
-library( stringr )
 library( keras )
 library( ggplot2 )
 library( jpeg )
+library( reticulate )
+library( stringr )
 
 
 keras::backend()$clear_session()
 
-numberOfTrainingData <- 900
+numberOfTrainingData <- 1000
+inputImageSize <- c( 250, 250 )
 
-visuallyInspectEachImage <- TRUE
-
+visuallyInspectEachImage <- FALSE
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
 imageDirectory <- paste0( dataDirectory, 'Images/' )
 annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
 dataFile <- paste0( dataDirectory, 'data.csv' )
+data <- read.csv( dataFile )  
+uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
-parseXML <- function( xml, labels ) {
-  
-  frame <- xml %>%
-    xml_find_first("//filename") %>%
-    xml_text()
-  
-  classes <- xml %>%
-    xml_find_all("//object") %>%
-    xml_find_all(".//name") %>%
-    xml_text() %>%
-    factor( levels = labels ) %>%
-    as.integer() %>%
-    as_tibble() %>%
-    magrittr::set_colnames( "class_id" )
-  
-  bndbx <- xml %>%
-    xml_find_all("//bndbox") %>%
-    xml_children() %>%
-    xml_integer() %>%
-    split( rep( 1:dim( classes )[1], each = 4 ) ) %>%
-    as_tibble() %>%
-    t() %>%
-    magrittr::set_colnames(c("xmin", "ymin", "xmax", "ymax")) %>%
-    as_tibble() %>%
-    select(xmin, xmax, ymin, ymax)
-  
-  cbind(frame, bndbx, classes) %>%
-    as_tibble %>%
-    mutate(frame = as.character(frame))
-  }
+source( paste0( modelDirectory, 'createSsd7Model.R' ) )
+source( paste0( modelDirectory, 'ssdUtilities.R' ) )
+source( paste0( baseDirectory, 'ssdBatchGenerator.R' ) )
 
 classes <- c( "eyes", "nose", "mouth" )
 
-if( ! file.exists( dataFile ) )
-  {
-  data <- list.files( annotationsDirectory, full.names = TRUE ) %>%
-    discard( !str_detect( ., "xml" ) ) %>%
-    map( ., read_xml ) %>%
-    map_dfr( parseXML, classes )
-
-  data <- list.files( annotationsDirectory, full.names = TRUE ) %>%
-    discard( !str_detect( ., "xml" ) ) %>%
-    map( ., read_xml ) %>%
-    map_dfr( parseXML, classes )
-  data <- data[complete.cases( data ),]
-
-  write.csv( data, dataFile, row.names = FALSE )
-  } else {
-  data <- read.csv( dataFile )  
-  }
-uniqueImageFiles <- levels( as.factor( data$frame ) )
-
 ###
 #
-# Read in the training data.  There are 1000 total images.  Read in 800
-# for training and then read the remaining data for testing/prediction.
+# Read in the training image data. 
 #
-
-trainingImageFiles <- rep( NA, numberOfTrainingData )
-for( i in 1:numberOfTrainingData )
-  {
-  trainingImageFiles[i] <- paste0( imageDirectory, uniqueImageFiles[i] )  
-  }
-inputImageSize <- c( 250, 250 )
-
-# training data consists of the original images and their horizontally
-# flipped counterparts
-trainingData <- array( dim = c( numberOfTrainingData, inputImageSize, 3 ) )
-
 cat( "Reading images...\n" )
 pb <- txtProgressBar( min = 0, max = numberOfTrainingData, style = 3 )
-for ( i in 1:length( trainingImageFiles ) )
+
+trainingImages <- list()
+for( i in 1:numberOfTrainingData )
   {
-  # cat( "Reading ", trainingImageFiles[i], "\n" )
-  trainingImage <- readJPEG( trainingImageFiles[i] )
+  trainingImages[[i]] <- as.array( 
+    readJPEG( paste0( imageDirectory, uniqueImageFiles[i] ) ) )
 
-  r <- as.matrix( as.antsImage( trainingImage[,,1] ) )
-  g <- as.matrix( as.antsImage( trainingImage[,,2] ) )
-  b <- as.matrix( as.antsImage( trainingImage[,,3] ) )
-  
-  r <- ( r - min( r ) ) / ( max( r ) - min( r ) )
-  g <- ( g - min( g ) ) / ( max( g ) - min( g ) )
-  b <- ( b - min( b ) ) / ( max( b ) - min( b ) )
-
-  trainingData[2*i-1,,,1] <- r
-  trainingData[2*i-1,,,2] <- g
-  trainingData[2*i-1,,,3] <- b
-
-  # Flip the images horizontally
-
-  flipIndices <- seq( from = inputImageSize[1], to = 1, by = -1 )
-
-  trainingData[2*i,,,1] <- r[,flipIndices]
-  trainingData[2*i,,,2] <- g[,flipIndices]
-  trainingData[2*i,,,3] <- b[,flipIndices]
-  
   if( i %% 100 == 0 )
     {
     gc( verbose = FALSE )
@@ -126,76 +50,39 @@ for ( i in 1:length( trainingImageFiles ) )
   }
 cat( "\nDone.\n" )
 
-X_train <- trainingData
-
 ###
 #
-# Create the SSD model
+# Read in the training boxes data. 
 #
-
-source( paste0( modelDirectory, 'createSsd7Model.R' ) )
-source( paste0( modelDirectory, 'ssdUtilities.R' ) )
-
-ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
-  numberOfClassificationLabels = length( classes ) + 1,
-  aspectRatiosPerLayer = 
-    list( c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),  
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 ),
-          c( 1.0, 2.0, 0.5, 3.0, 1.0/3.0 )
-        )
-  )
-
-ssdModel <- ssdOutput$ssdModel 
-anchorBoxes <- ssdOutput$anchorBoxes
-
-yaml_string <- model_to_yaml( ssdModel )
-writeLines( yaml_string, paste0( baseDirectory, "ssd7Model.yaml" ) )
-json_string <- model_to_json( ssdModel )
-writeLines( json_string, paste0( baseDirectory, "ssd7Model.json" ) )
-
-###
-#
-# Create the Y encoding
-#
-uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 groundTruthLabels <- list()
 for( i in 1:numberOfTrainingData )
   {
-  for( j in 0:1 )  
+  groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
+  image <- trainingImages[[i]]
+  groundTruthBoxes <- 
+    data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5]  )
+  colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
+
+  groundTruthLabels[[i]] <- groundTruthBoxes
+
+  if( visuallyInspectEachImage == TRUE )
     {
-    groundTruthBoxes <- data[which( data$frame == uniqueImageFiles[i] ),]
-    image <- trainingData[2*i-1+j,,,]
-    groundTruthBoxes <- 
-      data.frame( groundTruthBoxes[, 6], groundTruthBoxes[, 2:5]  )
-    colnames( groundTruthBoxes ) <- c( "class_id", 'xmin', 'xmax', 'ymin', 'ymax' )
-    if( j == 1 )
+    cat( "Drawing", uniqueImageFiles[i], "\n" )
+
+    classIds <- groundTruthBoxes[, 1]
+
+    boxColors <- c()
+    boxCaptions <- c()
+    for( j in 1:length( classIds ) )
       {
-      groundTruthBoxes[, 2:3] <- inputImageSize[1] - groundTruthBoxes[, 2:3] 
-      groundTruthBoxes[, 2:3] <- groundTruthBoxes[, seq( 3, 2, by = -1 )]
-      }
-    groundTruthLabels[[2*i-1+j]] <- groundTruthBoxes
-
-    if( visuallyInspectEachImage == TRUE )
-      {
-      cat( "Drawing", trainingImageFiles[i], "\n" )
-
-      classIds <- groundTruthBoxes[, 1]
-
-      boxColors <- c()
-      boxCaptions <- c()
-      for( j in 1:length( classIds ) )
-        {
-        boxColors[j] <- rainbow( 
-          length( classes ) )[which( classes[classIds[j]] == classes )]
-        boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
-        }
-    
-      drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
-        captions = boxCaptions )
-      readline( prompt = "Press [enter] to continue " )
-      }
+      boxColors[j] <- rainbow( 
+        length( classes ) )[which( classes[classIds[j]] == classes )]
+      boxCaptions[j] <- classes[which( classes[classIds[j]] == classes )]
+      }  
+    drawRectangles( image, groundTruthBoxes[, 2:5], boxColors = boxColors, 
+      captions = boxCaptions )
+    readline( prompt = "Press [enter] to continue " )
     }  
   }  
 
@@ -204,33 +91,62 @@ if( visuallyInspectEachImage == TRUE )
   cat( "\n\nDone inspecting images.\n" )
   }
 
-Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+###
+#
+# Create the SSD model
+#
+
+ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
+  numberOfClassificationLabels = length( classes ) + 1,
+  aspectRatiosPerLayer = 
+    list( c( 1.0, 2.0, 0.5 ),  
+          c( 1.0, 2.0, 0.5 ),
+          c( 1.0, 2.0, 0.5 ),
+          c( 1.0, 2.0, 0.5 )
+        )
+  )
+
+ssdModel <- ssdOutput$ssdModel 
+anchorBoxes <- ssdOutput$anchorBoxes
+
+optimizerAdam <- optimizer_adam( 
+  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
+
+ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
+  alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
+
+ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
+
+yaml_string <- model_to_yaml( ssdModel )
+writeLines( yaml_string, paste0( baseDirectory, "ssd7Model.yaml" ) )
+json_string <- model_to_json( ssdModel )
+writeLines( json_string, paste0( baseDirectory, "ssd7Model.json" ) )
 
 ###
 #
 #  Debugging:  draw all anchor boxes
 #
 
-# image <- readJPEG( trainingImageFiles[1] )
-# for( i in 1:length( anchorBoxes) )
-#   {
-#   # cat( "Drawing anchor box:", i, "\n" )
-#   # anchorBox <- anchorBoxes[[i]]
-#   # anchorBox[, 1:2] <- anchorBox[, 1:2] * ( inputImageSize[1] - 2 ) + 1
-#   # anchorBox[, 3:4] <- anchorBox[, 3:4] * ( inputImageSize[2] - 2 ) + 1
-#   # drawRectangles( image, anchorBox[,], 
-#   #   boxColors = rainbow( nrow( anchorBox[,] ) ) )
-#   # readline( prompt = "Press [enter] to continue\n" )
-#   for( j in 1:nrow( anchorBoxes[[i]] ) )
-#     {
-#     cat( "Drawing anchor box:", i, ",", j, "\n" )
-#     anchorBox <- anchorBoxes[[i]][j,]
-#     anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
-#     anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
-#     drawRectangles( image, anchorBox, boxColors = "red" )
-#     readline( prompt = "Press [enter] to continue\n" )
-#     }
-#   }
+image <- readJPEG( paste0( imageDirectory, uniqueImageFiles[1] ) )
+for( i in 1:length( anchorBoxes) )
+  {
+  cat( "Drawing anchor box:", i, "\n" )
+  anchorBox <- anchorBoxes[[i]]
+  anchorBox[, 1:2] <- anchorBox[, 1:2]
+  anchorBox[, 3:4] <- anchorBox[, 3:4]
+  drawRectangles( image, anchorBox[,], 
+    boxColors = rainbow( nrow( anchorBox[,] ) ) )
+  readline( prompt = "Press [enter] to continue\n" )
+  # for( j in 1:nrow( anchorBoxes[[i]] ) )
+  #   {
+  #   cat( "Drawing anchor box:", i, ",", j, "\n" )
+  #   anchorBox <- anchorBoxes[[i]][j,]
+  #   anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
+  #   anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
+  #   drawRectangles( image, anchorBox, boxColors = "red" )
+  #   readline( prompt = "Press [enter] to continue\n" )
+  #   }
+  }
 
 ###
 #
@@ -239,23 +155,19 @@ Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 
 
 if( visuallyInspectEachImage == TRUE )
   {
+  Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+
   for( i in 1:numberOfTrainingData )
     {
-    cat( "Drawing", trainingImageFiles[i], "\n" )
-    image <- trainingData[i,,,]
+    cat( "Drawing", i, "\n" )
+    image <- trainingImages[[i]]
 
     # Get anchor boxes  
     singleY <- Y_train[i,,]
     singleY <- singleY[which( rowSums( 
       singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
 
-    numberOfClassificationLabels <- length( classes ) + 1
-    xIndices <- numberOfClassificationLabels + 5:6
-    singleY[, xIndices] <- singleY[, xIndices] * ( inputImageSize[1] - 2 ) + 1
-    yIndices <- numberOfClassificationLabels + 7:8
-    singleY[, yIndices] <- singleY[, yIndices] * ( inputImageSize[2] - 2 ) + 1
-
-    anchorClassIds <- max.col( singleY[, 1:4] ) - 1
+    # anchorClassIds <- max.col( singleY[, 1:4] ) - 1
 
     anchorBoxColors <- c()
     anchorBoxCaptions <- c()
@@ -268,6 +180,7 @@ if( visuallyInspectEachImage == TRUE )
 
     # Get truth boxes
     truthLabel <- groundTruthLabels[[i]]
+
     truthClassIds <- truthLabel[, 1]
     truthColors <- c()
     truthCaptions <- c()
@@ -288,22 +201,64 @@ if( visuallyInspectEachImage == TRUE )
     }
   }  
 
-optimizerAdam <- optimizer_adam( 
-  lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
+###
+#
+# Set up the training generator
+#
+batchSize <- 32L
 
-ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
-  alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
+# Split trainingData into "training" and "validation" componets for
+# training the model.
+sampleIndices <- sample( numberOfTrainingData )
 
-ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
+validationSplit <- 946 # round( ( 1 - 0.2 ) * numberOfTrainingData )
+trainingIndices <- sampleIndices[1:validationSplit]
+validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfTrainingData]
 
-track <- ssdModel %>% fit( X_train, Y_train, 
-                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
-                 callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "ssd7Weights.h5" ), 
-                     monitor = 'val_loss', save_best_only = TRUE )
+trainingData <- ssdImageBatchGenerator$new( 
+  imageList = trainingImages[trainingIndices], 
+  labels = groundTruthLabels[trainingIndices] )
+
+# trainingDataGenerator <- trainingData$generate( batchSize = batchSize,
+#   anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = NULL,
+#   brightness = NULL, flipHorizontally = NULL, translate = NULL, 
+#   scale = NULL )
+
+trainingDataGenerator <- trainingData$generate( batchSize = batchSize,
+  anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = NULL,
+  brightness = c( 0.5, 2, 0.5 ), flipHorizontally = 0.5, 
+  translate = list( c( 5, 50 ), c( 3, 30 ), 0.5 ), 
+  scale = c( 0.75, 1.3, 0.5 ) )
+
+validationData <- ssdImageBatchGenerator$new( 
+  imageList = trainingImages[validationIndices], 
+  labels = groundTruthLabels[validationIndices] )
+
+validationDataGenerator <- validationData$generate( batchSize = batchSize,
+  anchorBoxes = anchorBoxes, variances = rep( 1.0, 4 ), equalize = NULL,
+  brightness = NULL, flipHorizontally = NULL, 
+  translate = NULL, 
+  scale = NULL )
+
+###
+#
+# Run training
+#
+
+track <- ssdModel$fit_generator( 
+  generator = reticulate::py_iterator( trainingDataGenerator ), 
+  steps_per_epoch = ceiling( length( trainingIndices ) / batchSize ),
+  epochs = 100,
+  validation_data = reticulate::py_iterator( validationDataGenerator ),
+  validation_steps = ceiling( length( validationIndices ) / batchSize ),
+  callbacks = list( 
+    callback_model_checkpoint( paste0( baseDirectory, "ssd7Weights.h5" ), 
+      monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
+      verbose = 1, mode = 'auto', period = 1 ),
+    callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
+      patience = 10 ),
+    callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.5,
+      patience = 0, epsilon = 0.001, cooldown = 0 )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
-                  #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
-                 ), 
-                 validation_split = 0.2 )
-
-
+    )
+  )
