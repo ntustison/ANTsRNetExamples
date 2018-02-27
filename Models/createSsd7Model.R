@@ -32,7 +32,7 @@
 #' implementation.  This variable determines the number of prediction layers.
 #' @param variances A list of 4 floats > 0 with scaling factors for the encoded 
 #' predicted box coordinates. A variance value of 1.0 would apply no scaling at 
-#' all to the predictions, while values in (0,1) upscale the encoded predictions 
+#' all to the predictions, while values in (0, 1) upscale the encoded predictions 
 #' and values greater than 1.0 downscale the encoded predictions. Defaults to 
 #' c( 0.1, 0.1, 0.1, 0.1 ).
 #'
@@ -77,7 +77,7 @@ createSsd7Model2D <- function( inputImageSize,
       numberOfBoxesPerLayer[i] <- numberOfBoxesPerLayer[i] + 1   
       }
     }
-
+  scales = c(0.08, 0.16, 0.32, 0.64, 0.96)
   scales <- seq( from = minScale, to = maxScale, 
     length.out = numberOfPredictorLayers + 1 )
 
