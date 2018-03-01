@@ -96,12 +96,6 @@ if( visuallyInspectEachImage == TRUE )
 
 ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
   numberOfClassificationLabels = length( classes ) + 1,
-  aspectRatiosPerLayer = 
-    list( c( 1.0, 2.0, 0.5 ),  
-          c( 1.0, 2.0, 0.5 ),
-          c( 1.0, 2.0, 0.5 ),
-          c( 1.0, 2.0, 0.5 )
-        )
   )
 
 ssdModel <- ssdOutput$ssdModel 
