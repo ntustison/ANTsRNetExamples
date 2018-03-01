@@ -31,7 +31,8 @@
 #' factors between the smallest and the largest are linearly interpolated. 
 #' @param aspectRatiosPerLayer A list containing one aspect ratio list for
 #' each predictor layer.  The default lists follows the original 
-#' implementation.  This variable determines the number of prediction layers.
+#' implementation except each aspect ratio is defined as a character string
+#' (e.g. '1:2').
 #' @param variances A list of 4 floats > 0 with scaling factors for the encoded 
 #' predicted box coordinates. A variance value of 1.0 would apply no scaling at 
 #' all to the predictions, while values in (0,1) upscale the encoded 
@@ -521,7 +522,8 @@ createSsdModel2D <- function( inputImageSize,
 #' factors between the smallest and the largest are linearly interpolated. 
 #' @param aspectRatiosPerLayer A list containing one aspect ratio list for
 #' each predictor layer.  The default lists follows the original 
-#' implementation.  This variable determines the number of prediction layers.
+#' implementation except each aspect ratio is defined as a character string
+#' (e.g. '1:1:2').
 #' @param variances A list of 4 floats > 0 with scaling factors for the encoded 
 #' predicted box coordinates. A variance value of 1.0 would apply no scaling at 
 #' all to the predictions, while values in (0,1) upscale the encoded 
