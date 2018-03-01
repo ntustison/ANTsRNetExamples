@@ -538,7 +538,7 @@ createSsdModel2D <- function( inputImageSize,
 #' 
 #' }
 
-createSsdModel3d <- function( inputImageSize, 
+createSsdModel3D <- function( inputImageSize, 
                               numberOfClassificationLabels,
                               l2Regularization = 0.0005,
                               minScale = 0.1,
