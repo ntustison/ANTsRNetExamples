@@ -214,7 +214,7 @@ anchorBoxes <- ssdOutput$anchorBoxes
 load_model_weights_hdf5( ssdModelTest, 
   filepath = paste0( baseDirectory, 'ssd300Weights.h5' ) )
   
-Y_test <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+Y_test <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
 #
@@ -291,7 +291,7 @@ testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 X_test <- testingData
 
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
-predictedDataDecoded <- decodeY( predictedData, inputImageSize )
+predictedDataDecoded <- decodeY2D( predictedData, inputImageSize )
 
 for( i in 1:length( predictedDataDecoded ) )
   {

@@ -1,9 +1,7 @@
 library( ANTsR )
 library( keras )
-library( ggplot2 )
 library( jpeg )
 library( reticulate )
-library( stringr )
 
 
 keras::backend()$clear_session()
@@ -155,7 +153,7 @@ for( i in 1:length( anchorBoxes) )
 
 if( visuallyInspectEachImage == TRUE )
   {
-  Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+  Y_train <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
   for( i in 1:numberOfTrainingData )
     {

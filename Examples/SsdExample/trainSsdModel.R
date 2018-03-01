@@ -221,7 +221,7 @@ if( visuallyInspectEachImage == TRUE )
   cat( "\n\nDone inspecting images.\n" )
   }
 
-Y_train <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+Y_train <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
 #

@@ -1,9 +1,5 @@
 library( ANTsR )
-library( xml2 )
-library( tidyverse )
-library( stringr )
 library( keras )
-library( ggplot2 )
 library( jpeg )
 
 visuallyInspectEachImage <- FALSE
@@ -125,19 +121,13 @@ if( visuallyInspectEachImage == TRUE )
 #
 
 ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
-  numberOfClassificationLabels = length( classes ) + 1,
-  aspectRatiosPerLayer = 
-    list( c( 1.0, 2.0, 0.5 ),  
-          c( 1.0, 2.0, 0.5 ),
-          c( 1.0, 2.0, 0.5 ),
-          c( 1.0, 2.0, 0.5 )
-        )
+  numberOfClassificationLabels = length( classes ) + 1
   )
 
 ssdModelTest <- ssdOutput$ssdModel 
 anchorBoxes <- ssdOutput$anchorBoxes
 
-Y_test <- encodeY( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+Y_test <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 load_model_weights_hdf5( ssdModelTest, 
   filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
@@ -155,7 +145,7 @@ testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 X_test <- testingData
 
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
-predictedDataDecoded <- decodeY( predictedData, inputImageSize, 
+predictedDataDecoded <- decodeY2D( predictedData, inputImageSize, 
   confidenceThreshold = 0.4, overlapThreshold = 0.4 )
 
 for( i in 1:length( predictedDataDecoded ) )
