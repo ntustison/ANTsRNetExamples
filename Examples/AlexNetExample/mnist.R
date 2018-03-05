@@ -1,5 +1,7 @@
 library( keras )
 
+keras::backend()$clear_session()
+
 source( "../../Models/createAlexNetModel.R" )
 
 mnistData <- dataset_mnist()

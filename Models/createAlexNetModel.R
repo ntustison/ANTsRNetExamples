@@ -117,10 +117,10 @@ createAlexNetModel2D <- function( inputImageSize,
       half <- as.integer( n / 2 )
 
       extraChannels <- k_spatial_2d_padding( 
-        k_permute_dimensions( X2, c( 1L, 2L, 3L, 0L ) ), 
+        keras::backend()$permute_dimensions( X2, c( 1L, 2L, 3L, 0L ) ), 
         padding = list( c( 0L, 0L ), c( half, half ) ) )
-      extraChannels <- 
-        k_permute_dimensions( extraChannels, c( 3L, 0L, 1L, 2L ) )  
+      extraChannels <- keras::backend()$permute_dimensions( 
+        extraChannels, c( 3L, 0L, 1L, 2L ) )  
       scale <- k
 
       Xdims <- k_int_shape( X )
@@ -341,10 +341,10 @@ createAlexNetModel3D <- function( inputImageSize,
       half <- as.integer( n / 2 )
 
       extraChannels <- k_spatial_3d_padding( 
-        k_permute_dimensions( X2, c( 1L, 2L, 3L, 4L, 0L ) ), 
+        keras::backend()$permute_dimensions( X2, c( 1L, 2L, 3L, 4L, 0L ) ), 
         padding = list( c( 0L, 0L ), c( 0L, 0L ), c( half, half ) ) )
-      extraChannels <- 
-        k_permute_dimensions( extraChannels, c( 4L, 0L, 1L, 2L, 3L ) ) 
+      extraChannels <- keras::backend()$permute_dimensions( 
+        extraChannels, c( 4L, 0L, 1L, 2L, 3L ) ) 
       scale <- k
 
       Xdims <- k_int_shape( X )

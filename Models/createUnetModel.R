@@ -45,12 +45,16 @@ multilabel_dice_coefficient <- function( y_true, y_pred )
   if( length( y_dims ) == 3 )
     {
     # 2-D image
-    y_true_permuted <- k_permute_dimensions( y_true, pattern = c( 3L, 0L, 1L, 2L ) )
-    y_pred_permuted <- k_permute_dimensions( y_pred, pattern = c( 3L, 0L, 1L, 2L ) )
+    y_true_permuted <- keras::backend()$permute_dimensions( 
+      y_true, pattern = c( 3L, 0L, 1L, 2L ) )
+    y_pred_permuted <- keras::backend()$permute_dimensions( 
+      y_pred, pattern = c( 3L, 0L, 1L, 2L ) )
     } else {
     # 3-D image  
-    y_true_permuted <- k_permute_dimensions( y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
-    y_pred_permuted <- k_permute_dimensions( y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
+    y_true_permuted <- keras::backend()$permute_dimensions( 
+      y_true, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
+    y_pred_permuted <- keras::backend()$permute_dimensions( 
+      y_pred, pattern = c( 4L, 0L, 1L, 2L, 3L ) )
     }
   y_true_label <- k_gather( y_true_permuted, indices = c( 1L ) )
   y_pred_label <- k_gather( y_pred_permuted, indices = c( 1L ) )
