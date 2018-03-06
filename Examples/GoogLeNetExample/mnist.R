@@ -4,6 +4,12 @@ keras::backend()$clear_session()
 
 source( "../../Models/createGoogLeNetModel.R" )
 
+stop( 
+  paste( "This doesn't work because the architecture is built for",
+         "larger image sizes.  We could resample the input mnist data",
+         "set.  Perhaps we should add this as a to-do item.\n" )
+    )     
+
 mnistData <- dataset_mnist()
 
 numberOfLabels <- length( unique( mnistData$train$y ) )
