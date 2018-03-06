@@ -70,7 +70,8 @@ createGoogLeNetModel2D <- function( inputImageSize,
     {
     stop( "Please install the keras package." )
     }
-  
+  K <- keras::backend()  
+   
   convolutionAndBatchNormalization2D <- function( model, 
                                                   numberOfFilters, 
                                                   kernelSize, 

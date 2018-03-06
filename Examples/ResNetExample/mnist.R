@@ -29,5 +29,5 @@ track <- resNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32,
 X_test <- array( mnistData$test$x, dim = c( dim( mnistData$test$x ), 1 ) )
 Y_test <- keras::to_categorical( mnistData$test$y, numberOfLabels )
 
-testingMetrics <- alexNetModel %>% evaluate( X_test, Y_test )
-predictedData <- alexNetModel %>% predict( X_test, verbose = 1 )
+testingMetrics <- resNetModel %>% evaluate( X_test, Y_test )
+predictedData <- resNetModel %>% predict( X_test, verbose = 1 )

@@ -2,7 +2,7 @@ library( keras )
 
 keras::backend()$clear_session()
 
-source( "../../Models/createGoogLeNetModel.R" )
+source( "../../Models/createDenseNetModel.R" )
 
 mnistData <- dataset_mnist()
 
@@ -14,14 +14,14 @@ Y_train <- keras::to_categorical( mnistData$train$y, numberOfLabels )
 # we add a dimension of 1 to specify the channel size
 inputImageSize <- c( dim( mnistData$train$x )[2:3], 1 )
 
-googleNetModel <- createGoogLeNetModel2D( inputImageSize = inputImageSize, 
+denseNetModel <- createDenseNetModel2D( inputImageSize = inputImageSize, 
   numberOfClassificationLabels = numberOfLabels )
 
-googleNetModel %>% compile( loss = 'categorical_crossentropy',
+denseNetModel %>% compile( loss = 'categorical_crossentropy',
   optimizer = optimizer_adam( lr = 0.0001 ),  
   metrics = c( 'categorical_crossentropy', 'accuracy' ) )
 
-track <- googleNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32, 
+track <- denseNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32, 
   verbose = 1, shuffle = TRUE, validation_split = 0.2 )
 
 # Now test the model
@@ -29,5 +29,5 @@ track <- googleNetModel %>% fit( X_train, Y_train, epochs = 40, batch_size = 32,
 X_test <- array( mnistData$test$x, dim = c( dim( mnistData$test$x ), 1 ) )
 Y_test <- keras::to_categorical( mnistData$test$y, numberOfLabels )
 
-testingMetrics <- alexNetModel %>% evaluate( X_test, Y_test )
-predictedData <- alexNetModel %>% predict( X_test, verbose = 1 )
+testingMetrics <- denseNetModel %>% evaluate( X_test, Y_test )
+predictedData <- denseNetModel %>% predict( X_test, verbose = 1 )
