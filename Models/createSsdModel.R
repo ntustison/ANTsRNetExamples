@@ -76,6 +76,8 @@ createSsdModel2D <- function( inputImageSize,
     stop( "Incorrect style.  Must be either '300' or '512'." )
     }
 
+  K <- keras::backend()  
+
   filterSizes <- c( 64, 128, 256, 512, 1024 ) 
 
   numberOfPredictorLayers <- 6
@@ -447,7 +449,7 @@ createSsdModel2D <- function( inputImageSize,
     {
     # reshape ``( batch, height, width, numberOfBoxes * numberOfClasses )``
     #   to ``(batch, height * width * numberOfBoxes, numberOfClasses )``
-    inputShape <- k_int_shape( boxClasses[[i]] )
+    inputShape <- K$int_shape( boxClasses[[i]] )
     numberOfBoxes <- 
       as.integer( inputShape[[4]] / numberOfClassificationLabels )
 
@@ -566,6 +568,8 @@ createSsdModel3D <- function( inputImageSize,
     {
     stop( "Incorrect style.  Must be either '300' or '512'." )
     }
+
+  K <- keras::backend()  
 
   filterSizes <- c( 64, 128, 256, 512, 1024 ) 
 
@@ -941,7 +945,7 @@ createSsdModel3D <- function( inputImageSize,
     {
     # reshape ``( batch, height, width, depth, numberOfBoxes * numberOfClasses )``
     #   to ``(batch, height * width * depth * numberOfBoxes, numberOfClasses )``
-    inputShape <- k_int_shape( boxClasses[[i]] )
+    inputShape <- K$int_shape( boxClasses[[i]] )
     numberOfBoxes <- 
       as.integer( inputShape[[4]] / numberOfClassificationLabels )
 

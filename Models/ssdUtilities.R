@@ -799,7 +799,9 @@ L2NormalizationLayer2D <- R6::R6Class( "L2NormalizationLayer2D",
     
     initialize = function( scale = 20 ) 
       {
-      if( k_image_data_format() == "channels_last" )
+      K <- keras::backend()  
+
+      if( K$image_data_format() == "channels_last" )
         {
         self$channelAxis <- 4  
         } else {
@@ -819,7 +821,8 @@ L2NormalizationLayer2D <- R6::R6Class( "L2NormalizationLayer2D",
     
     call = function( x, mask = NULL ) 
       {
-      output <- k_l2_normalize( x, self$channelAxis )
+      K <- keras::backend()  
+      output <- K$l2_normalize( x, self$channelAxis )
       output <- output * self$gamma
       return( output )
       },
@@ -896,11 +899,12 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
     initialize = function( imageSize, scale, nextScale,
       aspectRatios = c( '1:1', '2:1', '1:2' ), variances = 1.0 )
       {
+      K <- keras::backend()  
 
       #  Theano:  [batchSize, channelSize, widthSize, heightSize]
       #  tensorflow:  [batchSize, widthSize, heightSize, channelSize]
 
-      if( k_image_data_format() == "channels_last" )
+      if( K$image_data_format() == "channels_last" )
         {
         self$imageSizeAxes[1] <- 2  
         self$imageSizeAxes[2] <- 3  
@@ -934,9 +938,11 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
         
     call = function( x, mask = NULL ) 
       {
+      K <- keras::backend()  
+
       np <- reticulate::import( "numpy" )
 
-      input_shape <- k_int_shape( x )
+      input_shape <- K$int_shape( x )
       layerSize <- c()
       layerSize[1] <- input_shape[[self$imageSizeAxes[1]]]
       layerSize[2] <- input_shape[[self$imageSizeAxes[2]]]
@@ -1018,11 +1024,9 @@ AnchorBoxLayer2D <- R6::R6Class( "AnchorBoxLayer2D",
         reticulate::tuple( boxesTensor, variancesTensor ), axis = -1L )
       anchorBoxesTensor <- np$expand_dims( anchorBoxesTensor, axis = 0L )  
 
-      anchorBoxesTensor <- k_constant( anchorBoxesTensor, dtype = 'float32' )
-  #        anchorBoxesTensor <- k_tile( anchorBoxesTensor, 
-  #          c( k_shape( x )[1], 1L, 1L, 1L, 1L ) )
-      anchorBoxesTensor <- keras::backend()$tile( anchorBoxesTensor, 
-        c( k_shape( x )[1], 1L, 1L, 1L, 1L ) )
+      anchorBoxesTensor <- K$constant( anchorBoxesTensor, dtype = 'float32' )
+      anchorBoxesTensor <- K$tile( anchorBoxesTensor, 
+        c( K$shape( x )[1], 1L, 1L, 1L, 1L ) )
 
       return( anchorBoxesTensor )  
       },
@@ -1420,7 +1424,9 @@ L2NormalizationLayer3D <- R6::R6Class( "L2NormalizationLayer3D",
     
     initialize = function( scale = 20 ) 
       {
-      if( k_image_data_format() == "channels_last" )
+      K <- keras::backend()  
+
+      if( K$image_data_format() == "channels_last" )
         {
         self$channelAxis <- 5  
         } else {
@@ -1440,7 +1446,9 @@ L2NormalizationLayer3D <- R6::R6Class( "L2NormalizationLayer3D",
     
     call = function( x, mask = NULL ) 
       {
-      output <- k_l2_normalize( x, self$channelAxis )
+      K <- keras::backend()  
+
+      output <- K$l2_normalize( x, self$channelAxis )
       output <- output * self$gamma
       return( output )
       },
@@ -1517,11 +1525,12 @@ AnchorBoxLayer3D <- R6::R6Class( "AnchorBoxLayer3D",
     initialize = function( imageSize, scale, nextScale,
       aspectRatios = c( '1:1:1', '2:1:1', '1:2:1', '1:1:2' ), variances = 1.0 )
       {
+      K <- keras::backend()  
 
       #  Theano:  [batchSize, channelSize, widthSize, depthSize, heightSize]
       #  tensorflow:  [batchSize, widthSize, heightSize, depthSize, channelSize]
 
-      if( k_image_data_format() == "channels_last" )
+      if( K$image_data_format() == "channels_last" )
         {
         self$imageSizeAxes[1] <- 2  
         self$imageSizeAxes[2] <- 3  
@@ -1557,9 +1566,11 @@ AnchorBoxLayer3D <- R6::R6Class( "AnchorBoxLayer3D",
         
     call = function( x, mask = NULL ) 
       {
+      K <- keras::backend()  
+
       np <- reticulate::import( "numpy" )
 
-      input_shape <- k_int_shape( x )
+      input_shape <- K$int_shape( x )
       layerSize <- c()
       layerSize[1] <- input_shape[[self$imageSizeAxes[1]]]
       layerSize[2] <- input_shape[[self$imageSizeAxes[2]]]
@@ -1649,11 +1660,9 @@ AnchorBoxLayer3D <- R6::R6Class( "AnchorBoxLayer3D",
         reticulate::tuple( boxesTensor, variancesTensor ), axis = -1L )
       anchorBoxesTensor <- np$expand_dims( anchorBoxesTensor, axis = 0L )  
 
-      anchorBoxesTensor <- k_constant( anchorBoxesTensor, dtype = 'float32' )
-  #        anchorBoxesTensor <- k_tile( anchorBoxesTensor, 
-  #          c( k_shape( x )[1], 1L, 1L, 1L, 1L, 1L, 1L ) )
-      anchorBoxesTensor <- keras::backend()$tile( anchorBoxesTensor, 
-        c( k_shape( x )[1], 1L, 1L, 1L, 1L, 1L, 1L ) )
+      anchorBoxesTensor <- K$constant( anchorBoxesTensor, dtype = 'float32' )
+      anchorBoxesTensor <- K$tile( anchorBoxesTensor, 
+        c( K$shape( x )[1], 1L, 1L, 1L, 1L, 1L, 1L ) )
 
       return( anchorBoxesTensor )  
       },

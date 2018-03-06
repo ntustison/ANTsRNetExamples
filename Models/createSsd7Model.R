@@ -60,10 +60,13 @@ createSsd7Model2D <- function( inputImageSize,
                               variances = rep( 1.0, 4 )
                             )
 {
+  
   if( !usePkg( "keras" ) )
     {
     stop( "Please install the keras package." )
     }
+
+  K <- keras::backend()  
 
   filterSizes <- c( 32, 48, 64, 64, 48, 48, 32 ) 
 
@@ -175,7 +178,7 @@ createSsd7Model2D <- function( inputImageSize,
     {
     # reshape ``( batch, height, width, numberOfBoxes * numberOfClasses )``
     #   to ``(batch, height * width * numberOfBoxes, numberOfClasses )``
-    inputShape <- k_int_shape( boxClasses[[i]] )
+    inputShape <- K$int_shape( boxClasses[[i]] )
     numberOfBoxes <- 
       as.integer( inputShape[[4]] / numberOfClassificationLabels )
 
@@ -281,6 +284,8 @@ createSsd7Model3D <- function( inputImageSize,
     {
     stop( "Please install the keras package." )
     }
+
+  K <- keras::backend()  
 
   filterSizes <- c( 32, 48, 64, 64, 48, 48, 32 ) 
 
@@ -393,7 +398,7 @@ createSsd7Model3D <- function( inputImageSize,
     {
     # reshape ``( batch, height, width, depth, numberOfBoxes * numberOfClasses )``
     #   to ``(batch, height * width * depth * numberOfBoxes, numberOfClasses )``
-    inputShape <- k_int_shape( boxClasses[[i]] )
+    inputShape <- K$int_shape( boxClasses[[i]] )
     numberOfBoxes <- 
       as.integer( inputShape[[4]] / numberOfClassificationLabels )
 

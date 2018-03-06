@@ -115,8 +115,10 @@ createDenseNetModel2D <- function( inputImageSize,
     #  Theano:  [batchSize, channelSize, widthSize, heightSize]
     #  tensorflow:  [batchSize, widthSize, heightSize, channelSize]
 
+    K <- keras::backend()  
+
     concatenationAxis <- 1  
-    if( k_image_data_format() == 'channels_last' )
+    if( K$image_data_format() == 'channels_last' )
       {
       concatenationAxis <- -1 
       }
@@ -302,8 +304,10 @@ createDenseNetModel3D <- function( inputImageSize,
     #  Theano:  [batchSize, channelSize, widthSize, heightSize]
     #  tensorflow:  [batchSize, widthSize, heightSize, channelSize]
 
+    K <- keras::backend()  
+
     concatenationAxis <- 1  
-    if( k_image_data_format() == 'channels_last' )
+    if( K$image_data_format() == 'channels_last' )
       {
       concatenationAxis <- -1 
       }

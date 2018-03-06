@@ -76,7 +76,9 @@ createAlexNetModel2D <- function( inputImageSize,
     {
     f <- function( X )
       {
-      Xdims <- k_int_shape( X )
+      K <- keras::backend()  
+  
+      Xdims <- K$int_shape( X )
       div <- as.integer( Xdims[[axis]] / ratioSplit )
       axisSplit <- ( ( idSplit - 1 ) * div + 1 ):( idSplit * div )  
 
@@ -103,33 +105,35 @@ createAlexNetModel2D <- function( inputImageSize,
     {
     normalizeTensor2D <- function( X )
       {
+      K <- keras::backend()
+
       #  Theano:  [batchSize, channelSize, widthSize, heightSize]
       #  tensorflow:  [batchSize, widthSize, heightSize, channelSize]
 
-      if( k_image_data_format() == "channels_last" )
+      if( K$image_data_format() == "channels_last" )
         {
         Xshape <- X$get_shape()  
         } else {
         Xshape <- X$shape()  
         }
-      X2 <- k_square( X )
+      X2 <- K$square( X )
 
       half <- as.integer( n / 2 )
 
-      extraChannels <- k_spatial_2d_padding( 
-        keras::backend()$permute_dimensions( X2, c( 1L, 2L, 3L, 0L ) ), 
+      extraChannels <- K$spatial_2d_padding( 
+        K$permute_dimensions( X2, c( 1L, 2L, 3L, 0L ) ), 
         padding = list( c( 0L, 0L ), c( half, half ) ) )
-      extraChannels <- keras::backend()$permute_dimensions( 
+      extraChannels <- K$permute_dimensions( 
         extraChannels, c( 3L, 0L, 1L, 2L ) )  
       scale <- k
 
-      Xdims <- k_int_shape( X )
+      Xdims <- K$int_shape( X )
       ch <- as.integer( Xdims[[length( Xdims )]] )
       for( i in 1:n )
         {
         scale <- scale + alpha * extraChannels[,,, i:( i + ch - 1 )]  
         }
-      scale <- k_pow( scale, beta )
+      scale <- K$pow( scale, beta )
 
       return( X / scale )
       }
@@ -137,7 +141,6 @@ createAlexNetModel2D <- function( inputImageSize,
     return( layer_lambda( f = normalizeTensor2D ) )  
     }
     
-  K <- keras::backend()
   inputs <- layer_input( shape = inputImageSize )
 
   # Conv1
@@ -298,7 +301,9 @@ createAlexNetModel3D <- function( inputImageSize,
     {
     f <- function( X )
       {
-      Xdims <- k_int_shape( X )
+      K <- keras::backend()  
+  
+      Xdims <- K$int_shape( X )
       div <- as.integer( Xdims[[axis]] / ratioSplit )
       axisSplit <- ( ( idSplit - 1 ) * div + 1 ):( idSplit * div )  
 
@@ -327,33 +332,34 @@ createAlexNetModel3D <- function( inputImageSize,
     {
     normalizeTensor3D <- function( X )
       {
+      K <- keras::backend()  
       #  Theano:  [batchSize, channelSize, widthSize, heightSize, depthSize]
       #  tensorflow:  [batchSize, widthSize, heightSize, depthSize, channelSize]
 
-      if( k_image_data_format() == "channels_last" )
+      if( K$image_data_format() == "channels_last" )
         {
         Xshape <- X$get_shape()  
         } else {
         Xshape <- X$shape()  
         }
-      X2 <- k_square( X )
+      X2 <- K$square( X )
 
       half <- as.integer( n / 2 )
 
-      extraChannels <- k_spatial_3d_padding( 
-        keras::backend()$permute_dimensions( X2, c( 1L, 2L, 3L, 4L, 0L ) ), 
+      extraChannels <- K$spatial_3d_padding( 
+        K$permute_dimensions( X2, c( 1L, 2L, 3L, 4L, 0L ) ), 
         padding = list( c( 0L, 0L ), c( 0L, 0L ), c( half, half ) ) )
-      extraChannels <- keras::backend()$permute_dimensions( 
+      extraChannels <- K$permute_dimensions( 
         extraChannels, c( 4L, 0L, 1L, 2L, 3L ) ) 
       scale <- k
 
-      Xdims <- k_int_shape( X )
+      Xdims <- K$int_shape( X )
       ch <- as.integer( Xdims[[length( Xdims )]] )
       for( i in 1:n )
         {
         scale <- scale + alpha * extraChannels[,,,, i:( i + ch - 1 )]  
         }
-      scale <- k_pow( scale, beta )
+      scale <- K$pow( scale, beta )
 
       return( X / scale )
       }

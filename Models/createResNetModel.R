@@ -85,6 +85,7 @@ createResNetModel2D <- function( inputImageSize,
 
   groupedConvolutionLayer2D <- function( model, numberOfFilters, strides )
     {
+    K <- keras::backend()  
 
     # Per standard ResNet, this is just a 2-D convolution
     if( cardinality == 1 )
@@ -106,7 +107,7 @@ createResNetModel2D <- function( inputImageSize,
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
         {
-        k_set_image_data_format( 'channels_last' )
+        K$set_image_data_format( 'channels_last' )
         z[,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )]
         } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
@@ -276,8 +277,9 @@ createResNetModel3D <- function( inputImageSize,
     return( model )
     }
 
-  groupedConvolutionLayer3d <- function( model, numberOfFilters, strides )
+  groupedConvolutionLayer3D <- function( model, numberOfFilters, strides )
     {
+    K <- keras::backend()  
 
     # Per standard ResNet, this is just a 2-D convolution
     if( cardinality == 1 )
@@ -299,7 +301,7 @@ createResNetModel3D <- function( inputImageSize,
       {
       convolutionLayers[[j]] <- model %>% layer_lambda( function( z ) 
         { 
-        k_set_image_data_format( 'channels_last' )
+        K$set_image_data_format( 'channels_last' )
         z[,,,, ( ( j - 1 ) * numberOfGroupFilters + 1 ):( j * numberOfGroupFilters )]
         } )
       convolutionLayers[[j]] <- convolutionLayers[[j]] %>% 
@@ -321,7 +323,7 @@ createResNetModel3D <- function( inputImageSize,
     model <- addCommonLayers( model )
 
     # ResNeXt (identical to ResNet when `cardinality` == 1)
-    model <- groupedConvolutionLayer3d( model, numberOfFilters = numberOfFiltersIn, 
+    model <- groupedConvolutionLayer3D( model, numberOfFilters = numberOfFiltersIn, 
       strides = strides )
     model <- addCommonLayers( model ) 
 
