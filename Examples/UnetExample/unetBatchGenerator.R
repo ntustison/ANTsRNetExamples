@@ -83,7 +83,7 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
         imageSize <- dim( batchImages[[1]] )
 
         batchX <- array( data = 0, dim = c( batchSize, imageSize, 1 ) )
-        batchY <- array( data = 0, dim = c( batchSize, imageSize, 1 ) )
+        batchY <- array( data = 0, dim = c( batchSize, imageSize ) )
 
         currentPassCount <- currentPassCount + batchSize
 
@@ -118,8 +118,10 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
             whichtoinvert = boolInvert )
 
           batchX[i,,,1] <- as.array( warpedX )
-          batchY[i,,,1] <- as.array( warpedY )
+          batchY[i,,] <- as.array( warpedY )
           }
+
+        segmentationLabels <- sort( unique( as.vector( batchY ) ) )
 
         encodedBatchY <- encodeY( batchY, segmentationLabels ) 
 

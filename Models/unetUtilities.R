@@ -133,7 +133,8 @@ encodeY <- function( groundTruthSegmentations, segmentationLabels )
     stop( "At least two segmentation labels need to be specified." )    
     }
 
-  yEncoded <- groundTruthSegmentations
+  yEncoded <- array( groundTruthSegmentations, 
+    dim = c( dim( groundTruthSegmentations ), 1 ) )
   yEncoded[which( groundTruthSegmentations == 0 )] <- 1
   yEncoded[which( groundTruthSegmentations != 0 )] <- 0
 
@@ -143,9 +144,9 @@ encodeY <- function( groundTruthSegmentations, segmentationLabels )
     labelY[which( groundTruthSegmentations == segmentationLabels[i] )] <- 1
     labelY[which( groundTruthSegmentations != segmentationLabels[i] )] <- 0
 
-    yEncoded <- abind( groundTruthSegmentations, labelY, 
-      along = length( dim( labelY ) ) + 1 )
+    yEncoded <- abind( yEncoded, labelY, along = length( dim( yEncoded ) ) )
     }
+
   return( yEncoded ) 
   }
 
