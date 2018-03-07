@@ -9,6 +9,8 @@ testingDirectory <- paste0( dataDirectory, 'TestingData/' )
 predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
 dir.create( predictedDirectory )
 
+source( paste0( modelDirectory, 'createUnetModel.R' ) )
+source( paste0( modelDirectory, 'unetUtilities.R' ) )
 
 testingImageFiles <- list.files( 
   path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
@@ -76,7 +78,8 @@ for( i in 1:length( probabilityImages ) )
   {
   for( j in 1:length( probabilityImages[[i]] ) )
     {
-    imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), 
+    imageFileName <- gsub( ".nii.gz", 
+      paste0( "_Probability", segmentationLabels[j], ".nii.gz" ), 
       testingImageFiles[[i]] )
     imageFileName <- 
       gsub( testingDirectory, predictedDirectory, imageFileName )

@@ -189,11 +189,12 @@ decodeY <- function( yPredicted, domainImage )
       {
       if( imageDimension == 2 )
         {
-        imageArray <- yPredicted[i,,j]
-        } else {
         imageArray <- yPredicted[i,,,j]
+        } else {
+        imageArray <- yPredicted[i,,,,j]
         }
-      probabilityImages[[j]] <- as.antsImage( imageArray, domainImage )  
+      probabilityImages[[j]] <- as.antsImage( imageArray, 
+        reference = domainImage )  
       }
     batchProbabilityImages[[i]] <- probabilityImages
     }
