@@ -135,8 +135,8 @@ encodeY <- function( groundTruthSegmentations, segmentationLabels )
 
   yEncoded <- array( groundTruthSegmentations, 
     dim = c( dim( groundTruthSegmentations ), 1 ) )
-  yEncoded[which( groundTruthSegmentations == 0 )] <- 1
-  yEncoded[which( groundTruthSegmentations != 0 )] <- 0
+  yEncoded[which( groundTruthSegmentations == segmentationLabels[1] )] <- 1
+  yEncoded[which( groundTruthSegmentations != segmentationLabels[1] )] <- 0
 
   for( i in 2:numberOfLabels )
     {
