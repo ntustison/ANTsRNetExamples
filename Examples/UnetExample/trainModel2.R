@@ -59,7 +59,10 @@ batchSize <- 32L
 
 # Split trainingData into "training" and "validation" componets for
 # training the model.
-sampleIndices <- sample( length( trainingImageFiles ) )
+
+numberOfTrainingData <- length( trainingImageFiles )
+
+sampleIndices <- sample( numberOfTrainingData )
 
 validationSplit <- 40
 trainingIndices <- sampleIndices[1:validationSplit]
@@ -77,7 +80,7 @@ validationData <- unetImageBatchGenerator$new(
   segmentationList = trainingSegmentations[validationIndices], 
   transformList = trainingTransforms[validationIndices] )
 
-trainingDataGenerator <- trainingData$generate( batchSize = batchSize )
+validationDataGenerator <- trainingData$generate( batchSize = batchSize )
 
 ###
 #
