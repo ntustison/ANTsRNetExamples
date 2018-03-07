@@ -144,7 +144,7 @@ encodeY <- function( groundTruthSegmentations, segmentationLabels )
     labelY[which( groundTruthSegmentations != segmentationLabels[i] )] <- 0
 
     yEncoded <- abind( groundTruthSegmentations, labelY, 
-      along = length( dim( labelY ) + 1 ) )
+      along = length( dim( labelY ) ) + 1 )
     }
   return( yEncoded ) 
   }
