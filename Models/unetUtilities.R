@@ -128,23 +128,31 @@ encodeY <- function( groundTruthSegmentations, segmentationLabels )
   {
   numberOfLabels <- length( segmentationLabels )
 
+  dimSegmentations <- dim( groundTruthSegmentations )
+
+  imageDimension <- 2
+  if( length( dimSegmentations ) == 4 )
+    {
+    imageDimension <- 3     
+    }
+
   if( numberOfLabels < 2 )
     {
     stop( "At least two segmentation labels need to be specified." )    
     }
 
-  yEncoded <- array( groundTruthSegmentations, 
-    dim = c( dim( groundTruthSegmentations ), 1 ) )
-  yEncoded[which( groundTruthSegmentations == segmentationLabels[1] )] <- 1
-  yEncoded[which( groundTruthSegmentations != segmentationLabels[1] )] <- 0
-
-  for( i in 2:numberOfLabels )
+  yEncoded <- array( 0, dim = c( dimSegmentations, numberOfLabels ) )
+  for( i in 1:numberOfLabels )
     {
     labelY <- groundTruthSegmentations
     labelY[which( groundTruthSegmentations == segmentationLabels[i] )] <- 1
     labelY[which( groundTruthSegmentations != segmentationLabels[i] )] <- 0
-
-    yEncoded <- abind( yEncoded, labelY, along = length( dim( yEncoded ) ) )
+    if( imageDimension == 2 )
+      {
+      yEncoded[,,,i] <- labelY
+      } else {
+      yEncoded[,,,,i] <- labelY
+      }
     }
 
   return( yEncoded ) 
