@@ -33,19 +33,19 @@ for( i in 1:length( trainingImageFiles ) )
 
   xfrmPrefix <- paste0( trainingTransformDirectory, 'T_', id, i - 1 )
 
-  fwdtransforms <- list()
-  fwdtransforms[[1]] <- paste0( xfrmPrefix, 'Warp.nii.gz' )
-  fwdtransforms[[2]] <- paste0( xfrmPrefix, 'Affine.txt' )
-  invtransforms <- list()
-  invtransforms[[1]] <- paste0( xfrmPrefix, 'Affine.txt' )
-  invtransforms[[2]] <- paste0( xfrmPrefix, 'InverseWarp.nii.gz' )
+  fwdtransforms <- c()
+  fwdtransforms[1] <- paste0( xfrmPrefix, 'Warp.nii.gz' )
+  fwdtransforms[2] <- paste0( xfrmPrefix, 'Affine.txt' )
+  invtransforms <- c()
+  invtransforms[1] <- paste0( xfrmPrefix, 'Affine.txt' )
+  invtransforms[2] <- paste0( xfrmPrefix, 'InverseWarp.nii.gz' )
 
   trainingTransforms[[i]] <- list( 
     fwdtransforms = fwdtransforms, invtransforms = invtransforms )
   }
 
 unetModel <- createUnetModel2D( c( dim( trainingImages[[1]] ), 1 ), 
-  numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
+  numberOfClassificationLabels = 3, layers = 1:4 )
 
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.0001 ),  
@@ -89,12 +89,12 @@ validationDataGenerator <- trainingData$generate( batchSize = batchSize )
 
 track <- unetModel$fit_generator( 
   generator = reticulate::py_iterator( trainingDataGenerator ), 
-  steps_per_epoch = ceiling( length( trainingIndices ) / batchSize ),
+  steps_per_epoch = ceiling( length( trainingIndices )^2 / batchSize ),
   epochs = 100,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
-  validation_steps = ceiling( length( validationIndices ) / batchSize ),
+  validation_steps = ceiling( length( validationIndices )^2 / batchSize ),
   callbacks = list( 
-    callback_model_checkpoint( paste0( baseDirectory, "ssd7Weights.h5" ), 
+    callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
       verbose = 1, mode = 'auto', period = 1 ),
     callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
