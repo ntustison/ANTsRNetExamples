@@ -9,6 +9,7 @@ modelDirectory <- paste0( baseDirectory, '../../Models/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )
 
 source( paste0( modelDirectory, 'createUnetModel.R' ) )
+source( paste0( modelDirectory, 'unetUtilities.R' ) )
 
 trainingImageFiles <- list.files( 
   path = trainingDirectory, pattern = "H1_2D", full.names = TRUE )
@@ -52,21 +53,7 @@ numberOfLabels <- length( segmentationLabels )
 cat( "Segmentation with ", numberOfLabels, 
   " labels: ", segmentationLabels, ".\n", sep = "" )
 
-# Different implementation of keras::to_categorical().  The ordering 
-# of the array elements seems to get screwed up.
-
-Y_train <- trainingLabelData
-Y_train[which( trainingLabelData == 0 )] <- 1
-Y_train[which( trainingLabelData != 0 )] <- 0
-
-for( i in 2:numberOfLabels )
-  {
-  Y_train_label <- trainingLabelData 
-  Y_train_label[which( trainingLabelData == segmentationLabels[i] )] <- 1
-  Y_train_label[which( trainingLabelData != segmentationLabels[i] )] <- 0
-
-  Y_train <- abind( Y_train, Y_train_label, along = 4 )
-  }
+Y_train <- encodeY( trainingLabelData, segmentationLabels )
 
 unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), 
   numberOfClassificationLabels = numberOfLabels, layers = 1:4 )

@@ -70,42 +70,17 @@ testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
 
 predictedData <- unetModelTest %>% predict( X_test, verbose = 1 )
 
-numberOfTestingImages <- dim( predictedData )[1]
+probabilityImages <- decodeY( predictedData, testingImages[[1]] )
 
-for( i in 1:numberOfTestingImages )
+for( i in 1:length( probabilityImages ) )
   {
-  for( j in 1:numberOfLabels )
+  for( j in 1:length( probabilityImages[[i]] ) )
     {
-    imageArray <- predictedData[i,,,j]  
-    image <- as.antsImage( imageArray, reference = testingImages[[i]] )
-
     imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), 
       testingImageFiles[[i]] )
-    imageFileName <- gsub( testingDirectory, predictedDirectory, imageFileName )
+    imageFileName <- 
+      gsub( testingDirectory, predictedDirectory, imageFileName )
 
-    antsImageWrite( image, imageFileName ) 
+    antsImageWrite( probabilityImages[[i]][[j]], imageFileName ) 
     }  
   }
-
-# for( i in 1:1 )
-#   {
-#   imageArray <- X_train[i,,,1]  
-#   image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
-
-#   imageFileName <- gsub( ".nii.gz", paste0( "_Recreated", j, ".nii.gz" ), trainingImageFiles[[i]] )
-#   imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
-
-#   antsImageWrite( image, imageFileName )
-
-#   for( j in 1:numberOfLabels )
-#     {
-#     imageArray <- Y_train[i,,,j]  
-#     image <- as.antsImage( imageArray, reference = trainingImages[[i]] )
-
-#     imageFileName <- gsub( ".nii.gz", paste0( "_Probability", j, ".nii.gz" ), trainingImageFiles[[i]] )
-#     imageFileName <- gsub( trainingDirectory, predictedDirectory, imageFileName )
-
-#     antsImageWrite( image, imageFileName ) 
-#     }  
-#   }
-

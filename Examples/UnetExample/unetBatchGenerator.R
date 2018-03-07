@@ -121,24 +121,8 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
           batchY[i,,,1] <- as.array( warpedY )
           }
 
-        # Now encode batchY
+        encodedBatchY <- encodeY( batchY, segmentationLabels ) 
 
-        segmentationLabels <- sort( unique( as.vector( batchY ) ) )
-        numberOfLabels <- length( segmentationLabels )
-
-        encodedBatchY <- batchY
-        encodedBatchY[which( batchY == 0 )] <- 1
-        encodedBatchY[which( batchY != 0 )] <- 0
-
-        for( i in 2:numberOfLabels )
-          {
-          labelY <- batchY
-          labelY[which( batchY == segmentationLabels[i] )] <- 1
-          labelY[which( batchY != segmentationLabels[i] )] <- 0
-
-          encodedBatchY <- abind( encodedBatchY, labelY, along = 4 )
-          }
-        
         return( list( batchX, encodedBatchY ) )        
         }   
       }
