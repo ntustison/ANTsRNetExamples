@@ -39,6 +39,7 @@ X_test <- array( testingData, dim = c( dim( testingData ), 1 ) )
 testingLabelData <- abind( testingMaskArrays, along = 3 )  
 testingLabelData <- aperm( testingLabelData, c( 3, 1, 2 ) )
 
+segmentationLabels <- sort( unique( as.vector( testingLabelData ) ) )
 numberOfLabels <- length( unique( as.vector( testingLabelData ) ) )
 
 # Different implementation of keras::to_categorical().  The ordering 

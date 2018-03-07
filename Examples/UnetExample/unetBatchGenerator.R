@@ -10,8 +10,13 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
 
     transformList = NULL,
 
+    referenceImageList = NULL,
+
+    referenceTransformList = NULL,
+
     initialize = function( imageList = NULL, segmentationList = NULL, 
-      transformList = NULL )
+      transformList = NULL, referenceImageList = NULL, 
+      referenceTransformList = NULL )
       {
       if( !usePkg( "ANTsR" ) )
         {
@@ -38,6 +43,9 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
         } else {
         stop( "Input transforms must be specified." )
         }
+
+      self$referenceImageList = referenceImageList
+      self$referenceTransformList = referenceTransformList
       },
 
     generate = function( batchSize = 32L )    
@@ -84,10 +92,18 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
           sourceX <- batchImages[[i]]
           sourceY <- batchSegmentations[[i]]
           sourceXfrm <- batchTransforms[[i]]
-
-          randomIndex <- sample.int( length( self$imageList ), size = 1 )
-          referenceX <- self$imageList[[randomIndex]]
-          referenceXfrm <- self$transformList[[randomIndex]]
+          
+          if( is.null( self$referenceImageList ) || 
+            is.null( self$referenceTransformList ) )
+            {
+            randomIndex <- sample.int( length( self$imageList ), size = 1 )
+            referenceX <- self$imageList[[randomIndex]]
+            referenceXfrm <- self$transformList[[randomIndex]]
+            } else {
+            randomIndex <- sample.int( length( self$referenceImageList ), size = 1 )
+            referenceX <- self$referenceImageList[[randomIndex]]
+            referenceXfrm <- self$referenceTransformList[[randomIndex]]
+            }
 
           boolInvert <- c( TRUE, FALSE, FALSE, FALSE )
           transforms <- c( referenceXfrm$invtransforms[1], 
