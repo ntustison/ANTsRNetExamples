@@ -72,9 +72,7 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
           currentPassCount <- 1L
           }
 
-        batchIndices <- currentPassCount:min( 
-          ( currentPassCount + batchSize - 1L ), length( self$imageList ) )
-
+        batchIndices <- sample( length( self$imageList ), batchSize )
         batchImages <- self$imageList[batchIndices]
         batchSegmentations <- self$segmentationList[batchIndices]
         batchTransforms <- self$transformList[batchIndices]
