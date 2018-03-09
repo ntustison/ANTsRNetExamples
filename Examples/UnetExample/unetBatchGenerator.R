@@ -137,15 +137,20 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
             referenceXfrm$invtransforms[2], sourceXfrm$fwdtransforms[1],
             sourceXfrm$fwdtransforms[2] )
 
-          warpedX <- antsApplyTransforms( referenceX, sourceX, 
+          warpedImageX <- antsApplyTransforms( referenceX, sourceX, 
             interpolator = "linear", transformlist = transforms,
             whichtoinvert = boolInvert )          
-          warpedY <- antsApplyTransforms( referenceX, sourceY, 
+          warpedImageY <- antsApplyTransforms( referenceX, sourceY, 
             interpolator = "nearestNeighbor", transformlist = transforms,
             whichtoinvert = boolInvert )
 
-          batchX[i,,,1] <- as.array( warpedX )
-          batchY[i,,] <- as.array( warpedY )
+          warpedArrayX <- as.array( warpedImageX )
+          warpedArrayY <- as.array( warpedImageY )
+
+          warpedArrayX <- ( warpedArrayX - mean( warpedArrayX ) ) / sd( warpedArrayX )
+
+          batchX[i,,, 1] <- warpedArrayX
+          batchY[i,,] <- warpedArrayY
           }
 
         segmentationLabels <- sort( unique( as.vector( batchY ) ) )

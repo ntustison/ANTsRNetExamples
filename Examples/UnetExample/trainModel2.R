@@ -95,18 +95,19 @@ validationDataGenerator <- validationData$generate( batchSize = batchSize )
 
 track <- unetModel$fit_generator( 
   generator = reticulate::py_iterator( trainingDataGenerator ), 
-  steps_per_epoch = 400,
-  epochs = 1,
+#  steps_per_epoch = ceiling( 400 / batchSize ),
+  steps_per_epoch = ceiling( 40 * 50 / batchSize ),
+  epochs = 40,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
   validation_steps = 100,
   callbacks = list( 
     callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
-      verbose = 1, mode = 'auto', period = 1 ),
-    callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
-      patience = 10 ),
-    callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.5,
-      patience = 0, epsilon = 0.001, cooldown = 0 )
+      verbose = 1, mode = 'auto', period = 1 )
+    # callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
+    #   patience = 10 ),
+    # callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.5,
+    #   patience = 0, epsilon = 0.001, cooldown = 0 )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
     )
   )
