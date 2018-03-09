@@ -3,6 +3,8 @@ library( keras )
 library( abind )
 library( ggplot2 )
 
+keras::backend()$clear_session()
+
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
 modelDirectory <- paste0( baseDirectory, '../../Models/' )

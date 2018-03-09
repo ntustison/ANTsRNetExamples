@@ -74,7 +74,7 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
         batchX <- aperm( batchX, c( nDimBatchX, 1:( nDimBatchX - 1 ) ) )
         batchY <- self$labels[batchIndices]
 
-        currentPassCount <- currentPassCount + batchSize
+        currentPassCount <<- currentPassCount + batchSize
 
         # Boxes format is numberOfBoxes x ( xmin, xmax, ymin, ymax )
         translateBoxes <- function( boxes, shift )

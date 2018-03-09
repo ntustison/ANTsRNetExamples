@@ -1,7 +1,7 @@
 library( ANTsR )
 library( keras )
-library( abind )
-library( ggplot2 )
+
+keras::backend()$clear_session()
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
@@ -64,21 +64,27 @@ numberOfTrainingData <- length( trainingImageFiles )
 
 sampleIndices <- sample( numberOfTrainingData )
 
-validationSplit <- 45
+validationSplit <- 40
 trainingIndices <- sampleIndices[1:validationSplit]
 validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfTrainingData]
 
 trainingData <- unetImageBatchGenerator$new( 
   imageList = trainingImages[trainingIndices], 
   segmentationList = trainingSegmentations[trainingIndices], 
-  transformList = trainingTransforms[trainingIndices] )
+  transformList = trainingTransforms[trainingIndices], 
+  referenceImageList = trainingImages, 
+  referenceTransformList = trainingTransforms
+  )
 
 trainingDataGenerator <- trainingData$generate( batchSize = batchSize )
 
 validationData <- unetImageBatchGenerator$new( 
   imageList = trainingImages[validationIndices], 
   segmentationList = trainingSegmentations[validationIndices], 
-  transformList = trainingTransforms[validationIndices] )
+  transformList = trainingTransforms[validationIndices],
+  referenceImageList = trainingImages, 
+  referenceTransformList = trainingTransforms
+  )
 
 validationDataGenerator <- validationData$generate( batchSize = batchSize )
 
@@ -89,10 +95,10 @@ validationDataGenerator <- validationData$generate( batchSize = batchSize )
 
 track <- unetModel$fit_generator( 
   generator = reticulate::py_iterator( trainingDataGenerator ), 
-  steps_per_epoch = ceiling( length( trainingIndices )^2 / batchSize ),
-  epochs = 100,
+  steps_per_epoch = 400,
+  epochs = 1,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
-  validation_steps = ceiling( length( validationIndices )^2 / batchSize ),
+  validation_steps = 100,
   callbacks = list( 
     callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
