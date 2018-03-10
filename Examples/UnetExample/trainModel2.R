@@ -96,10 +96,10 @@ validationDataGenerator <- validationData$generate( batchSize = batchSize )
 track <- unetModel$fit_generator( 
   generator = reticulate::py_iterator( trainingDataGenerator ), 
 #  steps_per_epoch = ceiling( 400 / batchSize ),
-  steps_per_epoch = ceiling( 40 * 50 / batchSize ),
+  steps_per_epoch = ceiling( 400 / batchSize ),
   epochs = 40,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
-  validation_steps = 100,
+  validation_steps = ceiling( 100 / batchSize ),
   callbacks = list( 
     callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
