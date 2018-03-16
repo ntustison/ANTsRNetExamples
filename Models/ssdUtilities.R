@@ -13,7 +13,7 @@
 #' This particular implementation was heavily influenced by the following 
 #' python and R implementations: 
 #' 
-#'         https://github.com/rykov8/ssd_keras
+#'         https://github.com/pierluigiferrari/ssd_keras/blob/master/keras_loss_function/keras_ssd_loss.py
 #'         https://github.com/gsimchoni/ssdkeras/blob/master/R/ssd_loss.R
 #'
 #' @param backgroundRatio The maximum ratio of background to foreround
@@ -69,15 +69,15 @@ lossSsd <- R6::R6Class( "LossSSD",
       squareLoss <- 0.5 * ( y_true - y_pred )^2
       l1Loss <- self$tf$where( self$tf$less( absoluteLoss, 1.0 ), 
         squareLoss, absoluteLoss - 0.5 )
-      return( self$tf$reduce_sum( l1Loss, axis = -1L ) )
+      return( self$tf$reduce_sum( l1Loss, axis = -1L, keepdims = FALSE ) )
       },
 
     log_loss = function( y_true, y_pred ) 
       {
       y_true <- self$tf$cast( y_true, dtype = "float32" )
       y_pred <- self$tf$maximum( y_pred, 1e-15 )
-      logLoss <- 
-        -self$tf$reduce_sum( y_true * self$tf$log( y_pred ), axis = -1L )
+      logLoss <- -self$tf$reduce_sum( y_true * self$tf$log( y_pred ), 
+        axis = -1L, keepdims = FALSE )
       return( logLoss )
       },
 
@@ -97,12 +97,14 @@ lossSsd <- R6::R6Class( "LossSSD",
 
       backgroundBoxes <- y_true[,, 1] 
       foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
-        y_true[,, 2:self$numberOfClassificationLabels], axis = -1L ) ) 
+        y_true[,, 2:self$numberOfClassificationLabels], 
+        axis = -1L, keepdims = TRUE ) ) 
 
-      numberOfForegroundBoxes <- self$tf$reduce_sum( foregroundBoxes )
+      numberOfForegroundBoxes <- self$tf$reduce_sum( 
+        foregroundBoxes, keepdims = FALSE )
 
       foregroundClassLoss <- self$tf$reduce_sum( 
-        classificationLoss * foregroundBoxes, axis = -1L )
+        classificationLoss * foregroundBoxes, axis = -1L, keepdims = TRUE )
 
       backgroundClassLossAll <- classificationLoss * backgroundBoxes
       nonZeroIndices <- 
@@ -134,8 +136,8 @@ lossSsd <- R6::R6Class( "LossSSD",
           self$tf$reshape( backgroundBoxesToKeep, 
           list( batchSize, numberOfBoxesPerCell ) ) )
 
-        return( self$tf$reduce_sum( 
-          classificationLoss * backgroundBoxesToKeep, axis = -1L ) )
+        return( self$tf$reduce_sum( classificationLoss * backgroundBoxesToKeep, 
+          axis = -1L, keepdims = FALSE ) )
         }
 
       backgroundClassLoss <- self$tf$cond( self$tf$equal( 
@@ -143,8 +145,8 @@ lossSsd <- R6::R6Class( "LossSSD",
 
       classLoss <- foregroundClassLoss + backgroundClassLoss
 
-      localizationLoss <- 
-        self$tf$reduce_sum( localizationLoss * foregroundBoxes, axis = -1L )
+      localizationLoss <- self$tf$reduce_sum( 
+        localizationLoss * foregroundBoxes, axis = -1L, keepdims = FALSE )
 
       totalLoss <- ( classLoss + self$alpha * localizationLoss ) / 
         self$tf$maximum( 1.0, numberOfForegroundBoxes ) 
