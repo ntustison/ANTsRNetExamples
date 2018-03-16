@@ -172,6 +172,7 @@ if( visuallyInspectEachImage == TRUE )
       anchorClassIds <- max.col( singleY[, 2:numberOfClassificationLabels] )
       } else {
       anchorClassIds <- which.max( singleY[2:numberOfClassificationLabels] )
+      singleY <- matrix( singleY, nrow = 1 )
       }
 
     anchorBoxColors <- c()
