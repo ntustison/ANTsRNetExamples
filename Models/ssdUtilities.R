@@ -400,10 +400,10 @@ drawRectangles <- function( image, boxes, boxColors = "red",
     scaledBoxes <- as.matrix( boxes, ncol = 4 )
     }
   
-  scaledBoxes[, 1] <- ( scaledBoxes[, 1] - 1 ) / ( dim( image )[1] - 1 )
-  scaledBoxes[, 2] <- ( scaledBoxes[, 2] - 1 ) / ( dim( image )[1] - 1 )
-  scaledBoxes[, 3] <- 1 - ( scaledBoxes[, 3] - 1 ) / ( dim( image )[2] - 1 )
-  scaledBoxes[, 4] <- 1 - ( scaledBoxes[, 4] - 1 ) / ( dim( image )[2] - 1 )
+  scaledBoxes[, 1] <- ( scaledBoxes[, 1] - 1 ) / ( dim( image )[2] - 1 )
+  scaledBoxes[, 2] <- ( scaledBoxes[, 2] - 1 ) / ( dim( image )[2] - 1 )
+  scaledBoxes[, 3] <- 1 - ( scaledBoxes[, 3] - 1 ) / ( dim( image )[1] - 1 )
+  scaledBoxes[, 4] <- 1 - ( scaledBoxes[, 4] - 1 ) / ( dim( image )[1] - 1 )
 
   numberOfBoxes <- nrow( scaledBoxes )
 
@@ -423,7 +423,7 @@ drawRectangles <- function( image, boxes, boxColors = "red",
     }
 
   plot.new()
-  rasterImage( image, xleft = 0, ybottom = 0, xright = 1, ytop = 1 )
+  rasterImage( image, xleft = 0, xright = 1, ybottom = 0, ytop = 1 )
   rect( xleft = scaledBoxes[, 1], xright = scaledBoxes[, 2], 
         ybottom = scaledBoxes[, 3], ytop = scaledBoxes[, 4],
         border = boxColors, lwd = lineWidths )
