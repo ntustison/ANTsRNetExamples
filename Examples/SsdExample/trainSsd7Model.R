@@ -5,6 +5,7 @@ library( reticulate )
 
 
 keras::backend()$clear_session()
+np <- reticulate::import( "numpy" )  
 
 numberOfTrainingData <- 1000
 inputImageSize <- c( 250, 250 )
@@ -25,6 +26,7 @@ source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 source( paste0( baseDirectory, 'ssdBatchGenerator.R' ) )
 
 classes <- c( "eyes", "nose", "mouth" )
+numberOfClassificationLabels <- length( classes ) + 1
 
 ###
 #
@@ -95,7 +97,7 @@ if( visuallyInspectEachImage == TRUE )
 #
 
 ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ), 
-  numberOfClassificationLabels = length( classes ) + 1,
+  numberOfClassificationLabels = numberOfClassificationLabels
   )
 
 ssdModel <- ssdOutput$ssdModel 
@@ -105,7 +107,7 @@ optimizerAdam <- optimizer_adam(
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
 
 ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
-  alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
+  alpha = 1.0, numberOfClassificationLabels = numberOfClassificationLabels )
 
 ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
 
@@ -156,10 +158,21 @@ if( visuallyInspectEachImage == TRUE )
 
     # Get anchor boxes  
     singleY <- Y_train[i,,]
-    singleY <- singleY[which( rowSums( 
-      singleY[, 2:( 1 + length( classes ) )] ) > 0 ),]
 
-    # anchorClassIds <- max.col( singleY[, 1:4] ) - 1
+    if( length( classes ) > 1 )
+      {
+      singleY <- singleY[which( rowSums( 
+        singleY[, 2:numberOfClassificationLabels] ) > 0 ),]
+      } else {
+      singleY <- singleY[which( singleY[, 2] > 0 ),]
+      }
+
+    if( !is.null( dim( singleY ) ) )
+      {     
+      anchorClassIds <- max.col( singleY[, 2:numberOfClassificationLabels] )
+      } else {
+      anchorClassIds <- which.max( singleY[2:numberOfClassificationLabels] )
+      }
 
     anchorBoxColors <- c()
     anchorBoxCaptions <- c()
@@ -167,7 +180,7 @@ if( visuallyInspectEachImage == TRUE )
       {
       anchorBoxColors[j] <- rainbow( 
         length( classes ) )[which( classes[anchorClassIds[j]] == classes )]
-      # anchorBoxCaptions[j] <- classes[which( classes[anchorClassIds[j]] == classes )]
+      anchorBoxCaptions[j] <- classes[which( classes[anchorClassIds[j]] == classes )]
       }
 
     # Get truth boxes
@@ -183,9 +196,34 @@ if( visuallyInspectEachImage == TRUE )
       truthCaptions[j] <- classes[which( classes[truthClassIds[j]] == classes )]
       }
 
-    boxes <- rbind( singleY[, 9:12], as.matrix( truthLabel[, 2:5] ) )
+    # Convert from offsets to absolute coordinates
+
+    indices <- numberOfClassificationLabels + -1:4
+    singleYConverted <- np$copy( singleY[, indices, drop = FALSE] )
+    singleYConverted[, 1] <- anchorClassIds
+    singleYConverted[, 2] <- 0.25   # confidence values
+
+    indices1 <- numberOfClassificationLabels + 11:12
+    indices2 <- numberOfClassificationLabels + 7:8
+    indices3 <- numberOfClassificationLabels + 9:10
+    indices4 <- numberOfClassificationLabels + 5:6
+
+    # singleYConverted[, c( 5, 6 )] <- np$exp( singleYConverted[, c( 5, 6 )] * singleY[, indices1] ) 
+    singleYConverted[, c( 5, 6 )] <- np$exp( 0 * singleY[, indices1] ) 
+    singleYConverted[, c( 5, 6 )] <- singleYConverted[, c( 5, 6 )] * singleY[, indices2] 
+    singleYConverted[, c( 3, 4 )] <- singleYConverted[, c( 3, 4 )] * ( singleY[, indices3] * singleY[, indices2] ) 
+    singleYConverted[, c( 3, 4 )] <- singleYConverted[, c( 3, 4 )] + singleY[, indices4] 
+
+    singleYConverted[,3:6] <- convertCoordinates( singleYConverted[,3:6], type = 'centroids2minmax' )
+
+    if( !is.null( dim( singleY ) ) )
+      {
+      boxes <- rbind( singleYConverted[, 3:6], as.matrix( truthLabel[, 2:5] ) )
+      } else {
+      boxes <- rbind( singleYConverted[, 3:6], as.matrix( truthLabel[, 2:5] ) )
+      }
     boxColors <- c( anchorBoxColors, truthColors )
-    confidenceValues <- c( rep( 0.2, length( anchorBoxColors ) ), rep( 1.0, length( truthColors ) ) )
+    confidenceValues <- c( singleYConverted[,2], rep( 1.0, length( truthColors ) ) )
 
     drawRectangles( image, boxes, boxColors = boxColors, confidenceValues = confidenceValues )
 

@@ -476,7 +476,7 @@ drawRectangles <- function( image, boxes, boxColors = "red",
 #' coordinates. A variance value of 1.0 would apply no scaling at all to the 
 #' predictions, while values in (0,1) upscale the encoded predictions and 
 #' values greater than 1.0 downscale the encoded predictions. These are the same
-#' variances used to construct the model. Defaul = c( 1.0, 1.0, 1.0, 1.0 )
+#' variances used to construct the model. Default = c( 1.0, 1.0, 1.0, 1.0 )
 #' @param foregroundThreshold float between 0 and 1 determining the min threshold 
 #' for matching an anchor box with a ground truth box and, thus, labeling an anchor 
 #' box as a non-background class.  If an anchor box exceeds the ``backgroundThreshold`` 
@@ -485,7 +485,7 @@ drawRectangles <- function( image, boxes, boxColors = "red",
 #' @param backgroundThreshold float between 0 and 1 determining the max threshold 
 #' for labeling an anchor box as `background`.  If an anchor box exceeds the 
 #' ``backgroundThreshold`` but does not meet the foregroundThreshold for a ground
-#' truth box, then it is ignored during training.  Default = 0.3.
+#' truth box, then it is ignored during training.  Default = 0.2.
 #'
 #' @return a 3-D array of shape 
 #'      
@@ -1099,7 +1099,7 @@ create_layer( AnchorBoxLayer2D, object,
 #' coordinates. A variance value of 1.0 would apply no scaling at all to the 
 #' predictions, while values in (0,1) upscale the encoded predictions and 
 #' values greater than 1.0 downscale the encoded predictions. These are the same
-#' variances used to construct the model. Defaul = c( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
+#' variances used to construct the model. Default = c( 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 )
 #' @param foregroundThreshold float between 0 and 1 determining the min threshold 
 #' for matching an anchor box with a ground truth box and, thus, labeling an anchor 
 #' box as a non-background class.  If an anchor box exceeds the ``backgroundThreshold`` 
@@ -1108,7 +1108,7 @@ create_layer( AnchorBoxLayer2D, object,
 #' @param backgroundThreshold float between 0 and 1 determining the max threshold 
 #' for labeling an anchor box as `background`.  If an anchor box exceeds the 
 #' ``backgroundThreshold`` but does not meet the foregroundThreshold for a ground
-#' truth box, then it is ignored during training.  Default = 0.3.
+#' truth box, then it is ignored during training.  Default = 0.2.
 #'
 #' @return a 3-D array of shape 
 #'      
