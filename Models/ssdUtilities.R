@@ -1639,9 +1639,9 @@ AnchorBoxLayer3D <- R6::R6Class( "AnchorBoxLayer3D",
       grid <- np$meshgrid( centers[[1]], centers[[2]], centers[[3]] )  
       for( i in 1:length( grid ) )
         {
-        boxesTensor[,,, i] <- np$tile( np$expand_dims( grid[[i]], axis = -1L ), 
-          reticulate::tuple( 1L, 1L, 1L, self$numberOfBoxes ) )
-        boxesTensor[,,, i + length( grid )] <- array( rep( boxDimensions[[i]], 
+        boxesTensor[,,,, i] <- np$tile( np$expand_dims( grid[[i]], axis = -1L ), 
+          reticulate::tuple( 1L, 1L, 1L, 1L, self$numberOfBoxes ) )
+        boxesTensor[,,,, i + length( grid )] <- array( rep( boxDimensions[[i]], 
           each = layerSize[1] * layerSize[2] * layerSize[3] ), 
           dim = c( layerSize[1], layerSize[2], layerSize[3], 
           self$numberOfBoxes ) )
@@ -1651,7 +1651,7 @@ AnchorBoxLayer3D <- R6::R6Class( "AnchorBoxLayer3D",
         dim = c( layerSize[1] * layerSize[2] * layerSize[2] * 
         self$numberOfBoxes, 6 ) ) 
         
-      # Convert to (xmin, xmax, ymin, ymax)
+      # Convert to (xmin, xmax, ymin, ymax, zmin, zmax)
       self$anchorBoxesArray <- convertCoordinates( self$anchorBoxesArray, 
         type = 'centroids2minmax' )
 
@@ -1664,7 +1664,7 @@ AnchorBoxLayer3D <- R6::R6Class( "AnchorBoxLayer3D",
 
       anchorBoxesTensor <- K$constant( anchorBoxesTensor, dtype = 'float32' )
       anchorBoxesTensor <- K$tile( anchorBoxesTensor, 
-        c( K$shape( x )[1], 1L, 1L, 1L, 1L, 1L, 1L ) )
+        c( K$shape( x )[1], 1L, 1L, 1L, 1L, 1L ) )
 
       return( anchorBoxesTensor )  
       },

@@ -140,10 +140,8 @@ ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L,
 
 ssdModelTest %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
 
-testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
-
 X_test <- testingData
-
+testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
 predictedDataDecoded <- decodeY2D( predictedData, inputImageSize, 
   confidenceThreshold = 0.4, overlapThreshold = 0.4 )

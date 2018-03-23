@@ -287,6 +287,8 @@ createSsd7Model3D <- function( inputImageSize,
 
   K <- keras::backend()  
 
+  cat( "HERE 0\n")
+
   filterSizes <- c( 32, 48, 64, 64, 48, 48, 32 ) 
 
   numberOfPredictorLayers <- length( aspectRatiosPerLayer )
@@ -337,7 +339,7 @@ createSsd7Model3D <- function( inputImageSize,
       padding = 'same', name = paste0( 'conv', i ) )
 
     convolutionLayer <- convolutionLayer %>% layer_batch_normalization( 
-      axis = 3, momentum = 0.99, name = paste0( 'bn', i ) )
+      axis = 4, momentum = 0.99, name = paste0( 'bn', i ) )
      
     convolutionLayer <- convolutionLayer %>% 
       layer_activation_elu( name = paste0( 'elu', i ) )
@@ -361,7 +363,6 @@ createSsd7Model3D <- function( inputImageSize,
         kernel_size = c( 3, 3, 3 ), strides = c( 1, 1, 1 ),
         padding = 'valid', name = paste0( 'boxes', i ) )
       }
-
     }
 
   # Generate the anchor boxes.  Output shape of anchor boxes =
@@ -383,7 +384,7 @@ createSsd7Model3D <- function( inputImageSize,
     # We calculate the anchor box values again to return as output for 
     # encoding Y_train.  I'm guessing there's a better way to do this 
     # but it's the cleanest I've found.
-    anchorBoxGenerator <- AnchorBoxLayer3d$new( imageSize = imageSize,
+    anchorBoxGenerator <- AnchorBoxLayer3D$new( imageSize = imageSize,
       scales[i], scales[i + 1],
       aspectRatios = aspectRatiosPerLayer[[i]], variances = variances )
     anchorBoxGenerator$call( boxLocations[[i]] )  

@@ -23,7 +23,7 @@ trainingMasks <- list()
 trainingImageArrays <- list()
 trainingMaskArrays <- list()
 
-trainingProportion <- 0.2
+trainingProportion <- 0.8
 set.seed( 1234 )
 trainingIndices <- sample.int( 
   length( trainingMaskFiles ), size = length( trainingMaskFiles ) * trainingProportion )
