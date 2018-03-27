@@ -1,4 +1,4 @@
-### Sample batch operators which demonstrate various data augmentation schemes
+### Sample batch generators which demonstrate various data augmentation schemes
 
 * __ssdBatchGenerator.R:__  Batch generator for use with 3-D SSD models using a 3-D template-based data augmentation strategy.  
 
