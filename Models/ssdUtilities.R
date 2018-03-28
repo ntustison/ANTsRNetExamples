@@ -85,13 +85,18 @@ lossSsd <- R6::R6Class( "LossSSD",
       {
       y_true$set_shape( y_pred$get_shape() )
       batchSize <- self$tf$shape( y_pred )[1] 
-      numberOfBoxesPerCell <- self$tf$shape( y_pred )[2] 
+      numberOfBoxesPerCell <- self$tf$shape( y_pred )[2]
+      lastDimensionSize <- self$tf$shape( y_pred )[3] 
 
       indices <- 1:self$numberOfClassificationLabels
       classificationLoss <- self$tf$to_float( self$log_loss( 
          y_true[,, indices], y_pred[,, indices] ) ) 
 
       indices <- self$numberOfClassificationLabels + 1:4
+      if( lastDimensionSize != self$numberOfClassificationLabels + 12 )
+        {
+        indices <- self$numberOfClassificationLabels + 1:6
+        }  
       localizationLoss <- self$tf$to_float( self$smooth_l1_loss( 
         y_true[,, indices], y_pred[,, indices] ) )
 
