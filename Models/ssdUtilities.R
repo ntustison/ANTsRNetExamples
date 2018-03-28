@@ -96,15 +96,29 @@ lossSsd <- R6::R6Class( "LossSSD",
         y_true[,, indices], y_pred[,, indices] ) )
 
       backgroundBoxes <- y_true[,, 1] 
-      foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
-        y_true[,, 2:self$numberOfClassificationLabels], 
-        axis = -1L, keepdims = TRUE ) ) 
+
+      if( self$numberOfClassificationLabels > 2 )
+        {
+        foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
+          y_true[,, 2:self$numberOfClassificationLabels], 
+          axis = -1L, keepdims = FALSE ) )
+        } else {
+        foregroundBoxes <- self$tf$to_float( self$tf$reduce_max( 
+          y_true[,, 2:self$numberOfClassificationLabels], 
+          axis = -1L, keepdims = TRUE ) )
+        } 
 
       numberOfForegroundBoxes <- self$tf$reduce_sum( 
         foregroundBoxes, keepdims = FALSE )
 
-      foregroundClassLoss <- self$tf$reduce_sum( 
-        classificationLoss * foregroundBoxes, axis = -1L, keepdims = TRUE )
+      if( self$numberOfClassificationLabels > 2 )
+        {
+        foregroundClassLoss <- self$tf$reduce_sum( 
+          classificationLoss * foregroundBoxes, axis = -1L, keepdims = FALSE )
+        } else {
+        foregroundClassLoss <- self$tf$reduce_sum( 
+          classificationLoss * foregroundBoxes, axis = -1L, keepdims = TRUE )
+        }  
 
       backgroundClassLossAll <- classificationLoss * backgroundBoxes
       nonZeroIndices <- 

@@ -287,8 +287,6 @@ createSsd7Model3D <- function( inputImageSize,
 
   K <- keras::backend()  
 
-  cat( "HERE 0\n")
-
   filterSizes <- c( 32, 48, 64, 64, 48, 48, 32 ) 
 
   numberOfPredictorLayers <- length( aspectRatiosPerLayer )
