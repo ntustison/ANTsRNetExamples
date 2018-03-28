@@ -39,6 +39,8 @@ lossSsd <- R6::R6Class( "LossSSD",
 
   public = list( 
       
+    dimension = 2L,
+
     backgroundRatio = 3L, 
     
     minNumberOfBackgroundBoxes = 0L, 
@@ -50,10 +52,11 @@ lossSsd <- R6::R6Class( "LossSSD",
     # Can we generalize beyond tensorflow?
     tf = tensorflow::tf,
 
-    initialize = function( backgroundRatio = 3L, 
+    initialize = function( dimension = 2, backgroundRatio = 3L, 
       minNumberOfBackgroundBoxes = 0L, alpha = 1.0, 
       numberOfClassificationLabels = NULL ) 
       {
+      self$dimension <- as.integer( dimension )
       self$backgroundRatio <- self$tf$constant( backgroundRatio )
       self$minNumberOfBackgroundBoxes <- 
         self$tf$constant( minNumberOfBackgroundBoxes )
@@ -92,11 +95,7 @@ lossSsd <- R6::R6Class( "LossSSD",
       classificationLoss <- self$tf$to_float( self$log_loss( 
          y_true[,, indices], y_pred[,, indices] ) ) 
 
-      indices <- self$numberOfClassificationLabels + 1:4
-      if( lastDimensionSize != self$numberOfClassificationLabels + 12 )
-        {
-        indices <- self$numberOfClassificationLabels + 1:6
-        }  
+      indices <- self$numberOfClassificationLabels + 1:( 2 * self$dimension )
       localizationLoss <- self$tf$to_float( self$smooth_l1_loss( 
         y_true[,, indices], y_pred[,, indices] ) )
 
