@@ -213,10 +213,6 @@ ssdImageBatchGenerator2D <- R6::R6Class( "SsdImageBatchGenerator2D",
 
             measures <- labelGeometryMeasures( sliceWarpedImageY )
 
-            # antsImageWrite( sliceWarpedImageY, "~/Desktop/slicedY.nii.gz" )
-            # antsImageWrite( as.antsImage( sliceWarpedArrayX ), "~/Desktop/slicedX.nii.gz" )
-            # readline( prompt = "Press [enter] to continue " )
-
             #
             # Note:  need to change the order when ANTsR updates it's ANTs version
             #
