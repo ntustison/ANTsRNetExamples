@@ -52,7 +52,7 @@ lossSsd <- R6::R6Class( "LossSSD",
     # Can we generalize beyond tensorflow?
     tf = tensorflow::tf,
 
-    initialize = function( dimension = 2, backgroundRatio = 3L, 
+    initialize = function( dimension = 2L, backgroundRatio = 3L, 
       minNumberOfBackgroundBoxes = 0L, alpha = 1.0, 
       numberOfClassificationLabels = NULL ) 
       {
@@ -168,6 +168,9 @@ lossSsd <- R6::R6Class( "LossSSD",
 
       totalLoss <- ( classLoss + self$alpha * localizationLoss ) / 
         self$tf$maximum( 1.0, numberOfForegroundBoxes ) 
+
+      self$tf$Print( classLoss, data = list( classLoss, localizationLoss ), message = "Woke\n" )
+      self$tf$Print( localizationLoss, data = list( classLoss, localizationLoss ), message = "Woke2\n" )
 
       return( totalLoss )
       }
@@ -622,7 +625,7 @@ encodeY2D <- function( groundTruthLabels, anchorBoxes, imageSize,
         }
       }
     # Set the remaining background indices to the background class  
-    backgroundClassIndices = np$nonzero( backgroundBoxes )[[1]] + 1
+    backgroundClassIndices <- np$nonzero( backgroundBoxes )[[1]] + 1
     yEncoded[i, backgroundClassIndices, 1] <- 1
     }
 
@@ -1134,7 +1137,7 @@ create_layer( AnchorBoxLayer2D, object,
 #'      
 #'         `(batchSize, numberOfBoxes, numberOfClasses + 6 + 6 + 6)`
 #'
-#' where the additional 4's along the third dimension correspond to 
+#' where the additional 6's along the third dimension correspond to 
 #' the 6 predicted box coordinate offsets, the 6 coordinates for
 #' the anchor boxes, and the 6 variance values.
 #'
@@ -1148,7 +1151,7 @@ create_layer( AnchorBoxLayer2D, object,
 #' }
 
 encodeY3D <- function( groundTruthLabels, anchorBoxes, imageSize,
-  variances = rep( 1.0, 4 ), foregroundThreshold = 0.5, 
+  variances = rep( 1.0, 6 ), foregroundThreshold = 0.5, 
   backgroundThreshold = 0.2 )
   {
   np <- reticulate::import( "numpy" )  
@@ -1193,7 +1196,7 @@ encodeY3D <- function( groundTruthLabels, anchorBoxes, imageSize,
   classEye <- np$eye( numberOfClassificationLabels )
 
   boxIndices <- numberOfClassificationLabels + 1:6
-  classIndices <- 1:( numberOfClassificationLabels + 4 )
+  classIndices <- 1:( numberOfClassificationLabels + 6 )
  
   for( i in 1:batchSize )
     { 
@@ -1213,7 +1216,7 @@ encodeY3D <- function( groundTruthLabels, anchorBoxes, imageSize,
       
       if( abs( groundTruthCoords[2] - groundTruthCoords[1] ) < 0.001 ||
         abs( groundTruthCoords[4] - groundTruthCoords[3] ) < 0.001 ||
-        abs( groundTruthCoords[6] - groundTruthCoords[5] ) )
+        abs( groundTruthCoords[6] - groundTruthCoords[5] ) < 0.001 )
         {
         next()
         }
@@ -1246,7 +1249,7 @@ encodeY3D <- function( groundTruthLabels, anchorBoxes, imageSize,
         }
       }
     # Set the remaining background indices to the background class  
-    backgroundClassIndices = np$nonzero( backgroundBoxes )[[1]] + 1
+    backgroundClassIndices <- np$nonzero( backgroundBoxes )[[1]] + 1
     yEncoded[i, backgroundClassIndices, 1] <- 1
     }
 
