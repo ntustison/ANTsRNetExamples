@@ -4,8 +4,8 @@ library( jpeg )
 
 visuallyInspectEachImage <- FALSE
 
-numberOfTrainingData <- 946
-numberOfTestingData <- 54
+numberOfTrainingData <- 900
+numberOfTestingData <- 100
 testingImageFiles <- rep( NA, numberOfTestingData )
 
 baseDirectory <- './'
