@@ -745,13 +745,13 @@ decodeY2D <- function( yPredicted, imageSize, confidenceThreshold = 0.5,
   indices3 <- numberOfClassificationLabels + 9:10
   indices4 <- numberOfClassificationLabels + 5:6
 
-  yPredictedConverted[,, c( 5, 6 )] <- 
-    np$exp( yPredictedConverted[,, c( 5, 6 )] * yPredicted[,, indices1] ) 
-  yPredictedConverted[,, c( 5, 6 )] <- 
-    yPredictedConverted[,, c( 5, 6 )] * yPredicted[,, indices2] 
-  yPredictedConverted[,, c( 3, 4 )] <- yPredictedConverted[,, c( 3, 4 )] * 
+  yPredictedConverted[,, 5:6] <- 
+    np$exp( yPredictedConverted[,, 5:6] * yPredicted[,, indices1] ) 
+  yPredictedConverted[,, 5:6] <- 
+    yPredictedConverted[,, 5:6] * yPredicted[,, indices2] 
+  yPredictedConverted[,, 3:4] <- yPredictedConverted[,, 3:4] * 
     ( yPredicted[,, indices3] * yPredicted[,, indices2] ) 
-  yPredictedConverted[,, c( 3, 4 )] <- yPredictedConverted[,, c( 3, 4 )] + 
+  yPredictedConverted[,, 3:4] <- yPredictedConverted[,, 3:4] + 
     yPredicted[,, indices4] 
 
   yPredictedConverted[,,3:6] <- 
