@@ -1,6 +1,6 @@
 #' @export
 
-ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
+ssdImageBatchGenerator3D <- R6::R6Class( "SsdImageBatchGenerator3D",
 
   public = list( 
     
