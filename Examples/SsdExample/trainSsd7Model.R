@@ -103,10 +103,14 @@ ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ),
 ssdModel <- ssdOutput$ssdModel 
 anchorBoxes <- ssdOutput$anchorBoxes
 
+load_model_weights_hdf5( ssdModel, 
+  filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
+
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
 
-ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
+ssdLoss <- lossSsd$new( dimension = 2L, backgroundRatio = 3L, 
+  minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = numberOfClassificationLabels )
 
 ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
@@ -121,26 +125,26 @@ writeLines( json_string, paste0( baseDirectory, "ssd7Model.json" ) )
 #  Debugging:  draw all anchor boxes
 #
 
-image <- readJPEG( paste0( imageDirectory, uniqueImageFiles[1] ) )
-for( i in 1:length( anchorBoxes) )
-  {
-  cat( "Drawing anchor box:", i, "\n" )
-  anchorBox <- anchorBoxes[[i]]
-  anchorBox[, 1:2] <- anchorBox[, 1:2]
-  anchorBox[, 3:4] <- anchorBox[, 3:4]
-  drawRectangles( image, anchorBox[,], 
-    boxColors = rainbow( nrow( anchorBox[,] ) ) )
-  readline( prompt = "Press [enter] to continue\n" )
-  # for( j in 1:nrow( anchorBoxes[[i]] ) )
-  #   {
-  #   cat( "Drawing anchor box:", i, ",", j, "\n" )
-  #   anchorBox <- anchorBoxes[[i]][j,]
-  #   anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
-  #   anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
-  #   drawRectangles( image, anchorBox, boxColors = "red" )
-  #   readline( prompt = "Press [enter] to continue\n" )
-  #   }
-  }
+# image <- readJPEG( paste0( imageDirectory, uniqueImageFiles[1] ) )
+# for( i in 1:length( anchorBoxes) )
+#   {
+#   cat( "Drawing anchor box:", i, "\n" )
+#   anchorBox <- anchorBoxes[[i]]
+#   anchorBox[, 1:2] <- anchorBox[, 1:2]
+#   anchorBox[, 3:4] <- anchorBox[, 3:4]
+#   drawRectangles( image, anchorBox[,], 
+#     boxColors = rainbow( nrow( anchorBox[,] ) ) )
+#   readline( prompt = "Press [enter] to continue\n" )
+#   # for( j in 1:nrow( anchorBoxes[[i]] ) )
+#   #   {
+#   #   cat( "Drawing anchor box:", i, ",", j, "\n" )
+#   #   anchorBox <- anchorBoxes[[i]][j,]
+#   #   anchorBox[1:2] <- anchorBox[1:2] * ( inputImageSize[1] - 2 ) + 1
+#   #   anchorBox[3:4] <- anchorBox[3:4] * ( inputImageSize[2] - 2 ) + 1
+#   #   drawRectangles( image, anchorBox, boxColors = "red" )
+#   #   readline( prompt = "Press [enter] to continue\n" )
+#   #   }
+#   }
 
 ###
 #
@@ -236,13 +240,13 @@ if( visuallyInspectEachImage == TRUE )
 #
 # Set up the training generator
 #
-batchSize <- 32L
+batchSize <- 50L
 
 # Split trainingData into "training" and "validation" componets for
 # training the model.
 sampleIndices <- sample( numberOfTrainingData )
 
-validationSplit <- 946 # round( ( 1 - 0.2 ) * numberOfTrainingData )
+validationSplit <- 900 # round( ( 1 - 0.2 ) * numberOfTrainingData )
 trainingIndices <- sampleIndices[1:validationSplit]
 validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfTrainingData]
 
@@ -278,7 +282,7 @@ validationDataGenerator <- validationData$generate( batchSize = batchSize,
 
 track <- ssdModel$fit_generator( 
   generator = reticulate::py_iterator( trainingDataGenerator ), 
-  steps_per_epoch = ceiling( length( trainingIndices ) / batchSize ),
+  steps_per_epoch = 20, #ceiling( length( trainingIndices ) / batchSize ),
   epochs = 100,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
   validation_steps = ceiling( length( validationIndices ) / batchSize ),
