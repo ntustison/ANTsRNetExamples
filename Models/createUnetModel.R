@@ -349,10 +349,10 @@ createUnetModel3D <- function( inputImageSize,
     }
   if( numberOfClassificationLabels == 1 )  
     {
-    outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, 
+    outputs <- outputs %>% layer_conv_3d( filters = numberOfClassificationLabels, 
       kernel_size = c( 1, 1, 1 ), activation = 'sigmoid' )
     } else {
-    outputs <- outputs %>% layer_conv_2d( filters = numberOfClassificationLabels, 
+    outputs <- outputs %>% layer_conv_3d( filters = numberOfClassificationLabels, 
       kernel_size = c( 1, 1, 1 ), activation = 'softmax' )
     }
 
