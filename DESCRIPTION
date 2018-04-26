@@ -13,7 +13,8 @@ License: Apache License (>=2.0)
 LazyLoad: yes
 Depends:
     R (>= 2.10),
-    methods
+    methods,
+    R6
 Imports:
     ANTsR,
     ANTsRCore,
