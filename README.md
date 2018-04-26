@@ -2,6 +2,8 @@
 
 A collection of well-known deep learning architectures ported to the R language.
 
+And tools for basic medical image processing.
+
 ## R package dependencies
 
 * [ANTsR](https://github.com/stnava/ANTsR)
