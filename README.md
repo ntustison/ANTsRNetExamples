@@ -93,6 +93,8 @@ A collection of well-known deep learning architectures ported to the R language.
 5. [Install tensorflow-gpu](https://medium.com/@fabmilo/how-to-compile-tensorflow-with-cuda-support-on-osx-fd27108e27e1)    
 6. [Install keras with tensorflow-gpu](https://keras.rstudio.com)
 
+__Update (April 11, 2018):__ The recent MacOSx update (10.13.4) broke the eGPU compatiblity as explained [here](https://egpu.io/forums/mac-setup/script-enable-egpu-on-tb1-2-macs-on-macos-10-13-4/).  
+
 ## Misc. notes
 
 * I originally set-up the hardware followed by the drivers (steps 1 and 2) but the tensorflow installation caused some problems.  I believe they were from ``csrutil enable --without kext`` instead of ``csrutil disable`` in step 2 so I ended up using the latter.
