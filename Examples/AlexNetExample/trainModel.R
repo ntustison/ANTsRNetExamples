@@ -1,7 +1,4 @@
-library( ANTsR )
-library( keras )
-library( abind )
-library( ggplot2 )
+library( ANTsRNet )
 library( jpeg )
 
 # Dog vs. cat data available from here:
@@ -14,9 +11,6 @@ trainingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './Images/' )
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
-
-source( paste0( modelDirectory, 'createAlexNetModel.R' ) )
 
 trainingDirectories <- c()
 trainingDirectories[1] <- paste0( dataDirectory, 'TrainingDataPlanes/' )

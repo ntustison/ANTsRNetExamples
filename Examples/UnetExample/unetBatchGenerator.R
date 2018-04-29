@@ -155,7 +155,7 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
 
         segmentationLabels <- sort( unique( as.vector( batchY ) ) )
 
-        encodedBatchY <- encodeY( batchY, segmentationLabels ) 
+        encodedBatchY <- encodeUnet( batchY, segmentationLabels ) 
 
         return( list( batchX, encodedBatchY ) )        
         }   

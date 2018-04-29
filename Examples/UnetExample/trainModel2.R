@@ -1,14 +1,12 @@
 library( ANTsR )
+library( ANTsRNet )
 library( keras )
 
 keras::backend()$clear_session()
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
-source( paste0( modelDirectory, 'createUnetModel.R' ) )
-source( paste0( modelDirectory, 'unetUtilities.R' ) )
 source( paste0( baseDirectory, 'unetBatchGenerator.R' ) )
 
 trainingImageDirectory <- paste0( dataDirectory, 'TrainingData/' )

@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet )
 library( keras )
 library( abind )
 library( ggplot2 )
@@ -14,9 +15,6 @@ trainingImageSize <- c( 100, 100 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './Images/' )
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
-
-source( paste0( modelDirectory, 'createVggModel.R' ) )
 
 trainingDirectories <- c()
 trainingDirectories[1] <- paste0( dataDirectory, 'TrainingDataPlanes/' )

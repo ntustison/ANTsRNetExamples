@@ -1,8 +1,7 @@
+library( ANTsRNet )
 library( keras )
 
 keras::backend()$clear_session()
-
-source( "../../Models/createResNetModel.R" )
 
 mnistData <- dataset_mnist()
 

@@ -169,7 +169,7 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
             }
           }
 
-        encodedBatchY <- encodeY2D( batchY, anchorBoxes, imageSize, variances )  
+        encodedBatchY <- encodeSsd2D( batchY, anchorBoxes, imageSize, variances )  
         return( list( batchX, encodedBatchY ) )        
         }   
       }

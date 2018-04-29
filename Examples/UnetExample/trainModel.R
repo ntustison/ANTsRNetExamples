@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet )
 library( keras )
 library( abind )
 library( ggplot2 )
@@ -9,9 +10,6 @@ baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/' )
 modelDirectory <- paste0( baseDirectory, '../../Models/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )
-
-source( paste0( modelDirectory, 'createUnetModel.R' ) )
-source( paste0( modelDirectory, 'unetUtilities.R' ) )
 
 trainingImageFiles <- list.files( 
   path = trainingDirectory, pattern = "H1_2D", full.names = TRUE )
@@ -55,7 +53,7 @@ numberOfLabels <- length( segmentationLabels )
 cat( "Segmentation with ", numberOfLabels, 
   " labels: ", segmentationLabels, ".\n", sep = "" )
 
-Y_train <- encodeY( trainingLabelData, segmentationLabels )
+Y_train <- encodeUnet( trainingLabelData, segmentationLabels )
 
 unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), 
   numberOfClassificationLabels = numberOfLabels, layers = 1:4 )

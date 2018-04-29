@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet )
 library( keras )
 library( jpeg )
 library( reticulate )
@@ -21,8 +22,6 @@ uniqueImageFiles <- levels( as.factor( data$frame ) )
 
 modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
-source( paste0( modelDirectory, 'createSsd7Model.R' ) )
-source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 source( paste0( baseDirectory, 'ssdBatchGenerator.R' ) )
 
 classes <- c( "eyes", "nose", "mouth" )
@@ -109,7 +108,7 @@ load_model_weights_hdf5( ssdModel,
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-05 )
 
-ssdLoss <- lossSsd$new( dimension = 2L, backgroundRatio = 3L, 
+ssdLoss <- LossSSD$new( dimension = 2L, backgroundRatio = 3L, 
   minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = numberOfClassificationLabels )
 
@@ -153,7 +152,7 @@ writeLines( json_string, paste0( baseDirectory, "ssd7Model.json" ) )
 
 if( visuallyInspectEachImage == TRUE )
   {
-  Y_train <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+  Y_train <- encodeSsd2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
   for( i in 1:numberOfTrainingData )
     {

@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet
 library( xml2 )
 library( tidyverse )
 library( stringr )
@@ -31,8 +32,6 @@ dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
 imageDirectory <- paste0( dataDirectory, 'Images/' )
 annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
 dataFile <- paste0( dataDirectory, 'data.csv' )
-
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
 
 parseXML <- function( xml, labels ) {
   
@@ -149,14 +148,6 @@ cat( "\nDone.\n" )
 
 X_train <- trainingData
 
-###
-#
-# Create the SSD model
-#
-
-source( paste0( modelDirectory, 'createSsdModel.R' ) )
-source( paste0( modelDirectory, 'ssdUtilities.R' ) )
-
 # Input size must be greater than >= 258 for a single dimension
 
 ssdOutput <- createSsdModel2D( c( inputImageSize, 3 ), 
@@ -221,7 +212,7 @@ if( visuallyInspectEachImage == TRUE )
   cat( "\n\nDone inspecting images.\n" )
   }
 
-Y_train <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+Y_train <- encodeSsd2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
 #
@@ -308,7 +299,7 @@ if( visuallyInspectEachImage == TRUE )
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
 
-ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
+ssdLoss <- LossSSD$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
 
 ssdModel %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )

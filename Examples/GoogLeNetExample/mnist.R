@@ -1,8 +1,7 @@
+library( ANTsRNet )
 library( keras )
 
 keras::backend()$clear_session()
-
-source( "../../Models/createGoogLeNetModel.R" )
 
 stop( 
   paste( "This doesn't work because the architecture is built for",

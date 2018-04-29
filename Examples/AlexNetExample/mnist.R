@@ -1,8 +1,7 @@
+library( ANTsRNet )
 library( keras )
 
 keras::backend()$clear_session()
-
-source( "../../Models/createAlexNetModel.R" )
 
 mnistData <- dataset_mnist()
 
@@ -15,7 +14,7 @@ Y_train <- keras::to_categorical( mnistData$train$y, numberOfLabels )
 inputImageSize <- c( dim( mnistData$train$x )[2:3], 1 )
 
 alexNetModel <- createAlexNetModel2D( inputImageSize = inputImageSize, 
-  numberOfClassificationLabels = numberOfLabels, denseUnits = 4096,
+  numberOfClassificationLabels = numberOfLabels, numberOfDenseUnits = 4096,
   dropoutRate = 0.0 )
 
 alexNetModel %>% compile( loss = 'categorical_crossentropy',

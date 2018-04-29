@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet )
 library( xml2 )
 library( tidyverse )
 library( stringr )
@@ -27,11 +28,6 @@ dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
 imageDirectory <- paste0( dataDirectory, 'Images/' )
 annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
 dataFile <- paste0( dataDirectory, 'data.csv' )
-
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
-
-source( paste0( modelDirectory, 'createSsdModel.R' ) )
-source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 
 parseXML <- function( xml, labels ) {
   
@@ -214,7 +210,7 @@ anchorBoxes <- ssdOutput$anchorBoxes
 load_model_weights_hdf5( ssdModelTest, 
   filepath = paste0( baseDirectory, 'ssd300Weights.h5' ) )
   
-Y_test <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+Y_test <- encodeSsd2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 ###
 #
@@ -291,7 +287,7 @@ testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 X_test <- testingData
 
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
-predictedDataDecoded <- decodeY2D( predictedData, inputImageSize )
+predictedDataDecoded <- decodeSsd2D( predictedData, inputImageSize )
 
 for( i in 1:length( predictedDataDecoded ) )
   {

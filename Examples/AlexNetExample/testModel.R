@@ -1,7 +1,11 @@
+library( ANTsRNet )
 library( ANTsR )
 library( keras )
 library( abind )
 library( ggplot2 )
+library( keras )
+
+keras::backend()$clear_session()
 
 # Dog vs. cat data available from here:
 #    https://www.kaggle.com/c/dogs-vs-cats/data
@@ -13,9 +17,6 @@ testingImageSize <- c( 227, 227 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './Images/' )
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
-
-source( paste0( modelDirectory, 'createAlexNetModel.R' ) )
 
 # Yeah, I know I'm double-dipping here but I'm just trying to get something
 # to work at this point.

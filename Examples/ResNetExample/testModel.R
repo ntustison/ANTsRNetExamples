@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet )
 library( keras )
 library( abind )
 library( ggplot2 )
@@ -13,9 +14,6 @@ testingImageSize <- c( 224, 224 )
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, './Images/' )
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
-
-source( paste0( modelDirectory, 'createResNetModel.R' ) )
 
 # Yeah, I know I'm double-dipping here but I'm just trying to get something
 # to work at this point.

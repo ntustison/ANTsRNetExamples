@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet )
 library( keras )
 library( abind )
 library( ggplot2 )
@@ -10,9 +11,6 @@ dataDirectory <- paste0( baseDirectory, 'Images/' )
 testingDirectory <- paste0( dataDirectory, 'TestingData/' )
 predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
 dir.create( predictedDirectory )
-
-source( paste0( modelDirectory, 'createUnetModel.R' ) )
-source( paste0( modelDirectory, 'unetUtilities.R' ) )
 
 testingImageFiles <- list.files( 
   path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
@@ -74,7 +72,7 @@ testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
 
 predictedData <- unetModelTest %>% predict( X_test, verbose = 1 )
 
-probabilityImages <- decodeY( predictedData, testingImages[[1]] )
+probabilityImages <- decodeUnet( predictedData, testingImages[[1]] )
 
 for( i in 1:length( probabilityImages ) )
   {

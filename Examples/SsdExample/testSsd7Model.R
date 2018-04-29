@@ -1,4 +1,5 @@
 library( ANTsR )
+library( ANTsRNet )
 library( keras )
 library( jpeg )
 
@@ -13,11 +14,6 @@ dataDirectory <- paste0( baseDirectory, './lfw_faces_tagged/' )
 imageDirectory <- paste0( dataDirectory, 'Images/' )
 annotationsDirectory <- paste0( dataDirectory, 'Annotations/' )
 dataFile <- paste0( dataDirectory, 'data.csv' )
-
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
-
-source( paste0( modelDirectory, 'createSsd7Model.R' ) )
-source( paste0( modelDirectory, 'ssdUtilities.R' ) )
 
 classes <- c( "eyes", "nose", "mouth" )
 
@@ -127,7 +123,7 @@ ssdOutput <- createSsd7Model2D( c( inputImageSize, 3 ),
 ssdModelTest <- ssdOutput$ssdModel 
 anchorBoxes <- ssdOutput$anchorBoxes
 
-Y_test <- encodeY2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
+Y_test <- encodeSsd2D( groundTruthLabels, anchorBoxes, inputImageSize, rep( 1.0, 4 ) )
 
 load_model_weights_hdf5( ssdModelTest, 
   filepath = paste0( baseDirectory, 'ssd7Weights.h5' ) )
@@ -143,7 +139,7 @@ ssdModelTest %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam
 X_test <- testingData
 testingMetrics <- ssdModelTest %>% evaluate( X_test, Y_test )
 predictedData <- ssdModelTest %>% predict( X_test, verbose = 1 )
-predictedDataDecoded <- decodeY2D( predictedData, inputImageSize, 
+predictedDataDecoded <- decodeSsd2D( predictedData, inputImageSize, 
   confidenceThreshold = 0.4, overlapThreshold = 0.4 )
 
 for( i in 1:length( predictedDataDecoded ) )
