@@ -2,12 +2,6 @@
 
 A collection of examples and models for the [ANTsRNet](https://github.com/ANTsX/ANTsRNet) package.
 
-## R package dependencies
-
-* [ANTsR](https://github.com/stnava/ANTsR)
-* [keras](https://github.com/rstudio/keras) (install from github: ``devtools::install_github( "rstudio/keras")``)
-* abind
-
 ## Image segmentation
 
 * U-Net (2-D) or V-Net (3-D) with a [multi-label Dice loss function](https://github.com/ntustison/ANTsRNet/blob/master/Models/createUnetModel.R#L1-L91)
