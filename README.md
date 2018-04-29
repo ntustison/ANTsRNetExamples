@@ -1,6 +1,6 @@
-# ANTsRNet
+# ANTsRNetExamples
 
-A collection of well-known deep learning architectures ported to the R language.
+A collection of examples and models for the [ANTsRNet](https://github.com/ANTsX/ANTsRNet) package.
 
 ## R package dependencies
 
