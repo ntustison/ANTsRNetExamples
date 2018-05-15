@@ -11,7 +11,7 @@ source( paste0( baseDirectory, 'unetBatchGenerator.R' ) )
 
 trainingImageDirectory <- paste0( dataDirectory, 'TrainingData/' )
 trainingImageFiles <- list.files( 
-  path = trainingImageDirectory, pattern = "H1_2D", full.names = TRUE )
+  path = trainingImageDirectory, pattern = "N4Denoised_2D", full.names = TRUE )
 trainingMaskFiles <- list.files( 
   path = trainingImageDirectory, pattern = "Mask_2D", full.names = TRUE )
 
@@ -27,7 +27,7 @@ for( i in 1:length( trainingImageFiles ) )
   trainingSegmentations[[i]] <- antsImageRead( trainingMaskFiles[i], dimension = 2 )
 
   id <- basename( trainingImageFiles[i] ) 
-  id <- gsub( "H1_2D.nii.gz", '', id )
+  id <- gsub( "N4Denoised_2D.nii.gz", '', id )
 
   xfrmPrefix <- paste0( trainingTransformDirectory, 'T_', id, i - 1 )
 
@@ -43,7 +43,9 @@ for( i in 1:length( trainingImageFiles ) )
   }
 
 unetModel <- createUnetModel2D( c( dim( trainingImages[[1]] ), 1 ), 
-  numberOfClassificationLabels = 3, layers = 1:4 )
+  numberOfClassificationLabels = 3, convolutionKernelSize = c( 5, 5 ),
+  deconvolutionKernelSize = c( 5, 5 ), lowestResolution = 32,
+  dropoutRate = 0.2 )
 
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.0001 ),  
@@ -53,7 +55,7 @@ unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
 #
 # Set up the training generator
 #
-batchSize <- 32L
+batchSize <- 20L
 
 # Split trainingData into "training" and "validation" componets for
 # training the model.
@@ -95,18 +97,18 @@ track <- unetModel$fit_generator(
   generator = reticulate::py_iterator( trainingDataGenerator ), 
 #  steps_per_epoch = ceiling( 400 / batchSize ),
   steps_per_epoch = ceiling( 400 / batchSize ),
-  epochs = 40,
+  epochs = 200,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
-  validation_steps = ceiling( 100 / batchSize ),
+  validation_steps = ceiling( 200 / batchSize ),
   callbacks = list( 
     callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
-      verbose = 1, mode = 'auto', period = 1 )
-    # callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
-    #   patience = 10 ),
-    # callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.5,
-    #   patience = 0, epsilon = 0.001, cooldown = 0 )
-                  # callback_early_stopping( patience = 2, monitor = 'loss' ),
+      verbose = 1, mode = 'auto', period = 1 ),
+     callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.1,
+       verbose = 1, patience = 10, mode = 'auto' )
+      # ,
+    #  callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
+    #    patience = 10 ),
     )
   )
 

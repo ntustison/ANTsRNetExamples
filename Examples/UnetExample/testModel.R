@@ -13,7 +13,7 @@ predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
 dir.create( predictedDirectory )
 
 testingImageFiles <- list.files( 
-  path = testingDirectory, pattern = "H1_2D", full.names = TRUE )
+  path = testingDirectory, pattern = "N4Denoised_2D", full.names = TRUE )
 testingMaskFiles <- list.files( 
   path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
 
@@ -61,7 +61,8 @@ for( i in 2:numberOfLabels )
   }
 
 unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), 
-  numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
+  numberOfClassificationLabels = 3, convolutionKernelSize = c( 5, 5 ),
+  deconvolutionKernelSize = c( 5, 5 ), lowestResolution = 32, dropoutRate = 0.2 )
 load_model_weights_hdf5( unetModelTest, 
   filepath = paste0( baseDirectory, 'unetWeights.h5' ) )
 unetModelTest %>% compile( loss = loss_multilabel_dice_coefficient_error,

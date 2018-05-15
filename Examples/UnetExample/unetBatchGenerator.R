@@ -144,10 +144,19 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
             interpolator = "nearestNeighbor", transformlist = transforms,
             whichtoinvert = boolInvert )
 
+          doPerformHistogramMatching <- sample( c( TRUE, FALSE ), size = 1 )
+          if( doPerformHistogramMatching )
+            {
+            warpedImageX <- histogramMatchImage( warpedImageX, referenceX,
+              numberOfHistogramBins = 64, numberOfMatchPoints = 16 )
+            }
+
           warpedArrayX <- as.array( warpedImageX )
           warpedArrayY <- as.array( warpedImageY )
 
           warpedArrayX <- ( warpedArrayX - mean( warpedArrayX ) ) / sd( warpedArrayX )
+          # warpedArrayX <- ( warpedArrayX - min( warpedArrayX ) ) / 
+          #   ( max( warpedArrayX ) - min( warpedArrayX ) )
 
           batchX[i,,, 1] <- warpedArrayX
           batchY[i,,] <- warpedArrayY
