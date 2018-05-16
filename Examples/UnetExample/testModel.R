@@ -44,21 +44,7 @@ testingLabelData <- aperm( testingLabelData, c( 3, 1, 2 ) )
 segmentationLabels <- sort( unique( as.vector( testingLabelData ) ) )
 numberOfLabels <- length( unique( as.vector( testingLabelData ) ) )
 
-# Different implementation of keras::to_categorical().  The ordering 
-# of the array elements seems to get screwed up.
-
-Y_test <- testingLabelData
-Y_test[which( testingLabelData == 0)] <- 1
-Y_test[which( testingLabelData != 0)] <- 0
-
-for( i in 2:numberOfLabels )
-  {
-  Y_test_label <- testingLabelData 
-  Y_test_label[which( testingLabelData == segmentationLabels[i] )] <- 1
-  Y_test_label[which( testingLabelData != segmentationLabels[i] )] <- 0
-
-  Y_test <- abind( Y_test, Y_test_label, along = 4 )
-  }
+Y_test <- encodeUnet( testingLabelData, segmentationLabels )
 
 unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), 
   numberOfClassificationLabels = 3, convolutionKernelSize = c( 5, 5 ),
@@ -85,6 +71,10 @@ for( i in 1:length( probabilityImages ) )
     imageFileName <- 
       gsub( testingDirectory, predictedDirectory, imageFileName )
 
-    antsImageWrite( probabilityImages[[i]][[j]], imageFileName ) 
+    probabilityArray <- as.array( probabilityImages[[i]][[j]] )
+
+    antsImageWrite( 
+      as.antsImage( probabilityArray, reference = testingImages[[i]] ), 
+      imageFileName ) 
     }  
   }
