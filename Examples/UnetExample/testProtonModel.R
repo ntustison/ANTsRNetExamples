@@ -7,7 +7,7 @@ library( ggplot2 )
 keras::backend()$clear_session()
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, 'Images/' )
+dataDirectory <- paste0( baseDirectory, 'Images/Proton/' )
 testingDirectory <- paste0( dataDirectory, 'TestingData/' )
 predictedDirectory <- paste0( dataDirectory, 'PredictedData/' )
 dir.create( predictedDirectory )
@@ -50,7 +50,7 @@ unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ),
   numberOfClassificationLabels = 3, convolutionKernelSize = c( 5, 5 ),
   deconvolutionKernelSize = c( 5, 5 ), lowestResolution = 32, dropoutRate = 0.2 )
 load_model_weights_hdf5( unetModelTest, 
-  filepath = paste0( baseDirectory, 'unetWeights.h5' ) )
+  filepath = paste0( baseDirectory, 'unetProtonWeights.h5' ) )
 unetModelTest %>% compile( loss = loss_multilabel_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.0001 ),  
   metrics = c( multilabel_dice_coefficient ) )

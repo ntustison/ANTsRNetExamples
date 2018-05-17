@@ -5,9 +5,9 @@ library( keras )
 keras::backend()$clear_session()
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, 'Images/' )
+dataDirectory <- paste0( baseDirectory, 'Images/Proton/' )
 
-source( paste0( baseDirectory, 'unetBatchGenerator.R' ) )
+source( paste0( baseDirectory, 'unetProtonBatchGenerator.R' ) )
 
 trainingImageDirectory <- paste0( dataDirectory, 'TrainingData/' )
 trainingImageFiles <- list.files( 
@@ -101,7 +101,7 @@ track <- unetModel$fit_generator(
   validation_data = reticulate::py_iterator( validationDataGenerator ),
   validation_steps = ceiling( 200 / batchSize ),
   callbacks = list( 
-    callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
+    callback_model_checkpoint( paste0( baseDirectory, "unetProtonWeights.h5" ), 
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
       verbose = 1, mode = 'auto', period = 1 ),
      callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.1,

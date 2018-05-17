@@ -7,8 +7,7 @@ library( ggplot2 )
 keras::backend()$clear_session()
 
 baseDirectory <- './'
-dataDirectory <- paste0( baseDirectory, 'Images/' )
-modelDirectory <- paste0( baseDirectory, '../../Models/' )
+dataDirectory <- paste0( baseDirectory, 'Images/Proton/' )
 trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )
 
 trainingImageFiles <- list.files( 
@@ -65,7 +64,7 @@ unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
 track <- unetModel %>% fit( X_train, Y_train, 
                  epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
                  callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, "unetWeights.h5" ), 
+                   callback_model_checkpoint( paste0( baseDirectory, 'unetProtonWeights.h5' ), 
                      monitor = 'val_loss', save_best_only = TRUE )
                   # callback_early_stopping( patience = 2, monitor = 'loss' ),
                   #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
@@ -74,9 +73,9 @@ track <- unetModel %>% fit( X_train, Y_train,
 ## Save the model
 
 save_model_weights_hdf5( 
-  unetModel, filepath = paste0( baseDirectory, 'unetWeights.h5' ) )
+  unetModel, filepath = paste0( baseDirectory, 'unetProtonWeights.h5' ) )
 save_model_hdf5( 
-  unetModel, filepath = paste0( baseDirectory, 'unetModel.h5' ), overwrite = TRUE )
+  unetModel, filepath = paste0( baseDirectory, 'unetProtonModel.h5' ), overwrite = TRUE )
 
 ## Plot the model fitting
 
