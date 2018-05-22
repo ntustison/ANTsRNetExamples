@@ -43,7 +43,7 @@ for( i in 1:length( trainingImageFiles ) )
   }
 
 unetModel <- createUnetModel2D( c( dim( trainingImages[[1]] ), 1 ), 
-  numberOfClassificationLabels = 3, layers = 1:4 )
+  numberOfClassificationLabels = 3, numberOfLayers = 4 )
 
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.0001 ),  

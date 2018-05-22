@@ -56,7 +56,7 @@ cat( "Segmentation with ", numberOfLabels,
 Y_train <- encodeUnet( trainingLabelData, segmentationLabels )
 
 unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), 
-  numberOfClassificationLabels = numberOfLabels, layers = 1:4 )
+  numberOfClassificationLabels = numberOfLabels, numberOfLayers = 4 )
 
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.0001 ),  
