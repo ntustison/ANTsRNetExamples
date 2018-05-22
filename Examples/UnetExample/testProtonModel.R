@@ -48,7 +48,7 @@ Y_test <- encodeUnet( testingLabelData, segmentationLabels )
 
 unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), 
   numberOfClassificationLabels = 3, convolutionKernelSize = c( 5, 5 ),
-  deconvolutionKernelSize = c( 5, 5 ), lowestResolution = 32, dropoutRate = 0.2 )
+  deconvolutionKernelSize = c( 5, 5 ), dropoutRate = 0.2 )
 load_model_weights_hdf5( unetModelTest, 
   filepath = paste0( baseDirectory, 'unetProtonWeights.h5' ) )
 unetModelTest %>% compile( loss = loss_multilabel_dice_coefficient_error,
