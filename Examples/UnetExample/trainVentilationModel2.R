@@ -61,7 +61,7 @@ resampledImageSize <- c( 80, 128 )
 unetModel <- createUnetModel2D( c( resampledImageSize, channelSize ), 
   numberOfClassificationLabels = numberOfClassificationLabels, 
   convolutionKernelSize = c( 5, 5 ),
-  deconvolutionKernelSize = c( 5, 5 ), lowestResolution = 32,
+  deconvolutionKernelSize = c( 5, 5 ), 
   dropoutRate = 0.2 )
 
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
