@@ -3,6 +3,9 @@ library( ANTsRNet )
 library( keras )
 library( tensorflow )
 
+# Parallelization example and documentation available here:
+#  https://tensorflow.rstudio.com/keras/reference/multi_gpu_model.html
+
 keras::backend()$clear_session()
 
 baseDirectory <- './'
