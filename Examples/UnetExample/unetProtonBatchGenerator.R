@@ -60,6 +60,9 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
       self$pairwiseIndices <- expand.grid( source = 1:length( self$imageList ), 
         reference = 1:length( self$referenceImageList ) )  
 
+      # shuffle the pairs
+      self$pairwiseIndices <- 
+        self$pairwiseIndices[sample.int( nrow( self$pairwiseIndices ) ),]
       },
 
     generate = function( batchSize = 32L )    
@@ -70,7 +73,7 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
       self$imageList <- self$imageList[sampleIndices]
       self$segmentationList <- self$segmentationList[sampleIndices]
       self$transformList <- self$transformList[sampleIndices]
-
+     
       # shuffle the reference data
       sampleIndices <- sample( length( self$referenceImageList ) )
       self$referenceImageList <- self$referenceImageList[sampleIndices]
@@ -125,7 +128,7 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
 
         for( i in seq_len( batchSize ) )
           {
-          sourceX <- batchImages[[i]]
+          sourceX <- batchImages[[i]] 
           sourceY <- batchSegmentations[[i]]
           sourceXfrm <- batchTransforms[[i]]
 
@@ -136,6 +139,8 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
           transforms <- c( referenceXfrm$invtransforms[1], 
             referenceXfrm$invtransforms[2], sourceXfrm$fwdtransforms[1],
             sourceXfrm$fwdtransforms[2] )
+
+          cat( referenceXfrm$invtransforms[1], ",", sourceXfrm$fwdtransforms[1], "\n", file = "~/Desktop/files.csv", append = TRUE )
 
           warpedImageX <- antsApplyTransforms( referenceX, sourceX, 
             interpolator = "linear", transformlist = transforms,
@@ -166,6 +171,7 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
 
         encodedBatchY <- encodeUnet( batchY, segmentationLabels ) 
 
+        readline( prompt = "Hey, what's up?!\n" )
         return( list( batchX, encodedBatchY ) )        
         }   
       }

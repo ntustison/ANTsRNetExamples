@@ -64,6 +64,9 @@ ssdImageBatchGenerator3D <- R6::R6Class( "SsdImageBatchGenerator3D",
       self$pairwiseIndices <- expand.grid( source = 1:length( self$imageList ), 
         reference = 1:length( self$referenceImageList ) )  
 
+      # shuffle the pairs
+      self$pairwiseIndices <- 
+        self$pairwiseIndices[sample.int( nrow( self$pairwiseIndices ) ),]
       },
 
     generate = function( batchSize = 32L, paddingSize = NULL, 
