@@ -1,7 +1,6 @@
 library( ANTsR )
 library( ANTsRNet )
 library( keras )
-library( tensorflow )
 
 # Parallelization example and documentation available here:
 #  https://tensorflow.rstudio.com/keras/reference/multi_gpu_model.html
@@ -16,8 +15,6 @@ source( paste0( baseDirectory, 'unetProtonBatchGenerator.R' ) )
 trainingImageDirectory <- paste0( dataDirectory, 'TrainingData/' )
 trainingImageFiles <- list.files( 
   path = trainingImageDirectory, pattern = "N4Denoised_2D", full.names = TRUE )
-trainingMaskFiles <- list.files( 
-  path = trainingImageDirectory, pattern = "Mask_2D", full.names = TRUE )
 
 trainingTransformDirectory <- paste0( dataDirectory, 'TemplateTransforms/' )
 
@@ -28,10 +25,12 @@ trainingSegmentations <- list()
 for( i in 1:length( trainingImageFiles ) )
   {
   trainingImages[[i]] <- antsImageRead( trainingImageFiles[i], dimension = 2 )
-  trainingSegmentations[[i]] <- antsImageRead( trainingMaskFiles[i], dimension = 2 )
-
+  
   id <- basename( trainingImageFiles[i] ) 
   id <- gsub( "N4Denoised_2D.nii.gz", '', id )
+
+  trainingSegmentationFile <- paste0( trainingImageDirectory, id, "Mask_2D.nii.gz" )
+  trainingSegmentations[[i]] <- antsImageRead( trainingSegmentationFile, dimension = 2 )
 
   xfrmPrefix <- paste0( trainingTransformDirectory, 'T_', id, i - 1 )
 
@@ -54,9 +53,16 @@ with( tf$device( "/cpu:0" ), {
   } )
 
 parallel_unetModel <- multi_gpu_model( unetModel, gpus = 4 )
-parallel_unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
+
+# # multilabel Dice loss function
+# parallel_unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
+#   optimizer = optimizer_adam( lr = 0.0001 ),  
+#   metrics = c( multilabel_dice_coefficient ) )
+
+# categorical cross entropy loss function
+parallel_unetModel %>% compile( loss = "categorical_crossentropy",
   optimizer = optimizer_adam( lr = 0.0001 ),  
-  metrics = c( multilabel_dice_coefficient ) )
+  metrics = c( "acc" ) )
 
 ###
 #

@@ -13,8 +13,6 @@ source( paste0( baseDirectory, 'unetProtonBatchGenerator.R' ) )
 trainingImageDirectory <- paste0( dataDirectory, 'TrainingData/' )
 trainingImageFiles <- list.files( 
   path = trainingImageDirectory, pattern = "N4Denoised_2D", full.names = TRUE )
-trainingMaskFiles <- list.files( 
-  path = trainingImageDirectory, pattern = "Mask_2D", full.names = TRUE )
 
 trainingTransformDirectory <- paste0( dataDirectory, 'TemplateTransforms/' )
 
@@ -25,10 +23,12 @@ trainingSegmentations <- list()
 for( i in 1:length( trainingImageFiles ) )
   {
   trainingImages[[i]] <- antsImageRead( trainingImageFiles[i], dimension = 2 )
-  trainingSegmentations[[i]] <- antsImageRead( trainingMaskFiles[i], dimension = 2 )
-
+  
   id <- basename( trainingImageFiles[i] ) 
   id <- gsub( "N4Denoised_2D.nii.gz", '', id )
+
+  trainingSegmentationFile <- paste0( trainingImageDirectory, id, "Mask_2D.nii.gz" )
+  trainingSegmentations[[i]] <- antsImageRead( trainingSegmentationFile, dimension = 2 )
 
   xfrmPrefix <- paste0( trainingTransformDirectory, 'T_', id, i - 1 )
 
@@ -47,9 +47,15 @@ unetModel <- createUnetModel2D( c( dim( trainingImages[[1]] ), 1 ),
   convolutionKernelSize = c( 5, 5 ), deconvolutionKernelSize = c( 5, 5 ),
   numberOfClassificationLabels = 3, numberOfLayers = 4 )
 
-unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
+# # multilabel Dice loss function
+# unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
+#   optimizer = optimizer_adam( lr = 0.0001 ),  
+#   metrics = c( multilabel_dice_coefficient ) )
+
+# categorical cross entropy loss function
+unetModel %>% compile( loss = "categorical_crossentropy",
   optimizer = optimizer_adam( lr = 0.0001 ),  
-  metrics = c( multilabel_dice_coefficient ) )
+  metrics = c( "acc" ) )
 
 ###
 #
@@ -106,7 +112,7 @@ track <- unetModel$fit_generator(
      callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.1,
        verbose = 1, patience = 10, mode = 'auto' ),
      callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
-       patience = 10 ),
+       patience = 10 )
     )
   )
 
