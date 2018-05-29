@@ -1,81 +1,114 @@
 library( ANTsR )
 library( ANTsRNet )
 library( keras )
-library( abind )
 library( ggplot2 )
 
 keras::backend()$clear_session()
 
 baseDirectory <- './'
 dataDirectory <- paste0( baseDirectory, 'Images/Proton/' )
-trainingDirectory <- paste0( dataDirectory, 'TrainingDataExpanded/' )
 
+source( paste0( baseDirectory, 'unetProtonBatchGenerator.R' ) )
+
+trainingImageDirectory <- paste0( dataDirectory, 'TrainingData/' )
 trainingImageFiles <- list.files( 
-  path = trainingDirectory, pattern = "H1_2D", full.names = TRUE )
+  path = trainingImageDirectory, pattern = "N4Denoised_2D", full.names = TRUE )
 trainingMaskFiles <- list.files( 
-  path = trainingDirectory, pattern = "Mask_2D", full.names = TRUE )
+  path = trainingImageDirectory, pattern = "Mask_2D", full.names = TRUE )
 
+trainingTransformDirectory <- paste0( dataDirectory, 'TemplateTransforms/' )
+
+trainingTransforms <- list()
 trainingImages <- list()
-trainingMasks <- list()
-trainingImageArrays <- list()
-trainingMaskArrays <- list()
+trainingSegmentations <- list()
 
-trainingProportion <- 0.8
-set.seed( 1234 )
-trainingIndices <- sample.int( 
-  length( trainingMaskFiles ), size = length( trainingMaskFiles ) * trainingProportion )
-
-for ( i in 1:length( trainingIndices ) )
+for( i in 1:length( trainingImageFiles ) )
   {
-  trainingImages[[i]] <- 
-    antsImageRead( trainingImageFiles[trainingIndices[i]], dimension = 2 )    
-  trainingMasks[[i]] <- 
-    antsImageRead( trainingMaskFiles[trainingIndices[i]], dimension = 2 )    
+  trainingImages[[i]] <- antsImageRead( trainingImageFiles[i], dimension = 2 )
+  trainingSegmentations[[i]] <- antsImageRead( trainingMaskFiles[i], dimension = 2 )
 
-  trainingImageArrays[[i]] <- as.array( trainingImages[[i]] )
-  trainingMaskArrays[[i]] <- as.array( trainingMasks[[i]] )  
-  # trainingMaskArrays[[i]][which( trainingMaskArrays[[i]] > 1 )] <- 1
+  id <- basename( trainingImageFiles[i] ) 
+  id <- gsub( "N4Denoised_2D.nii.gz", '', id )
+
+  xfrmPrefix <- paste0( trainingTransformDirectory, 'T_', id, i - 1 )
+
+  fwdtransforms <- c()
+  fwdtransforms[1] <- paste0( xfrmPrefix, 'Warp.nii.gz' )
+  fwdtransforms[2] <- paste0( xfrmPrefix, 'Affine.txt' )
+  invtransforms <- c()
+  invtransforms[1] <- paste0( xfrmPrefix, 'Affine.txt' )
+  invtransforms[2] <- paste0( xfrmPrefix, 'InverseWarp.nii.gz' )
+
+  trainingTransforms[[i]] <- list( 
+    fwdtransforms = fwdtransforms, invtransforms = invtransforms )
   }
 
-trainingData <- abind( trainingImageArrays, along = 3 )  
-trainingData <- aperm( trainingData, c( 3, 1, 2 ) )
-trainingData <- ( trainingData - mean( trainingData ) ) / sd( trainingData )
-
-X_train <- array( trainingData, dim = c( dim( trainingData ), 1 ) )
-
-trainingLabelData <- abind( trainingMaskArrays, along = 3 )  
-trainingLabelData <- aperm( trainingLabelData, c( 3, 1, 2 ) )
-
-segmentationLabels <- sort( unique( as.vector( trainingLabelData ) ) )
-numberOfLabels <- length( segmentationLabels )
-
-cat( "Segmentation with ", numberOfLabels, 
-  " labels: ", segmentationLabels, ".\n", sep = "" )
-
-Y_train <- encodeUnet( trainingLabelData, segmentationLabels )
-
-unetModel <- createUnetModel2D( c( dim( trainingImageArrays[[1]] ), 1 ), 
-  numberOfClassificationLabels = numberOfLabels, numberOfLayers = 4 )
+unetModel <- createUnetModel2D( c( dim( trainingImages[[1]] ), 1 ), 
+  convolutionKernelSize = c( 5, 5 ), deconvolutionKernelSize = c( 5, 5 ),
+  numberOfClassificationLabels = 3, numberOfLayers = 4 )
 
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.0001 ),  
   metrics = c( multilabel_dice_coefficient ) )
 
-track <- unetModel %>% fit( X_train, Y_train, 
-                 epochs = 40, batch_size = 32, verbose = 1, shuffle = TRUE,
-                 callbacks = list( 
-                   callback_model_checkpoint( paste0( baseDirectory, 'unetProtonWeights.h5' ), 
-                     monitor = 'val_loss', save_best_only = TRUE )
-                  # callback_early_stopping( patience = 2, monitor = 'loss' ),
-                  #  callback_reduce_lr_on_plateau( monitor = "val_loss", factor = 0.1 )
-                 ), 
-                 validation_split = 0.2 )
-## Save the model
+###
+#
+# Set up the training generator
+#
+batchSize <- 20L
 
-save_model_weights_hdf5( 
-  unetModel, filepath = paste0( baseDirectory, 'unetProtonWeights.h5' ) )
-save_model_hdf5( 
-  unetModel, filepath = paste0( baseDirectory, 'unetProtonModel.h5' ), overwrite = TRUE )
+# Split trainingData into "training" and "validation" componets for
+# training the model.
+
+numberOfTrainingData <- length( trainingImageFiles )
+
+sampleIndices <- sample( numberOfTrainingData )
+
+validationSplit <- 40
+trainingIndices <- sampleIndices[1:validationSplit]
+validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfTrainingData]
+
+trainingData <- unetImageBatchGenerator$new( 
+  imageList = trainingImages[trainingIndices], 
+  segmentationList = trainingSegmentations[trainingIndices], 
+  transformList = trainingTransforms[trainingIndices], 
+  referenceImageList = trainingImages, 
+  referenceTransformList = trainingTransforms
+  )
+
+trainingDataGenerator <- trainingData$generate( batchSize = batchSize )
+
+validationData <- unetImageBatchGenerator$new( 
+  imageList = trainingImages[validationIndices], 
+  segmentationList = trainingSegmentations[validationIndices], 
+  transformList = trainingTransforms[validationIndices],
+  referenceImageList = trainingImages, 
+  referenceTransformList = trainingTransforms
+  )
+
+validationDataGenerator <- validationData$generate( batchSize = batchSize )
+
+###
+#
+# Run training
+#
+
+track <- unetModel$fit_generator( 
+  generator = reticulate::py_iterator( trainingDataGenerator ), 
+  steps_per_epoch = ceiling( 400 / batchSize ),
+  epochs = 200,
+  validation_data = reticulate::py_iterator( validationDataGenerator ),
+  validation_steps = ceiling( 200 / batchSize ),
+  callbacks = list( 
+    callback_model_checkpoint( paste0( baseDirectory, "unetProtonWeights.h5" ), 
+      monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
+      verbose = 1, mode = 'auto', period = 1 ),
+     callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.1,
+       verbose = 1, patience = 10, mode = 'auto' ),
+     callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
+       patience = 10 ),
+    )
+  )
 
 ## Plot the model fitting
 
@@ -105,8 +138,6 @@ ggsave( paste0( baseDirectory, "unetModelLossPlot.pdf" ),
   plot = unetModelLossPlot, width = 5, height = 2, units = 'in' )
 ggsave( paste0( baseDirectory, "unetModelAccuracyPlot.pdf" ), 
   plot = unetModelAccuracyPlot, width = 5, height = 2, units = 'in' )
-
-
 
 
 
