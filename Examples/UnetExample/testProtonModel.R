@@ -14,8 +14,6 @@ dir.create( predictedDirectory )
 
 testingImageFiles <- list.files( 
   path = testingDirectory, pattern = "N4Denoised_2D", full.names = TRUE )
-testingMaskFiles <- list.files( 
-  path = testingDirectory, pattern = "Mask_2D", full.names = TRUE )
 
 testingImages <- list()
 testingMasks <- list()
@@ -25,7 +23,12 @@ testingMaskArrays <- list()
 for ( i in 1:length( testingImageFiles ) )
   {
   testingImages[[i]] <- antsImageRead( testingImageFiles[i], dimension = 2 )    
-  testingMasks[[i]] <- antsImageRead( testingMaskFiles[i], dimension = 2 )    
+
+  id <- basename( testingImageFiles[i] ) 
+  id <- gsub( "N4Denoised_2D.nii.gz", '', id )
+
+  testingSegmentationFile <- paste0( testingImageDirectory, id, "Mask_2D.nii.gz" )
+  testingMasks[[i]] <- antsImageRead( testingSegmentationFile, dimension = 2 )
 
   testingImageArrays[[i]] <- as.array( testingImages[[i]] )
   testingMaskArrays[[i]] <- as.array( testingMasks[[i]] )  
