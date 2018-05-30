@@ -140,13 +140,11 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
             referenceXfrm$invtransforms[2], sourceXfrm$fwdtransforms[1],
             sourceXfrm$fwdtransforms[2] )
 
-          cat( referenceXfrm$invtransforms[1], ",", sourceXfrm$fwdtransforms[1], "\n", file = "~/Desktop/files.csv", append = TRUE )
-
           warpedImageX <- antsApplyTransforms( referenceX, sourceX, 
             interpolator = "linear", transformlist = transforms,
             whichtoinvert = boolInvert )          
           warpedImageY <- antsApplyTransforms( referenceX, sourceY, 
-            interpolator = "nearestNeighbor", transformlist = transforms,
+            interpolator = "genericLabel", transformlist = transforms,
             whichtoinvert = boolInvert )
 
           doPerformHistogramMatching <- sample( c( TRUE, FALSE ), size = 1 )
@@ -171,7 +169,6 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
 
         encodedBatchY <- encodeUnet( batchY, segmentationLabels ) 
 
-        readline( prompt = "Hey, what's up?!\n" )
         return( list( batchX, encodedBatchY ) )        
         }   
       }

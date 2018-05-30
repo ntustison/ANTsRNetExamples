@@ -27,11 +27,11 @@ for ( i in 1:length( testingImageFiles ) )
   id <- basename( testingImageFiles[i] ) 
   id <- gsub( "N4Denoised_2D.nii.gz", '', id )
 
-  testingSegmentationFile <- paste0( testingImageDirectory, id, "Mask_2D.nii.gz" )
-  testingMasks[[i]] <- antsImageRead( testingSegmentationFile, dimension = 2 )
+  # testingSegmentationFile <- paste0( testingDirectory, id, "BodyMask_2D.nii.gz" )
+  # testingMasks[[i]] <- antsImageRead( testingSegmentationFile, dimension = 2 )
 
   testingImageArrays[[i]] <- as.array( testingImages[[i]] )
-  testingMaskArrays[[i]] <- as.array( testingMasks[[i]] )  
+  # testingMaskArrays[[i]] <- as.array( testingMasks[[i]] )  
   # testingMaskArrays[[i]][which( testingMaskArrays[[i]] > 1 )] <- 1
   }
 
@@ -41,24 +41,27 @@ testingData <- ( testingData - mean( testingData ) ) / sd( testingData )
 
 X_test <- array( testingData, dim = c( dim( testingData ), 1 ) )
 
-testingLabelData <- abind( testingMaskArrays, along = 3 )  
-testingLabelData <- aperm( testingLabelData, c( 3, 1, 2 ) )
+# testingLabelData <- abind( testingMaskArrays, along = 3 )  
+# testingLabelData <- aperm( testingLabelData, c( 3, 1, 2 ) )
+# segmentationLabels <- sort( unique( as.vector( testingLabelData ) ) )
+# numberOfLabels <- length( unique( as.vector( testingLabelData ) ) )
 
-segmentationLabels <- sort( unique( as.vector( testingLabelData ) ) )
-numberOfLabels <- length( unique( as.vector( testingLabelData ) ) )
+# Y_test <- encodeUnet( testingLabelData, segmentationLabels )
 
-Y_test <- encodeUnet( testingLabelData, segmentationLabels )
+numberOfLabels <- 3
+segmentationLabels <- 0:( numberOfLabels - 1 )
 
 unetModelTest <- createUnetModel2D( c( dim( testingImageArrays[[1]] ), 1 ), 
-  numberOfClassificationLabels = 3, convolutionKernelSize = c( 5, 5 ),
-  deconvolutionKernelSize = c( 5, 5 ), dropoutRate = 0.2 )
+  convolutionKernelSize = c( 5, 5 ), deconvolutionKernelSize = c( 5, 5 ),
+  numberOfClassificationLabels = numberOfLabels, numberOfLayers = 4, 
+  numberOfFiltersAtBaseLayer = 32 )
 load_model_weights_hdf5( unetModelTest, 
   filepath = paste0( baseDirectory, 'unetProtonWeights.h5' ) )
 unetModelTest %>% compile( loss = loss_multilabel_dice_coefficient_error,
   optimizer = optimizer_adam( lr = 0.0001 ),  
   metrics = c( multilabel_dice_coefficient ) )
 
-testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
+# testingMetrics <- unetModelTest %>% evaluate( X_test, Y_test )
 
 predictedData <- unetModelTest %>% predict( X_test, verbose = 1 )
 

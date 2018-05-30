@@ -45,34 +45,37 @@ for( i in 1:length( trainingImageFiles ) )
 
 unetModel <- createUnetModel2D( c( dim( trainingImages[[1]] ), 1 ), 
   convolutionKernelSize = c( 5, 5 ), deconvolutionKernelSize = c( 5, 5 ),
-  numberOfClassificationLabels = 3, numberOfLayers = 4 )
+  numberOfClassificationLabels = 3, numberOfLayers = 4, 
+  numberOfFiltersAtBaseLayer = 32 )
 
-# # multilabel Dice loss function
-# unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
-#   optimizer = optimizer_adam( lr = 0.0001 ),  
-#   metrics = c( multilabel_dice_coefficient ) )
+# multilabel Dice loss function
+unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
+  optimizer = optimizer_adam( lr = 0.00001 ),  
+  metrics = c( multilabel_dice_coefficient ) )
 
 # categorical cross entropy loss function
-unetModel %>% compile( loss = "categorical_crossentropy",
-  optimizer = optimizer_adam( lr = 0.0001 ),  
-  metrics = c( "acc" ) )
+# unetModel %>% compile( loss = "categorical_crossentropy",
+#  optimizer = optimizer_adam( lr = 0.0001 ),  
+#  metrics = c( "acc" ) )
 
 ###
 #
 # Set up the training generator
 #
-batchSize <- 20L
+batchSize <- 32L
 
 # Split trainingData into "training" and "validation" componets for
 # training the model.
 
-numberOfTrainingData <- length( trainingImageFiles )
+numberOfData <- length( trainingImageFiles )
 
-sampleIndices <- sample( numberOfTrainingData )
+sampleIndices <- sample( numberOfData )
 
 validationSplit <- 40
 trainingIndices <- sampleIndices[1:validationSplit]
+numberOfTrainingData <- length( trainingIndices )
 validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfTrainingData]
+numberOfValidationData <- length( validationIndices )
 
 trainingData <- unetImageBatchGenerator$new( 
   imageList = trainingImages[trainingIndices], 
@@ -101,10 +104,10 @@ validationDataGenerator <- validationData$generate( batchSize = batchSize )
 
 track <- unetModel$fit_generator( 
   generator = reticulate::py_iterator( trainingDataGenerator ), 
-  steps_per_epoch = ceiling( 400 / batchSize ),
+  steps_per_epoch = ceiling( numberOfTrainingData^2 / batchSize ),
   epochs = 200,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
-  validation_steps = ceiling( 200 / batchSize ),
+  validation_steps = ceiling( numberOfValidationData^2 / batchSize ),
   callbacks = list( 
     callback_model_checkpoint( paste0( baseDirectory, "unetProtonWeights.h5" ), 
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
@@ -118,21 +121,14 @@ track <- unetModel$fit_generator(
 
 ## Plot the model fitting
 
-epochs <- 1:length( track$metrics$loss )
+epochs <- track$epoch
 
 unetModelDataFrame <- data.frame( 
   Epoch = rep( epochs, 2 ), 
   Type = c( rep( 'Training', length( epochs ) ), rep( 'Validation', length( epochs ) ) ),
-  Loss =c( track$metrics$loss, track$metrics$val_loss ), 
-  Accuracy = c( track$metrics$multilabel_dice_coefficient, 
-                track$metrics$val_multilabel_dice_coefficient )
+  Accuracy = c( unlist( track$history$multilabel_dice_coefficient ), 
+                unlist( track$history$val_multilabel_dice_coefficient ) )
   )
-
-unetModelLossPlot <- 
-  ggplot( data = unetModelDataFrame, aes( x = Epoch, y = Loss, colour = Type ) ) +
-  geom_point( shape = 1, size = 0.5 ) +
-  geom_line( size = 0.3 ) +
-  ggtitle( "Loss" )
 
 unetModelAccuracyPlot <- 
   ggplot( data = unetModelDataFrame, aes( x = Epoch, y = Accuracy, colour = Type ) ) +
@@ -140,8 +136,6 @@ unetModelAccuracyPlot <-
   geom_line( size = 0.3 ) +
   ggtitle( "Accuracy")
 
-ggsave( paste0( baseDirectory, "unetModelLossPlot.pdf" ), 
-  plot = unetModelLossPlot, width = 5, height = 2, units = 'in' )
 ggsave( paste0( baseDirectory, "unetModelAccuracyPlot.pdf" ), 
   plot = unetModelAccuracyPlot, width = 5, height = 2, units = 'in' )
 
