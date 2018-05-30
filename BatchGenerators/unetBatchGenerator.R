@@ -79,7 +79,7 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
       self$referenceImageList <- self$referenceImageList[sampleIndices]
       self$referenceTransformList <- self$referenceTransformList[sampleIndices]
 
-      currentPassCount <<- 1L
+      currentPassCount <- 1L
 
       function() 
         {
