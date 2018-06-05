@@ -108,16 +108,16 @@ ssdImageBatchGenerator <- R6::R6Class( "SsdImageBatchGenerator",
             batchX[i,,,] <- tempX[,, 1:3]
             }
 
-          if( !is.null( brightness ) )  
-            {
-            brightValue <- as.integer( 
-              runif( 1, min = brightness[1], max = brightness[2] ) * 100 )
+          # if( !is.null( brightness ) )  
+          #   {
+          #   brightValue <- as.integer( 
+          #     runif( 1, min = brightness[1], max = brightness[2] ) * 100 )
 
-            tempX <- image_read( batchX[i,,,] ) %>%
-              image_modulate( brightValue ) %>%
-              .[[1]] %>% as.numeric()
-            batchX[i,,,] <- tempX[,, 1:3]
-            }
+          #   tempX <- image_read( batchX[i,,,] ) %>%
+          #     image_modulate( brightValue ) %>%
+          #     .[[1]] %>% as.numeric()
+          #   batchX[i,,,] <- tempX[,, 1:3]
+          #   }
 
           if( !is.null( flipHorizontally ) && runif( 1 ) < flipHorizontally )  
             {
