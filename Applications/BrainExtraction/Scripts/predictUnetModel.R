@@ -46,15 +46,19 @@ for( i in 1:length( brainImageFiles ) )
   subjectId <- basename( brainImageFiles[i] )
   subjectId <- sub( ".nii.gz", '', subjectId )
 
-  cat( "Registering to template" )  
+  cat( "Normalizing to template" )  
   startTime <- Sys.time()
-  antsXfrms <- antsRegistration( fixed = reorientTemplate, moving = image, 
-    typeofTransform = "QuickRigid" )
+  centerOfMassTemplate <- getCenterOfMass( reorientTemplate )
+  centerOfMassImage <- getCenterOfMass( image )
+  xfrm <- createAntsrTransform( type = "Euler3DTransform", 
+    center = centerOfMassTemplate, 
+    translation = centerOfMassImage - centerOfMassTemplate )
+  warpedImage <- applyAntsrTransformToImage( xfrm, image, reorientTemplate )
   endTime <- Sys.time()  
   elapsedTime <- endTime - startTime
   cat( " (elapsed time:", elapsedTime, "seconds)\n" )
 
-  batchX <- array( data = as.array( antsXfrms$warpedmovout ), 
+  batchX <- array( data = as.array( warpedImage ), 
     dim = c( 1, resampledImageSize, channelSize ) )
 
   batchX <- ( batchX - mean( batchX ) ) / sd( batchX )  
@@ -72,9 +76,8 @@ for( i in 1:length( brainImageFiles ) )
 
   cat( "Renormalize to native space" )  
   startTime <- Sys.time()
-  probabilityImage <- antsApplyTransforms( fixed = image,
-    moving = probabilityImagesArray[[1]][[2]], interpolator = 'linear',
-    transformlist = antsXfrms$invtransforms, whichtoinvert = c( TRUE ) )
+  probabilityImage <- applyAntsrTransformToImage( invertAntsrTransform( xfrm ),
+    probabilityImagesArray[[1]][[2]], image )
   endTime <- Sys.time()  
   elapsedTime <- endTime - startTime
   cat( " (elapsed time:", elapsedTime, "seconds)\n" )
