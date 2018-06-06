@@ -34,38 +34,61 @@ brainImageFiles <- list.files( path = paste0( dataDirectory, "Images/" ),
 
 for( i in 1:length( brainImageFiles ) )
   {
-  cat( "Reading", brainImageFiles[i], "\n" )  
+  startTimeTotal <- Sys.time()  
 
+  cat( "Reading", brainImageFiles[i] )  
+  startTime <- Sys.time()
   image <- antsImageRead( brainImageFiles[i], dimension = 3 )
+  endTime <- Sys.time()  
+  elapsedTime <- endTime - startTime
+  cat( " (elapsed time:", elapsedTime, "seconds)\n" )
 
   subjectId <- basename( brainImageFiles[i] )
   subjectId <- sub( ".nii.gz", '', subjectId )
 
+  cat( "Registering to template" )  
+  startTime <- Sys.time()
   antsXfrms <- antsRegistration( fixed = reorientTemplate, moving = image, 
     typeofTransform = "QuickRigid" )
+  endTime <- Sys.time()  
+  elapsedTime <- endTime - startTime
+  cat( " (elapsed time:", elapsedTime, "seconds)\n" )
 
-  warpedImage <- antsApplyTransforms( fixed = reorientTemplate, 
-    moving = image, transformlist = antsXfrms$fwdtransforms, 
-    interpolator = 'linear' )
-
-  batchX <- array( data = as.array( warpedImage ), 
+  batchX <- array( data = as.array( antsXfrms$warpedmovout ), 
     dim = c( 1, resampledImageSize, channelSize ) )
 
   batchX <- ( batchX - mean( batchX ) ) / sd( batchX )  
     
+  cat( "Prediction and decoding" )  
+  startTime <- Sys.time()
   predictedData <- unetModel %>% predict( batchX, verbose = 0 )
-  probabilityImagesArray <- decodeUnet( predictedData, warpedImage )
+  probabilityImagesArray <- decodeUnet( predictedData, reorientTemplate )
+  endTime <- Sys.time()  
+  elapsedTime <- endTime - startTime
+  cat( " (elapsed time:", elapsedTime, "seconds)\n" )
 
   imageFileName <- paste0( 
     evaluationDirectory, subjectId, "BrainMaskProbability.nii.gz" )
 
-  cat( "Writing", imageFileName, "\n\n" )  
-
+  cat( "Renormalize to native space" )  
+  startTime <- Sys.time()
   probabilityImage <- antsApplyTransforms( fixed = image,
     moving = probabilityImagesArray[[1]][[2]], interpolator = 'linear',
     transformlist = antsXfrms$invtransforms, whichtoinvert = c( TRUE ) )
+  endTime <- Sys.time()  
+  elapsedTime <- endTime - startTime
+  cat( " (elapsed time:", elapsedTime, "seconds)\n" )
 
+  cat( "Writing", imageFileName )
+  startTime <- Sys.time()
   antsImageWrite( probabilityImage, imageFileName )  
+  endTime <- Sys.time()  
+  elapsedTime <- endTime - startTime
+  cat( " (elapsed time:", elapsedTime, "seconds)\n" )
+
+  endTimeTotal <- Sys.time()  
+  elapsedTimeTotal <- endTimeTotal - startTimeTotal
+  cat( "\nTotal elapsed time:", elapsedTimeTotal, "seconds\n\n" )
   }
 
 
