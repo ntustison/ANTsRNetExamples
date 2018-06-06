@@ -131,7 +131,7 @@ load_model_weights_hdf5( ssdModelTest,
 optimizerAdam <- optimizer_adam( 
   lr = 0.001, beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-08, decay = 5e-04 )
 
-ssdLoss <- lossSsd$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
+ssdLoss <- LossSSD$new( backgroundRatio = 3L, minNumberOfBackgroundBoxes = 0L, 
   alpha = 1.0, numberOfClassificationLabels = length( classes ) + 1 )
 
 ssdModelTest %>% compile( loss = ssdLoss$compute_loss, optimizer = optimizerAdam )
