@@ -15,7 +15,7 @@ imageMods <- c( "T1" )
 channelSize <- length( imageMods )
 
 reorientTemplate <- antsImageRead( paste0( dataDirectory, 
-  "S_template3_resampled.nii.gz" ), dimension = 2 )
+  "Template/S_template3_resampled.nii.gz" ), dimension = 3 )
 resampledImageSize <- dim( reorientTemplate )
 
 unetModel <- createUnetModel3D( c( resampledImageSize, channelSize ), 
@@ -34,6 +34,8 @@ brainImageFiles <- list.files( path = paste0( dataDirectory, "Images/" ),
 
 for( i in 1:length( brainImageFiles ) )
   {
+  cat( "Reading", brainImageFiles[i], "\n" )  
+
   image <- antsImageRead( brainImageFiles[i], dimension = 3 )
 
   subjectId <- basename( brainImageFiles[i] )
@@ -43,27 +45,27 @@ for( i in 1:length( brainImageFiles ) )
     typeofTransform = "QuickRigid" )
 
   warpedImage <- antsApplyTransforms( fixed = reorientTemplate, 
-    moving = image, transformlist = antsXfrms$fwdtransforms )
+    moving = image, transformlist = antsXfrms$fwdtransforms, 
+    interpolator = 'linear' )
 
-  batchX <- array( data = as.array( warpedImage , 
+  batchX <- array( data = as.array( warpedImage ), 
     dim = c( 1, resampledImageSize, channelSize ) )
+
+  batchX <- ( batchX - mean( batchX ) ) / sd( batchX )  
     
   predictedData <- unetModel %>% predict( batchX, verbose = 0 )
   probabilityImagesArray <- decodeUnet( predictedData, warpedImage )
 
-  for( j in seq_len( numberOfClassificationLabels ) )
-    {
-    imageFileName <- paste0( 
-      evaluationDirectory, subjectId, "Probability", j, ".nii.gz" )
+  imageFileName <- paste0( 
+    evaluationDirectory, subjectId, "BrainMaskProbability.nii.gz" )
 
-    cat( "Writing", imageFileName, "\n" )  
+  cat( "Writing", imageFileName, "\n\n" )  
 
-    probabilityImage <- antsApplyTransforms( fixed = image,
-      moving = probabilityImagesArray[[1]][[j]], 
-      transformlist = antsXfrms$invtransforms )
+  probabilityImage <- antsApplyTransforms( fixed = image,
+    moving = probabilityImagesArray[[1]][[2]], interpolator = 'linear',
+    transformlist = antsXfrms$invtransforms, whichtoinvert = c( TRUE ) )
 
-    antsImageWrite( probabilityImage, imageFileName )  
-    }  
+  antsImageWrite( probabilityImage, imageFileName )  
   }
 
 
