@@ -60,7 +60,7 @@ k=1
 mytd2 <- randomImageTransformBatchGenerator$new(
   imageList = images,
   outcomeImageList = kmeansSegs,
-  transformType = "Deformation",
+  transformType = "AffineAndDeformation",
   sdAffine = 0.05, spatialSmoothing = 8,
   imageDomain = images[[1]][[1]],
   toCategorical = TRUE )
