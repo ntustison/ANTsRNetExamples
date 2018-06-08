@@ -51,29 +51,33 @@ testpop <- tdgenfun()
 
 predictedData <- unetModel %>% predict( testpop[[1]], verbose = 0 )
 probabilityImagesArray <- decodeUnet( predictedData, img )
-plot( probabilityImagesArray[[1]][[3]] )
-plot( probabilityImagesArray[[8]][[3]] )
+k=1
+for ( t in 1:4 ) {
+  plot( makeImage( img * 0 + 1, testpop[[1]][k,,,1] ), color.overlay='red',
+    probabilityImagesArray[[k]][[t]], alpha=0.8, window.overlay=c(0.5,1) )
+    Sys.sleep(1)
+  }
 
-# this demonstrates the augmentation visually
+# this demonstrates the augmentation style visually
 if ( FALSE ) {
   library( ANTsRNet )
   library( ANTsR )
   imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
-  images <- list()
-  kmeansSegs <- list()
+  kmeansSegsDemo = list()
+  imagesDemo = list()
   for( i in 1:length( imageIDs ) )
     {
     cat( "Processing image", imageIDs[i], "\n" )
-    img  = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% resampleImage( 4 )
-    derka
-    images[[i]] <- list( img )
-    kmeansSegs[[i]] <- thresholdImage( img, "Otsu", 3 )
+    imgDemo  = antsImageRead( getANTsRData( imageIDs[i] ) )
+    imagesDemo[[i]] <- list( imgDemo )
+    kmeansSegsDemo[[i]] <- thresholdImage( imgDemo, "Otsu", 3 )
     }
-  rand = randomImageTransformAugmentation( img,
-    images,  kmeansSegs, n = 32, typeOfTransform = 'Affine' )
+  rand = randomImageTransformAugmentation( imgDemo, imagesDemo,
+    kmeansSegsDemo, n = 32, typeOfTransform = 'Affine', sdAffine = 0.2 )
   for ( jj in 1:length( rand$outputPredictorList ) ) {
     plot( rand$outputPredictorList[[jj]][[1]],
-      rand$outputOutcomeList[[jj]], alpha=0.1 )
+      rand$outputOutcomeList[[jj]], alpha=0.1, doCropping=FALSE )
     Sys.sleep( 3 )
   }
+  # reduce / increase the value of sdAffine to create less/more variation
 }
