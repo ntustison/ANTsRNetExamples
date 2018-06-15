@@ -35,6 +35,7 @@ A collection of examples and models for the [ANTsRNet](https://github.com/ANTsX/
 * [Blog:  Important papers](https://adeshpande3.github.io/adeshpande3.github.io/The-9-Deep-Learning-Papers-You-Need-To-Know-About.html)
 * [Blog:  Intuitive explanation of convnets](https://ujjwalkarn.me/2016/08/11/intuitive-explanation-convnets/)
 * [Deep learning book](http://www.deeplearningbook.org)
+* [Keras functional API](https://cran.r-project.org/web/packages/keras/vignettes/functional_api.html)
 * Important Keras [FAQ](https://keras.rstudio.com/articles/faq.html)
 * Custom keras layers in R
     * [Link 1](https://keras.rstudio.com/articles/custom_layers.html)
