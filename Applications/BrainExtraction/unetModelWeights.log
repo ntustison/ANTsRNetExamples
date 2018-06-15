@@ -1,0 +1,421 @@
+*** Successfully loaded .Rprofile ***
+
+##------ [/Users/ntustison/Data/BrainExtraction/Scripts] Sat Jun  2 16:06:43 2018 ------##
+> source( "trainUnetModel.R" )
+/Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+Loading data...
+  |======================================================================| 100%HERE:  67 
+/Library/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/tensorflow/python/ops/gradients_impl.py:97: UserWarning: Converting sparse IndexedSlices to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  "Converting sparse IndexedSlices to a dense Tensor of unknown shape. "
+Epoch 1/200
+2018-06-02 16:58:31.854133: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:859] OS X does not support NUMA - returning NUMA node zero
+2018-06-02 16:58:31.879157: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1206] Found device 0 with properties: 
+name: TITAN Xp major: 6 minor: 1 memoryClockRate(GHz): 1.582
+pciBusID: 0000:c3:00.0
+totalMemory: 12.00GiB freeMemory: 11.37GiB
+2018-06-02 16:58:31.879209: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1306] Adding visible gpu devices: 0
+2018-06-02 16:58:34.752830: I tensorflow/core/common_runtime/gpu/gpu_device.cc:987] Creating TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11015 MB memory) -> physical GPU (device: 0, name: TITAN Xp, pci bus id: 0000:c3:00.0, compute capability: 6.1)
+2018-06-02 16:58:34.832035: E tensorflow/stream_executor/cuda/cuda_driver.cc:936] failed to allocate 10.76G (11550778112 bytes) from device: CUDA_ERROR_OUT_OF_MEMORY
+66/67 [============================>.] - ETA: 2:16 - loss: -0.6768 - multilabel_dice_coefficient: 0.6768   
+Epoch 00001: val_loss improved from inf to -0.89534, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11271s 168s/step - loss: -0.6802 - multilabel_dice_coefficient: 0.6802 - val_loss: -0.8953 - val_multilabel_dice_coefficient: 0.8953
+Epoch 2/200
+66/67 [============================>.] - ETA: 2:10 - loss: -0.9087 - multilabel_dice_coefficient: 0.9087   
+Epoch 00002: val_loss improved from -0.89534 to -0.91286, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10912s 163s/step - loss: -0.9091 - multilabel_dice_coefficient: 0.9091 - val_loss: -0.9129 - val_multilabel_dice_coefficient: 0.9129
+Epoch 3/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9317 - multilabel_dice_coefficient: 0.9317   
+Epoch 00003: val_loss improved from -0.91286 to -0.94036, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10428s 156s/step - loss: -0.9320 - multilabel_dice_coefficient: 0.9320 - val_loss: -0.9404 - val_multilabel_dice_coefficient: 0.9404
+Epoch 4/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9406 - multilabel_dice_coefficient: 0.9406   
+Epoch 00004: val_loss improved from -0.94036 to -0.94400, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10415s 155s/step - loss: -0.9405 - multilabel_dice_coefficient: 0.9405 - val_loss: -0.9440 - val_multilabel_dice_coefficient: 0.9440
+Epoch 5/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9429 - multilabel_dice_coefficient: 0.9429   
+Epoch 00005: val_loss improved from -0.94400 to -0.94720, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10395s 155s/step - loss: -0.9429 - multilabel_dice_coefficient: 0.9429 - val_loss: -0.9472 - val_multilabel_dice_coefficient: 0.9472
+Epoch 6/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9484 - multilabel_dice_coefficient: 0.9484   
+Epoch 00006: val_loss did not improve
+67/67 [==============================] - 10540s 157s/step - loss: -0.9484 - multilabel_dice_coefficient: 0.9484 - val_loss: -0.9464 - val_multilabel_dice_coefficient: 0.9464
+Epoch 7/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9484 - multilabel_dice_coefficient: 0.9484   
+Epoch 00007: val_loss improved from -0.94720 to -0.94980, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10491s 157s/step - loss: -0.9485 - multilabel_dice_coefficient: 0.9485 - val_loss: -0.9498 - val_multilabel_dice_coefficient: 0.9498
+Epoch 8/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9524 - multilabel_dice_coefficient: 0.9524   
+Epoch 00008: val_loss improved from -0.94980 to -0.95480, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10442s 156s/step - loss: -0.9524 - multilabel_dice_coefficient: 0.9524 - val_loss: -0.9548 - val_multilabel_dice_coefficient: 0.9548
+Epoch 9/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9554 - multilabel_dice_coefficient: 0.9554   \]
+Epoch 00009: val_loss improved from -0.95480 to -0.95706, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10427s 156s/step - loss: -0.9555 - multilabel_dice_coefficient: 0.9555 - val_loss: -0.9571 - val_multilabel_dice_coefficient: 0.9571
+Epoch 10/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9569 - multilabel_dice_coefficient: 0.9569   
+Epoch 00010: val_loss improved from -0.95706 to -0.95778, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10374s 155s/step - loss: -0.9569 - multilabel_dice_coefficient: 0.9569 - val_loss: -0.9578 - val_multilabel_dice_coefficient: 0.9578
+Epoch 11/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9590 - multilabel_dice_coefficient: 0.9590   
+Epoch 00011: val_loss improved from -0.95778 to -0.95998, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10415s 155s/step - loss: -0.9590 - multilabel_dice_coefficient: 0.9590 - val_loss: -0.9600 - val_multilabel_dice_coefficient: 0.9600
+Epoch 12/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9600 - multilabel_dice_coefficient: 0.9600   
+Epoch 00012: val_loss improved from -0.95998 to -0.96204, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10368s 155s/step - loss: -0.9601 - multilabel_dice_coefficient: 0.9601 - val_loss: -0.9620 - val_multilabel_dice_coefficient: 0.9620
+Epoch 13/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9615 - multilabel_dice_coefficient: 0.9615   
+Epoch 00013: val_loss did not improve
+67/67 [==============================] - 10450s 156s/step - loss: -0.9615 - multilabel_dice_coefficient: 0.9615 - val_loss: -0.9617 - val_multilabel_dice_coefficient: 0.9617
+Epoch 14/200
+66/67 [============================>.] - ETA: 2:08 - loss: -0.9626 - multilabel_dice_coefficient: 0.9626   
+Epoch 00014: val_loss improved from -0.96204 to -0.96476, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10838s 162s/step - loss: -0.9626 - multilabel_dice_coefficient: 0.9626 - val_loss: -0.9648 - val_multilabel_dice_coefficient: 0.9648
+Epoch 15/200
+66/67 [============================>.] - ETA: 2:06 - loss: -0.9642 - multilabel_dice_coefficient: 0.9642   
+Epoch 00015: val_loss did not improve
+67/67 [==============================] - 10574s 158s/step - loss: -0.9642 - multilabel_dice_coefficient: 0.9642 - val_loss: -0.9628 - val_multilabel_dice_coefficient: 0.9628
+Epoch 16/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9628 - multilabel_dice_coefficient: 0.9628   
+Epoch 00016: val_loss improved from -0.96476 to -0.96626, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10424s 156s/step - loss: -0.9629 - multilabel_dice_coefficient: 0.9629 - val_loss: -0.9663 - val_multilabel_dice_coefficient: 0.9663
+Epoch 17/200
+66/67 [============================>.] - ETA: 2:06 - loss: -0.9660 - multilabel_dice_coefficient: 0.9660   
+Epoch 00017: val_loss improved from -0.96626 to -0.96645, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10765s 161s/step - loss: -0.9661 - multilabel_dice_coefficient: 0.9661 - val_loss: -0.9664 - val_multilabel_dice_coefficient: 0.9664
+Epoch 18/200
+66/67 [============================>.] - ETA: 2:08 - loss: -0.9665 - multilabel_dice_coefficient: 0.9665   
+Epoch 00018: val_loss improved from -0.96645 to -0.96759, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10689s 160s/step - loss: -0.9666 - multilabel_dice_coefficient: 0.9666 - val_loss: -0.9676 - val_multilabel_dice_coefficient: 0.9676
+Epoch 19/200
+66/67 [============================>.] - ETA: 2:02 - loss: -0.9687 - multilabel_dice_coefficient: 0.9687   
+Epoch 00019: val_loss improved from -0.96759 to -0.96950, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10315s 154s/step - loss: -0.9687 - multilabel_dice_coefficient: 0.9687 - val_loss: -0.9695 - val_multilabel_dice_coefficient: 0.9695
+Epoch 20/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9698 - multilabel_dice_coefficient: 0.9698   
+Epoch 00020: val_loss improved from -0.96950 to -0.97120, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10422s 156s/step - loss: -0.9698 - multilabel_dice_coefficient: 0.9698 - val_loss: -0.9712 - val_multilabel_dice_coefficient: 0.9712
+Epoch 21/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9705 - multilabel_dice_coefficient: 0.9705   
+Epoch 00021: val_loss did not improve
+67/67 [==============================] - 10293s 154s/step - loss: -0.9705 - multilabel_dice_coefficient: 0.9705 - val_loss: -0.9702 - val_multilabel_dice_coefficient: 0.9702
+Epoch 22/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9714 - multilabel_dice_coefficient: 0.9714   
+Epoch 00022: val_loss did not improve
+67/67 [==============================] - 10460s 156s/step - loss: -0.9714 - multilabel_dice_coefficient: 0.9714 - val_loss: -0.9704 - val_multilabel_dice_coefficient: 0.9704
+Epoch 23/200
+66/67 [============================>.] - ETA: 2:11 - loss: -0.9721 - multilabel_dice_coefficient: 0.9721   
+Epoch 00023: val_loss improved from -0.97120 to -0.97273, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10998s 164s/step - loss: -0.9720 - multilabel_dice_coefficient: 0.9720 - val_loss: -0.9727 - val_multilabel_dice_coefficient: 0.9727
+Epoch 24/200
+66/67 [============================>.] - ETA: 2:06 - loss: -0.9722 - multilabel_dice_coefficient: 0.9722   
+Epoch 00024: val_loss improved from -0.97273 to -0.97334, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10548s 157s/step - loss: -0.9722 - multilabel_dice_coefficient: 0.9722 - val_loss: -0.9733 - val_multilabel_dice_coefficient: 0.9733
+Epoch 25/200
+66/67 [============================>.] - ETA: 2:06 - loss: -0.9732 - multilabel_dice_coefficient: 0.9732   
+Epoch 00025: val_loss improved from -0.97334 to -0.97369, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10671s 159s/step - loss: -0.9732 - multilabel_dice_coefficient: 0.9732 - val_loss: -0.9737 - val_multilabel_dice_coefficient: 0.9737
+Epoch 26/200
+66/67 [============================>.] - ETA: 2:06 - loss: -0.9731 - multilabel_dice_coefficient: 0.9731   
+Epoch 00026: val_loss did not improve
+67/67 [==============================] - 10590s 158s/step - loss: -0.9731 - multilabel_dice_coefficient: 0.9731 - val_loss: -0.9735 - val_multilabel_dice_coefficient: 0.9735
+Epoch 27/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9738 - multilabel_dice_coefficient: 0.9738   
+Epoch 00027: val_loss did not improve
+67/67 [==============================] - 10375s 155s/step - loss: -0.9737 - multilabel_dice_coefficient: 0.9737 - val_loss: -0.9721 - val_multilabel_dice_coefficient: 0.9721
+Epoch 28/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9741 - multilabel_dice_coefficient: 0.9741   
+Epoch 00028: val_loss improved from -0.97369 to -0.97418, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10440s 156s/step - loss: -0.9741 - multilabel_dice_coefficient: 0.9741 - val_loss: -0.9742 - val_multilabel_dice_coefficient: 0.9742
+Epoch 29/200
+66/67 [============================>.] - ETA: 2:02 - loss: -0.9746 - multilabel_dice_coefficient: 0.9746   
+Epoch 00029: val_loss improved from -0.97418 to -0.97496, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10350s 154s/step - loss: -0.9746 - multilabel_dice_coefficient: 0.9746 - val_loss: -0.9750 - val_multilabel_dice_coefficient: 0.9750
+Epoch 30/200
+66/67 [============================>.] - ETA: 2:02 - loss: -0.9739 - multilabel_dice_coefficient: 0.9739   
+Epoch 00030: val_loss improved from -0.97496 to -0.97586, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10403s 155s/step - loss: -0.9739 - multilabel_dice_coefficient: 0.9739 - val_loss: -0.9759 - val_multilabel_dice_coefficient: 0.9759
+Epoch 31/200
+66/67 [============================>.] - ETA: 2:09 - loss: -0.9754 - multilabel_dice_coefficient: 0.9754   
+Epoch 00031: val_loss did not improve
+67/67 [==============================] - 10756s 161s/step - loss: -0.9754 - multilabel_dice_coefficient: 0.9754 - val_loss: -0.9746 - val_multilabel_dice_coefficient: 0.9746
+Epoch 32/200
+66/67 [============================>.] - ETA: 2:07 - loss: -0.9747 - multilabel_dice_coefficient: 0.9747   
+Epoch 00032: val_loss did not improve
+67/67 [==============================] - 10716s 160s/step - loss: -0.9746 - multilabel_dice_coefficient: 0.9746 - val_loss: -0.9753 - val_multilabel_dice_coefficient: 0.9753
+Epoch 33/200
+66/67 [============================>.] - ETA: 2:07 - loss: -0.9758 - multilabel_dice_coefficient: 0.9758   
+Epoch 00033: val_loss improved from -0.97586 to -0.97679, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10571s 158s/step - loss: -0.9759 - multilabel_dice_coefficient: 0.9759 - val_loss: -0.9768 - val_multilabel_dice_coefficient: 0.9768
+Epoch 34/200
+66/67 [============================>.] - ETA: 2:19 - loss: -0.9755 - multilabel_dice_coefficient: 0.9755   
+Epoch 00034: val_loss did not improve
+67/67 [==============================] - 11739s 175s/step - loss: -0.9755 - multilabel_dice_coefficient: 0.9755 - val_loss: -0.9756 - val_multilabel_dice_coefficient: 0.9756
+Epoch 35/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9768 - multilabel_dice_coefficient: 0.9768   
+Epoch 00035: val_loss did not improve
+67/67 [==============================] - 11419s 170s/step - loss: -0.9768 - multilabel_dice_coefficient: 0.9768 - val_loss: -0.9764 - val_multilabel_dice_coefficient: 0.9764
+Epoch 36/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9763 - multilabel_dice_coefficient: 0.9763   
+Epoch 00036: val_loss improved from -0.97679 to -0.97746, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11536s 172s/step - loss: -0.9763 - multilabel_dice_coefficient: 0.9763 - val_loss: -0.9775 - val_multilabel_dice_coefficient: 0.9775
+Epoch 37/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9769 - multilabel_dice_coefficient: 0.9769   
+Epoch 00037: val_loss improved from -0.97746 to -0.97779, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11415s 170s/step - loss: -0.9769 - multilabel_dice_coefficient: 0.9769 - val_loss: -0.9778 - val_multilabel_dice_coefficient: 0.9778
+Epoch 38/200
+66/67 [============================>.] - ETA: 2:19 - loss: -0.9775 - multilabel_dice_coefficient: 0.9775   
+Epoch 00038: val_loss did not improve
+67/67 [==============================] - 11640s 174s/step - loss: -0.9775 - multilabel_dice_coefficient: 0.9775 - val_loss: -0.9775 - val_multilabel_dice_coefficient: 0.9775
+Epoch 39/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9772 - multilabel_dice_coefficient: 0.9772   
+Epoch 00039: val_loss did not improve
+67/67 [==============================] - 11748s 175s/step - loss: -0.9772 - multilabel_dice_coefficient: 0.9772 - val_loss: -0.9761 - val_multilabel_dice_coefficient: 0.9761
+Epoch 40/200
+66/67 [============================>.] - ETA: 2:21 - loss: -0.9776 - multilabel_dice_coefficient: 0.9776   
+Epoch 00040: val_loss did not improve
+67/67 [==============================] - 11742s 175s/step - loss: -0.9776 - multilabel_dice_coefficient: 0.9776 - val_loss: -0.9776 - val_multilabel_dice_coefficient: 0.9776
+Epoch 41/200
+66/67 [============================>.] - ETA: 2:23 - loss: -0.9775 - multilabel_dice_coefficient: 0.9775   
+Epoch 00041: val_loss did not improve
+67/67 [==============================] - 11974s 179s/step - loss: -0.9775 - multilabel_dice_coefficient: 0.9775 - val_loss: -0.9773 - val_multilabel_dice_coefficient: 0.9773
+Epoch 42/200
+66/67 [============================>.] - ETA: 2:20 - loss: -0.9769 - multilabel_dice_coefficient: 0.9769   
+Epoch 00042: val_loss improved from -0.97779 to -0.97820, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11793s 176s/step - loss: -0.9769 - multilabel_dice_coefficient: 0.9769 - val_loss: -0.9782 - val_multilabel_dice_coefficient: 0.9782
+Epoch 43/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9778 - multilabel_dice_coefficient: 0.9778   
+Epoch 00043: val_loss improved from -0.97820 to -0.97828, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11524s 172s/step - loss: -0.9778 - multilabel_dice_coefficient: 0.9778 - val_loss: -0.9783 - val_multilabel_dice_coefficient: 0.9783
+Epoch 44/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9784 - multilabel_dice_coefficient: 0.9784   
+Epoch 00044: val_loss did not improve
+67/67 [==============================] - 11601s 173s/step - loss: -0.9784 - multilabel_dice_coefficient: 0.9784 - val_loss: -0.9782 - val_multilabel_dice_coefficient: 0.9782
+Epoch 45/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9783 - multilabel_dice_coefficient: 0.9783    
+Epoch 00045: val_loss improved from -0.97828 to -0.97855, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11718s 175s/step - loss: -0.9783 - multilabel_dice_coefficient: 0.9783 - val_loss: -0.9785 - val_multilabel_dice_coefficient: 0.9785
+Epoch 46/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9786 - multilabel_dice_coefficient: 0.9786   
+Epoch 00046: val_loss improved from -0.97855 to -0.97907, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11604s 173s/step - loss: -0.9786 - multilabel_dice_coefficient: 0.9786 - val_loss: -0.9791 - val_multilabel_dice_coefficient: 0.9791
+Epoch 47/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9781 - multilabel_dice_coefficient: 0.9781   
+Epoch 00047: val_loss did not improve
+67/67 [==============================] - 11566s 173s/step - loss: -0.9780 - multilabel_dice_coefficient: 0.9780 - val_loss: -0.9785 - val_multilabel_dice_coefficient: 0.9785
+Epoch 48/200
+66/67 [============================>.] - ETA: 2:20 - loss: -0.9789 - multilabel_dice_coefficient: 0.9789   
+Epoch 00048: val_loss improved from -0.97907 to -0.97933, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11772s 176s/step - loss: -0.9789 - multilabel_dice_coefficient: 0.9789 - val_loss: -0.9793 - val_multilabel_dice_coefficient: 0.9793
+Epoch 49/200
+66/67 [============================>.] - ETA: 2:19 - loss: -0.9786 - multilabel_dice_coefficient: 0.9786   
+Epoch 00049: val_loss did not improve
+67/67 [==============================] - 11704s 175s/step - loss: -0.9786 - multilabel_dice_coefficient: 0.9786 - val_loss: -0.9777 - val_multilabel_dice_coefficient: 0.9777
+Epoch 50/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9789 - multilabel_dice_coefficient: 0.9789   
+Epoch 00050: val_loss did not improve
+67/67 [==============================] - 11484s 171s/step - loss: -0.9789 - multilabel_dice_coefficient: 0.9789 - val_loss: -0.9786 - val_multilabel_dice_coefficient: 0.9786
+Epoch 51/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9792 - multilabel_dice_coefficient: 0.9792   
+Epoch 00051: val_loss improved from -0.97933 to -0.97980, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11541s 172s/step - loss: -0.9792 - multilabel_dice_coefficient: 0.9792 - val_loss: -0.9798 - val_multilabel_dice_coefficient: 0.9798
+Epoch 52/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9793 - multilabel_dice_coefficient: 0.9793   
+Epoch 00052: val_loss improved from -0.97980 to -0.98012, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11527s 172s/step - loss: -0.9793 - multilabel_dice_coefficient: 0.9793 - val_loss: -0.9801 - val_multilabel_dice_coefficient: 0.9801
+Epoch 53/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9791 - multilabel_dice_coefficient: 0.9791   
+Epoch 00053: val_loss did not improve
+67/67 [==============================] - 11615s 173s/step - loss: -0.9791 - multilabel_dice_coefficient: 0.9791 - val_loss: -0.9793 - val_multilabel_dice_coefficient: 0.9793
+Epoch 54/200
+66/67 [============================>.] - ETA: 2:21 - loss: -0.9796 - multilabel_dice_coefficient: 0.9796   
+Epoch 00054: val_loss improved from -0.98012 to -0.98017, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11858s 177s/step - loss: -0.9796 - multilabel_dice_coefficient: 0.9796 - val_loss: -0.9802 - val_multilabel_dice_coefficient: 0.9802
+Epoch 55/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9797 - multilabel_dice_coefficient: 0.9797   
+Epoch 00055: val_loss did not improve
+67/67 [==============================] - 11561s 173s/step - loss: -0.9797 - multilabel_dice_coefficient: 0.9797 - val_loss: -0.9797 - val_multilabel_dice_coefficient: 0.9797
+Epoch 56/200
+66/67 [============================>.] - ETA: 2:19 - loss: -0.9800 - multilabel_dice_coefficient: 0.9800   
+Epoch 00056: val_loss did not improve
+67/67 [==============================] - 11777s 176s/step - loss: -0.9800 - multilabel_dice_coefficient: 0.9800 - val_loss: -0.9794 - val_multilabel_dice_coefficient: 0.9794
+Epoch 57/200
+66/67 [============================>.] - ETA: 2:20 - loss: -0.9801 - multilabel_dice_coefficient: 0.9801   
+Epoch 00057: val_loss improved from -0.98017 to -0.98036, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11755s 175s/step - loss: -0.9801 - multilabel_dice_coefficient: 0.9801 - val_loss: -0.9804 - val_multilabel_dice_coefficient: 0.9804
+Epoch 58/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9803 - multilabel_dice_coefficient: 0.9803   
+Epoch 00058: val_loss did not improve
+67/67 [==============================] - 11531s 172s/step - loss: -0.9803 - multilabel_dice_coefficient: 0.9803 - val_loss: -0.9799 - val_multilabel_dice_coefficient: 0.9799
+Epoch 59/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9802 - multilabel_dice_coefficient: 0.9802   
+Epoch 00059: val_loss did not improve
+67/67 [==============================] - 11574s 173s/step - loss: -0.9802 - multilabel_dice_coefficient: 0.9802 - val_loss: -0.9796 - val_multilabel_dice_coefficient: 0.9796
+Epoch 60/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9803 - multilabel_dice_coefficient: 0.9803   
+Epoch 00060: val_loss improved from -0.98036 to -0.98086, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11574s 173s/step - loss: -0.9803 - multilabel_dice_coefficient: 0.9803 - val_loss: -0.9809 - val_multilabel_dice_coefficient: 0.9809
+Epoch 61/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9807 - multilabel_dice_coefficient: 0.9807   
+Epoch 00061: val_loss did not improve
+67/67 [==============================] - 11461s 171s/step - loss: -0.9807 - multilabel_dice_coefficient: 0.9807 - val_loss: -0.9789 - val_multilabel_dice_coefficient: 0.9789
+Epoch 62/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9801 - multilabel_dice_coefficient: 0.9801   
+Epoch 00062: val_loss did not improve
+67/67 [==============================] - 11623s 173s/step - loss: -0.9801 - multilabel_dice_coefficient: 0.9801 - val_loss: -0.9805 - val_multilabel_dice_coefficient: 0.9805
+Epoch 63/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9808 - multilabel_dice_coefficient: 0.9808   
+Epoch 00063: val_loss did not improve
+67/67 [==============================] - 11564s 173s/step - loss: -0.9808 - multilabel_dice_coefficient: 0.9808 - val_loss: -0.9806 - val_multilabel_dice_coefficient: 0.9806
+Epoch 64/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9806 - multilabel_dice_coefficient: 0.9806   
+Epoch 00064: val_loss improved from -0.98086 to -0.98112, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11516s 172s/step - loss: -0.9806 - multilabel_dice_coefficient: 0.9806 - val_loss: -0.9811 - val_multilabel_dice_coefficient: 0.9811
+Epoch 65/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9809 - multilabel_dice_coefficient: 0.9809   
+Epoch 00065: val_loss did not improve
+67/67 [==============================] - 11454s 171s/step - loss: -0.9809 - multilabel_dice_coefficient: 0.9809 - val_loss: -0.9810 - val_multilabel_dice_coefficient: 0.9810
+Epoch 66/200
+66/67 [============================>.] - ETA: 2:15 - loss: -0.9808 - multilabel_dice_coefficient: 0.9808   
+Epoch 00066: val_loss did not improve
+67/67 [==============================] - 11326s 169s/step - loss: -0.9809 - multilabel_dice_coefficient: 0.9809 - val_loss: -0.9809 - val_multilabel_dice_coefficient: 0.9809
+Epoch 67/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9809 - multilabel_dice_coefficient: 0.9809   
+Epoch 00067: val_loss did not improve
+67/67 [==============================] - 11460s 171s/step - loss: -0.9809 - multilabel_dice_coefficient: 0.9809 - val_loss: -0.9810 - val_multilabel_dice_coefficient: 0.9810
+Epoch 68/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9804 - multilabel_dice_coefficient: 0.9804   
+Epoch 00068: val_loss did not improve
+67/67 [==============================] - 11441s 171s/step - loss: -0.9804 - multilabel_dice_coefficient: 0.9804 - val_loss: -0.9801 - val_multilabel_dice_coefficient: 0.9801
+Epoch 69/200
+66/67 [============================>.] - ETA: 2:17 - loss: -0.9812 - multilabel_dice_coefficient: 0.9812   
+Epoch 00069: val_loss did not improve
+67/67 [==============================] - 11536s 172s/step - loss: -0.9812 - multilabel_dice_coefficient: 0.9812 - val_loss: -0.9810 - val_multilabel_dice_coefficient: 0.9810
+Epoch 70/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9809 - multilabel_dice_coefficient: 0.9809   
+Epoch 00070: val_loss improved from -0.98112 to -0.98180, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11489s 171s/step - loss: -0.9809 - multilabel_dice_coefficient: 0.9809 - val_loss: -0.9818 - val_multilabel_dice_coefficient: 0.9818
+Epoch 71/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9814 - multilabel_dice_coefficient: 0.9814   
+Epoch 00071: val_loss did not improve
+67/67 [==============================] - 11526s 172s/step - loss: -0.9813 - multilabel_dice_coefficient: 0.9813 - val_loss: -0.9808 - val_multilabel_dice_coefficient: 0.9808
+Epoch 72/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9814 - multilabel_dice_coefficient: 0.9814   
+Epoch 00072: val_loss did not improve
+67/67 [==============================] - 11507s 172s/step - loss: -0.9814 - multilabel_dice_coefficient: 0.9814 - val_loss: -0.9807 - val_multilabel_dice_coefficient: 0.9807
+Epoch 73/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9816 - multilabel_dice_coefficient: 0.9816   
+Epoch 00073: val_loss improved from -0.98180 to -0.98197, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11385s 170s/step - loss: -0.9816 - multilabel_dice_coefficient: 0.9816 - val_loss: -0.9820 - val_multilabel_dice_coefficient: 0.9820
+Epoch 74/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9816 - multilabel_dice_coefficient: 0.9816   
+Epoch 00074: val_loss improved from -0.98197 to -0.98201, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11448s 171s/step - loss: -0.9817 - multilabel_dice_coefficient: 0.9817 - val_loss: -0.9820 - val_multilabel_dice_coefficient: 0.9820
+Epoch 75/200
+66/67 [============================>.] - ETA: 2:15 - loss: -0.9818 - multilabel_dice_coefficient: 0.9818   
+Epoch 00075: val_loss did not improve
+67/67 [==============================] - 11381s 170s/step - loss: -0.9818 - multilabel_dice_coefficient: 0.9818 - val_loss: -0.9818 - val_multilabel_dice_coefficient: 0.9818
+Epoch 76/200
+66/67 [============================>.] - ETA: 2:21 - loss: -0.9819 - multilabel_dice_coefficient: 0.9819   
+Epoch 00076: val_loss improved from -0.98201 to -0.98205, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11674s 174s/step - loss: -0.9819 - multilabel_dice_coefficient: 0.9819 - val_loss: -0.9821 - val_multilabel_dice_coefficient: 0.9821
+Epoch 77/200
+66/67 [============================>.] - ETA: 2:20 - loss: -0.9814 - multilabel_dice_coefficient: 0.9814   
+Epoch 00077: val_loss improved from -0.98205 to -0.98242, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11713s 175s/step - loss: -0.9814 - multilabel_dice_coefficient: 0.9814 - val_loss: -0.9824 - val_multilabel_dice_coefficient: 0.9824
+Epoch 78/200
+66/67 [============================>.] - ETA: 2:16 - loss: -0.9815 - multilabel_dice_coefficient: 0.9815   
+Epoch 00078: val_loss did not improve
+67/67 [==============================] - 11370s 170s/step - loss: -0.9815 - multilabel_dice_coefficient: 0.9815 - val_loss: -0.9804 - val_multilabel_dice_coefficient: 0.9804
+Epoch 79/200
+66/67 [============================>.] - ETA: 2:18 - loss: -0.9817 - multilabel_dice_coefficient: 0.9817   
+Epoch 00079: val_loss did not improve
+67/67 [==============================] - 11656s 174s/step - loss: -0.9817 - multilabel_dice_coefficient: 0.9817 - val_loss: -0.9821 - val_multilabel_dice_coefficient: 0.9821
+Epoch 80/200
+66/67 [============================>.] - ETA: 2:12 - loss: -0.9824 - multilabel_dice_coefficient: 0.9824   
+Epoch 00080: val_loss improved from -0.98242 to -0.98295, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 11047s 165s/step - loss: -0.9824 - multilabel_dice_coefficient: 0.9824 - val_loss: -0.9829 - val_multilabel_dice_coefficient: 0.9829
+Epoch 81/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9818 - multilabel_dice_coefficient: 0.9818   
+Epoch 00081: val_loss did not improve
+67/67 [==============================] - 10507s 157s/step - loss: -0.9818 - multilabel_dice_coefficient: 0.9818 - val_loss: -0.9808 - val_multilabel_dice_coefficient: 0.9808
+Epoch 82/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9822 - multilabel_dice_coefficient: 0.9822   
+Epoch 00082: val_loss did not improve
+67/67 [==============================] - 10385s 155s/step - loss: -0.9822 - multilabel_dice_coefficient: 0.9822 - val_loss: -0.9822 - val_multilabel_dice_coefficient: 0.9822
+Epoch 83/200
+66/67 [============================>.] - ETA: 2:08 - loss: -0.9823 - multilabel_dice_coefficient: 0.9823   
+Epoch 00083: val_loss did not improve
+67/67 [==============================] - 10694s 160s/step - loss: -0.9823 - multilabel_dice_coefficient: 0.9823 - val_loss: -0.9825 - val_multilabel_dice_coefficient: 0.9825
+Epoch 84/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9825 - multilabel_dice_coefficient: 0.9825   
+Epoch 00084: val_loss did not improve
+67/67 [==============================] - 10445s 156s/step - loss: -0.9825 - multilabel_dice_coefficient: 0.9825 - val_loss: -0.9815 - val_multilabel_dice_coefficient: 0.9815
+Epoch 85/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9825 - multilabel_dice_coefficient: 0.9825   
+Epoch 00085: val_loss did not improve
+67/67 [==============================] - 10425s 156s/step - loss: -0.9825 - multilabel_dice_coefficient: 0.9825 - val_loss: -0.9819 - val_multilabel_dice_coefficient: 0.9819
+Epoch 86/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9822 - multilabel_dice_coefficient: 0.9822   
+Epoch 00086: val_loss did not improve
+67/67 [==============================] - 10417s 155s/step - loss: -0.9822 - multilabel_dice_coefficient: 0.9822 - val_loss: -0.9827 - val_multilabel_dice_coefficient: 0.9827
+Epoch 87/200
+66/67 [============================>.] - ETA: 2:05 - loss: -0.9827 - multilabel_dice_coefficient: 0.9827   
+Epoch 00087: val_loss did not improve
+67/67 [==============================] - 10491s 157s/step - loss: -0.9827 - multilabel_dice_coefficient: 0.9827 - val_loss: -0.9822 - val_multilabel_dice_coefficient: 0.9822
+Epoch 88/200
+66/67 [============================>.] - ETA: 2:02 - loss: -0.9825 - multilabel_dice_coefficient: 0.9825   
+Epoch 00088: val_loss did not improve
+67/67 [==============================] - 10261s 153s/step - loss: -0.9825 - multilabel_dice_coefficient: 0.9825 - val_loss: -0.9826 - val_multilabel_dice_coefficient: 0.9826
+Epoch 89/200
+66/67 [============================>.] - ETA: 2:07 - loss: -0.9827 - multilabel_dice_coefficient: 0.9827   
+Epoch 00089: val_loss did not improve
+67/67 [==============================] - 10634s 159s/step - loss: -0.9827 - multilabel_dice_coefficient: 0.9827 - val_loss: -0.9816 - val_multilabel_dice_coefficient: 0.9816
+Epoch 90/200
+66/67 [============================>.] - ETA: 2:02 - loss: -0.9830 - multilabel_dice_coefficient: 0.9830   
+Epoch 00090: val_loss did not improve
+67/67 [==============================] - 10293s 154s/step - loss: -0.9830 - multilabel_dice_coefficient: 0.9830 - val_loss: -0.9826 - val_multilabel_dice_coefficient: 0.9826
+Epoch 91/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9828 - multilabel_dice_coefficient: 0.9828   
+Epoch 00091: val_loss improved from -0.98295 to -0.98295, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+
+Epoch 00091: ReduceLROnPlateau reducing learning rate to 9.999999747378752e-07.
+67/67 [==============================] - 10361s 155s/step - loss: -0.9828 - multilabel_dice_coefficient: 0.9828 - val_loss: -0.9829 - val_multilabel_dice_coefficient: 0.9829
+Epoch 92/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9832 - multilabel_dice_coefficient: 0.9832   
+Epoch 00092: val_loss did not improve
+67/67 [==============================] - 10458s 156s/step - loss: -0.9832 - multilabel_dice_coefficient: 0.9832 - val_loss: -0.9829 - val_multilabel_dice_coefficient: 0.9829
+Epoch 93/200
+66/67 [============================>.] - ETA: 2:06 - loss: -0.9835 - multilabel_dice_coefficient: 0.9835   
+Epoch 00093: val_loss improved from -0.98295 to -0.98380, saving model to /Users/ntustison/Data/BrainExtraction/Data//unetModelWeights.h5
+67/67 [==============================] - 10553s 158s/step - loss: -0.9835 - multilabel_dice_coefficient: 0.9835 - val_loss: -0.9838 - val_multilabel_dice_coefficient: 0.9838
+Epoch 94/200
+66/67 [============================>.] - ETA: 2:04 - loss: -0.9833 - multilabel_dice_coefficient: 0.9833   
+Epoch 00094: val_loss did not improve
+67/67 [==============================] - 10347s 154s/step - loss: -0.9833 - multilabel_dice_coefficient: 0.9833 - val_loss: -0.9831 - val_multilabel_dice_coefficient: 0.9831
+Epoch 95/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9834 - multilabel_dice_coefficient: 0.9834   
+Epoch 00095: val_loss did not improve
+67/67 [==============================] - 10354s 155s/step - loss: -0.9833 - multilabel_dice_coefficient: 0.9833 - val_loss: -0.9831 - val_multilabel_dice_coefficient: 0.9831
+Epoch 96/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9835 - multilabel_dice_coefficient: 0.9835   
+Epoch 00096: val_loss did not improve
+67/67 [==============================] - 10290s 154s/step - loss: -0.9835 - multilabel_dice_coefficient: 0.9835 - val_loss: -0.9835 - val_multilabel_dice_coefficient: 0.9835
+Epoch 97/200
+66/67 [============================>.] - ETA: 2:03 - loss: -0.9834 - multilabel_dice_coefficient: 0.9834   
+Epoch 00097: val_loss did not improve
+67/67 [==============================] - 10384s 155s/step - loss: -0.9834 - multilabel_dice_coefficient: 0.9834 - val_loss: -0.9834 - val_multilabel_dice_coefficient: 0.9834
+Epoch 98/200
+66/67 [============================>.] - ETA: 2:02 - loss: -0.9836 - multilabel_dice_coefficient: 0.9836   
+Epoch 00098: val_loss did not improve
+67/67 [==============================] - 10320s 154s/step - loss: -0.9836 - multilabel_dice_coefficient: 0.9836 - val_loss: -0.9834 - val_multilabel_dice_coefficient: 0.9834
+Epoch 99/200
+66/67 [============================>.] - ETA: 2:02 - loss: -0.9835 - multilabel_dice_coefficient: 0.9835   
+Epoch 00099: val_loss did not improve
+67/67 [==============================] - 10423s 156s/step - loss: -0.9835 - multilabel_dice_coefficient: 0.9835 - val_loss: -0.9833 - val_multilabel_dice_coefficient: 0.9833
+Epoch 100/200
+66/67 [============================>.] - ETA: 2:10 - loss: -0.9835 - multilabel_dice_coefficient: 0.9835   
+Epoch 00100: val_loss did not improve
+67/67 [==============================] - 10849s 162s/step - loss: -0.9835 - multilabel_dice_coefficient: 0.9835 - val_loss: -0.9837 - val_multilabel_dice_coefficient: 0.9837
