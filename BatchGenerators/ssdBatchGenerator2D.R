@@ -216,12 +216,9 @@ ssdImageBatchGenerator2D <- R6::R6Class( "SsdImageBatchGenerator2D",
 
             measures <- labelGeometryMeasures( sliceWarpedImageY )
 
-            #
-            # Note:  need to change the order when ANTsR updates it's ANTs version
-            #
             boxes <- data.frame( classId = rep( 1, nrow( measures ) ),
-              xmin = measures$BoundingBoxLower_x, xmax = measures$BoundingBoxLower_y, 
-              ymin = measures$BoundingBoxUpper_x, ymax = measures$BoundingBoxUpper_y ) 
+              xmin = measures$BoundingBoxLower_x, xmax = measures$BoundingBoxUpper_x, 
+              ymin = measures$BoundingBoxLower_y, ymax = measures$BoundingBoxUpper_y ) 
             batchY[[i]] <- boxes
 
             i <- i + 1
