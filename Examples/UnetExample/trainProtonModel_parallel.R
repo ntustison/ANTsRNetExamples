@@ -63,7 +63,7 @@ parallel_unetModel <- multi_gpu_model( unetModel, gpus = 4 )
 # categorical cross entropy loss function
 parallel_unetModel %>% compile( loss = "categorical_crossentropy",
   optimizer = optimizer_adam( lr = 0.0001 ),  
-  metrics = c( "acc" ) )
+  metrics = c( "acc", multilabel_dice_coefficient ) )
 
 ###
 #
@@ -127,8 +127,14 @@ track <- parallel_unetModel$fit_generator(
   )
 
 
+# There's an issue in keras with saving the parallel model.  Basically, it's
+# not written so that the non-parallel version can read it so we need
+# actually save the underlying non-parallel model weights.
+#
+# More here:  https://github.com/keras-team/keras/issues/8123
+#
 
-
+save_model_weights_hdf5( unetModel,  paste0( baseDirectory, "unetProtonWeights.h5" ), overwrite = TRUE )
 
 
 
