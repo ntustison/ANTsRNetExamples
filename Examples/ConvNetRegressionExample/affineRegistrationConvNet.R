@@ -9,7 +9,7 @@ images <- list()
 scl = 4
 leaveout = 4
 sdt = 0.1
-if ( ! exists( "myep" ) ) myep = 50
+if ( ! exists( "myep" ) ) myep = 500 # reasonable default
 ref = ri( 16 )
 for( i in 1:length( imageIDs ) )
   {
