@@ -6,11 +6,13 @@ library( abind )
 library( keras )
 imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 images <- list()
+ref = ri( 16 )  %>% resampleImage( 2 )
 for( i in 1:length( imageIDs ) )
   {
   cat( "Processing image", imageIDs[i], "\n" )
   img  = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% resampleImage( 2 )
-  images[[i]] <- ( img )
+  reg = antsRegistration( ref, img, "Affine" )
+  images[[i]] <- reg$warpedmovout
   }
 
 build_model <- function( input_shape, num_regressors ) {
@@ -29,7 +31,8 @@ build_model <- function( input_shape, num_regressors ) {
 
   model %>% compile(
     loss = "mse",
-    optimizer = optimizer_rmsprop(),
+#    optimizer = optimizer_rmsprop(),
+    optimizer = optimizer_adam( lr = 0.0001 ),
     metrics = list("mean_absolute_error")
   )
 
@@ -47,27 +50,44 @@ regressionModel %>% summary()
 mytd <- randomImageTransformParametersBatchGenerator$new(
   imageList = images,
   transformType = "Affine",
-  sdTransform = 0.05,
+  sdTransform = 0.1,
   imageDomain = images[[1]] )
 tdgenfun <- mytd$generate( batchSize = 5 )
 
 #
 track <- regressionModel$fit_generator(
   generator = reticulate::py_iterator( tdgenfun ),
-  steps_per_epoch = 5,
-  epochs = 25  )
+  steps_per_epoch = 2,
+  epochs = 12  )
 
 #####################
 tdgenfun2 <- mytd$generate( batchSize = 10 )
+#####################
+# generate new data #
+#####################
 testpop <- tdgenfun2()
-
 domainMask = img * 0 + 1
-k = 1
+k = 5
 testimg = makeImage( domainMask, testpop[[1]][k,,,1] )
-plot( testimg )
 predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
+# we are learning the mapping away from the template so now invert the solution
+affTx = createAntsrTransform( "AffineTransform", dimension = 2 )
+setAntsrTransformParameters( affTx, testpop[[2]][k,] )
+affTxI = invertAntsrTransform( affTx )
+rr = readAntsrTransform( reg$fwdtransforms[1] )
+setAntsrTransformFixedParameters( affTxI, getAntsrTransformFixedParameters(rr))
+learned = applyAntsrTransform( affTxI,  testimg, ref )
+plot( ref, testimg, doCropping=F, alpha = 0.5  )
+plot( ref, learned, doCropping=F, alpha = 0.5  )
+#
 # now compare the predicted to the real
+#
 for ( row in 1:nrow( predictedData ) )
   print( paste(
     'cor:',cor( predictedData[row,], testpop[[2]][row,] ),
     'abs-err:',mean(abs(  predictedData[row,] - testpop[[2]][row,] ) ) ) )
+
+for ( col in 1:ncol( predictedData ) )
+  print( paste(
+    'cor:',cor( predictedData[,col], testpop[[2]][,col] ),
+    'abs-err:',mean(abs(  predictedData[,col] - testpop[[2]][,col] ) ) ) )
