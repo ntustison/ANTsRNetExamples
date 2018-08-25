@@ -67,7 +67,7 @@ tdgenfun2 <- mytd$generate( batchSize = 10 )
 #####################
 testpop <- tdgenfun2()
 domainMask = img * 0 + 1
-k = 5
+k = 3
 testimg = makeImage( domainMask, testpop[[1]][k,,,1] )
 predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
 # we are learning the mapping away from the template so now invert the solution
