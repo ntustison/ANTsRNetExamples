@@ -6,33 +6,49 @@ library( abind )
 library( keras )
 imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 images <- list()
-ref = ri( 16 )  %>% resampleImage( 2 )
+scl = 4
+leaveout = 4
+sdt = 0.1
+if ( ! exists( "myep" ) ) myep = 50
+ref = ri( 16 )
 for( i in 1:length( imageIDs ) )
   {
   cat( "Processing image", imageIDs[i], "\n" )
-  img  = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% resampleImage( 2 )
+  img  = antsImageRead( getANTsRData( imageIDs[i] ) )
   reg = antsRegistration( ref, img, "Affine" )
-  images[[i]] <- reg$warpedmovout
+  images[[i]] <- ( iMath( reg$warpedmovout, "Normalize" ) * 255 ) %>%
+    resampleImage( scl )
   }
+ref = ri( 16 )  %>% resampleImage( scl )
 
 build_model <- function( input_shape, num_regressors ) {
 
   # Define model
+  myact='relu'
+#  myact='linear'
   model <- keras_model_sequential() %>%
-    layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu',
+    layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = myact,
                   input_shape = input_shape) %>%
-    layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>%
+    layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = myact) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout(rate = 0.25) %>%
+    layer_dropout( rate = 0.0 ) %>%
+    layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = myact) %>%
+    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+    layer_dropout( rate = 0.0 ) %>%
+    layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = myact) %>%
+    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+    layer_dropout( rate = 0.0 ) %>%
     layer_flatten() %>%
-    layer_dense(units = 128, activation = 'relu') %>%
-    layer_dropout(rate = 0.5) %>%
+    layer_dense(units = 32, activation = myact) %>%
+    layer_dropout(rate = 0.0 ) %>%
     layer_dense(units = num_regressors )
 
   model %>% compile(
-    loss = "mse",
+#    loss = "cosine_proximity",
+    loss = "mean_absolute_error",
 #    optimizer = optimizer_rmsprop(),
-    optimizer = optimizer_adam( lr = 0.0001 ),
+    optimizer = optimizer_adam(  amsgrad = TRUE ),
+#    optimizer = optimizer_sgd( ),
     metrics = list("mean_absolute_error")
   )
 
@@ -48,46 +64,50 @@ regressionModel %>% summary()
 
 
 mytd <- randomImageTransformParametersBatchGenerator$new(
-  imageList = images,
+  imageList = images[ -leaveout ],
   transformType = "Affine",
-  sdTransform = 0.1,
-  imageDomain = images[[1]] )
-tdgenfun <- mytd$generate( batchSize = 5 )
+  sdTransform = sdt,
+  imageDomain = ref )
+tdgenfun <- mytd$generate( batchSize = 10 )
 
 #
 track <- regressionModel$fit_generator(
   generator = reticulate::py_iterator( tdgenfun ),
-  steps_per_epoch = 2,
-  epochs = 12  )
+  steps_per_epoch = 1,
+  epochs = myep  )
 
 #####################
-tdgenfun2 <- mytd$generate( batchSize = 10 )
+mytd2 <- randomImageTransformParametersBatchGenerator$new(
+  imageList = list( images[[ leaveout ]] ),
+  transformType = "Affine",
+  sdTransform = sdt,
+  imageDomain = ref )
+tdgenfun2 <- mytd2$generate( batchSize = 1 )
 #####################
 # generate new data #
 #####################
-testpop <- tdgenfun2()
-domainMask = img * 0 + 1
-k = 3
-testimg = makeImage( domainMask, testpop[[1]][k,,,1] )
-predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
-# we are learning the mapping away from the template so now invert the solution
-affTx = createAntsrTransform( "AffineTransform", dimension = 2 )
-setAntsrTransformParameters( affTx, testpop[[2]][k,] )
-affTxI = invertAntsrTransform( affTx )
 rr = readAntsrTransform( reg$fwdtransforms[1] )
-setAntsrTransformFixedParameters( affTxI, getAntsrTransformFixedParameters(rr))
-learned = applyAntsrTransform( affTxI,  testimg, ref )
-plot( ref, testimg, doCropping=F, alpha = 0.5  )
-plot( ref, learned, doCropping=F, alpha = 0.5  )
-#
-# now compare the predicted to the real
-#
-for ( row in 1:nrow( predictedData ) )
-  print( paste(
-    'cor:',cor( predictedData[row,], testpop[[2]][row,] ),
-    'abs-err:',mean(abs(  predictedData[row,] - testpop[[2]][row,] ) ) ) )
-
-for ( col in 1:ncol( predictedData ) )
-  print( paste(
-    'cor:',cor( predictedData[,col], testpop[[2]][,col] ),
-    'abs-err:',mean(abs(  predictedData[,col] - testpop[[2]][,col] ) ) ) )
+domainMask = ref * 0 + 1
+for ( it in 1:10 ) {
+  testpop <- tdgenfun2()
+  k = 1
+  testimg = makeImage( domainMask, testpop[[1]][k,,,1] )
+  predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
+  # we are learning the mapping away from the template so now invert the solution
+  affTx = createAntsrTransform( "AffineTransform", dimension = 2 )
+  setAntsrTransformFixedParameters( affTx,
+    getAntsrTransformFixedParameters(rr)*(1))
+  setAntsrTransformParameters( affTx, predictedData[k,] )
+#  setAntsrTransformParameters( affTx, testpop[[2]][k,] ) # true
+  ####
+  affTxI = invertAntsrTransform( affTx )
+  learned = applyAntsrTransform( affTxI,  testimg, ref )
+  reg = antsRegistration( ref, testimg, 'Affine' )
+  cat("*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*\n")
+  print( paste( "ref-test", antsImageMutualInformation( ref, testimg, nBins=16) ) )
+  print( paste( "ref-lern", antsImageMutualInformation( ref, learned, nBins=16 ) ) )
+  print( paste( "ref-reg", antsImageMutualInformation( ref, reg$warpedmovout, nBins=16)) )
+  plot( testimg, doCropping=F, alpha = 0.5  )
+  plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
+  plot( learned, doCropping=F, alpha = 0.5  )
+  }
