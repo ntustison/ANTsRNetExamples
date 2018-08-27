@@ -63,7 +63,7 @@ parallel_unetModel <- multi_gpu_model( unetModel, gpus = 4 )
 # categorical cross entropy loss function
 parallel_unetModel %>% compile( loss = "categorical_crossentropy",
   optimizer = optimizer_adam( lr = 0.0001 ),  
-  metrics = c( "acc" ) )
+  metrics = c( "acc", multilabel_dice_coefficient ) )
 
 ###
 #
@@ -111,7 +111,7 @@ track <- parallel_unetModel$fit_generator(
   generator = reticulate::py_iterator( trainingDataGenerator ), 
 #  steps_per_epoch = ceiling( 400 / batchSize ),
   steps_per_epoch = ceiling( 1000 / batchSize ),
-  epochs = 20,
+  epochs = 200,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
   validation_steps = ceiling( 500 / batchSize ),
   callbacks = list( 

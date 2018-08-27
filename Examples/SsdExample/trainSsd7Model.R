@@ -3,7 +3,6 @@ library( ANTsRNet )
 library( keras )
 library( jpeg )
 library( reticulate )
-library( magick )
 
 
 keras::backend()$clear_session()
