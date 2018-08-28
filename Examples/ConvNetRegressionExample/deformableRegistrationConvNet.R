@@ -54,7 +54,7 @@ if ( ! exists( "dpca") ) {
   pcaReconCoeffsSD = apply( pcaReconCoeffs, FUN=sd, MARGIN=2 )
   }
 
-build_model <- function( input_shape, num_regressors, dilrt = 2,
+build_model <- function( input_shape, num_regressors, dilrt = 1,
   myact='linear', drate = 0.0 ) {
   filtSz = c( 32, 32, 32, 32, 32, 32 )
   filtSz = c( 16, 32, 64, max( input_shape ), 64, 32 )
@@ -65,19 +65,19 @@ build_model <- function( input_shape, num_regressors, dilrt = 2,
     layer_conv_2d(filters = filtSz[2], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-    layer_batch_normalization() %>%
+#    layer_batch_normalization() %>%
     layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-    layer_batch_normalization() %>%
+#    layer_batch_normalization() %>%
     layer_conv_2d(filters = filtSz[4], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-    layer_batch_normalization() %>%
+#    layer_batch_normalization() %>%
     layer_conv_2d(filters = filtSz[5], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-    layer_batch_normalization() %>%
+#    layer_batch_normalization() %>%
     layer_flatten() %>%
     layer_dense(units = filtSz[6], activation = myact) %>%
     layer_dropout(rate = drate ) %>%
@@ -148,7 +148,7 @@ if ( doTrain ) {
 # generate new data #
 #####################
 domainMask = ref * 0 + 1
-for ( it in 1:2 ) {
+for ( it in 1:1 ) {
   cat("*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*\n")
   testpop <- tdgenfun2()
   k = 1
@@ -164,6 +164,7 @@ for ( it in 1:2 ) {
   print( paste("speedup:",as.numeric(t3-t2)/as.numeric(t2-t1), 'cor',mycor))
   # we are learning the mapping from the template to the target image
   print(paste( "ref2tar", antsImageMutualInformation( testimg, ref, nBins=16)) )
+    bst =  0.74 # should do line search on this value
     mytx  = basisWarp( basisw, predictedData * ( bst ), nc, sm )
     learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
     print(paste("lrn2tar", antsImageMutualInformation( testimg, learned, nBins=16)))
