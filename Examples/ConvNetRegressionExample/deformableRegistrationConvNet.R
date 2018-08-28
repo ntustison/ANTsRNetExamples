@@ -2,9 +2,16 @@
 ################################################################################
 library( ANTsRNet )
 library( ANTsR )
+library(keras)
+# use_implementation("tensorflow")
+library(tensorflow)
+# tfe_enable_eager_execution(device_policy = "silent") # for the future
+library(tfdatasets)
 library( abind )
-library( keras )
-
+normimg <-function( img, scl ) {
+  temp = iMath( img, "Normalize" ) - 0.5
+  resampleImage( temp, scl )
+}
 scl = 2
 nc = 4
 sm = 0.0
@@ -12,23 +19,23 @@ leaveout = c( 1, 4 )  # leave out the template
 sdt = 1.5
 if ( ! exists( "bst" ) ) bst = 1.0
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = 100 # reasonable default
+if ( ! exists( "myep" ) ) myep = 50 # reasonable default
 ref = ri( 16 ) %>% resampleImage( scl )
 if ( ! exists( "dpca") ) {
-  images <- ri( "all" )
+  inimages <- ri( "all" )
+  images = list()
   wlist  <- list()
   ct = 1
-  wimgs = seq_len( length( images ) )[-leaveout]
-  for( i in c(wimgs,wimgs,wimgs) )
+  wimgs = seq_len( length( inimages ) )[-leaveout]
+  for( i in c(wimgs,wimgs,wimgs,wimgs) )
     {
     cat( "Processing image-MI", i, "\n" )
-    noiseimage = makeImage( ref*0+1, rnorm( prod(dim(ref)), 0, 10 ) )
-    img  = antsImageClone( images[[i]] ) %>% resampleImage( scl ) + noiseimage
+    noiseimage = makeImage( ref*0+1, rnorm( prod(dim(ref)), 0, 0.05 ) )
+    img  = normimg( inimages[[i]], scl ) + noiseimage
     reg = antsRegistration( ref, img, "SyN", totalSigma = 0.0,
-      affSampling=sample( c( 16, 32, 48, 20, 12 ) )[1] )
+      affSampling=sample( c( 16, 20, 24, 28, 32 ) )[1], verbose=F )
     wlist[[ ct ]] =  composeTransformsToField( ref, reg$fwd[1] )
-    images[[ct]] <- ( iMath( reg$warpedmovout, "Normalize" ) * 1 ) %>%
-      resampleImage( scl )
+    images[[ct]] <- reg$warpedmovout
     ct = ct + 1
     }
 
@@ -47,37 +54,38 @@ if ( ! exists( "dpca") ) {
   pcaReconCoeffsSD = apply( pcaReconCoeffs, FUN=sd, MARGIN=2 )
   }
 
-build_model <- function( input_shape, num_regressors ) {
-  # Define model
-  myact='linear'
-  #  myact='relu'
+build_model <- function( input_shape, num_regressors, dilrt = 2,
+  myact='linear', drate = 0.0 ) {
+  filtSz = c( 32, 32, 32, 32, 32, 32 )
   filtSz = c( 16, 32, 64, max( input_shape ), 64, 32 )
-  dilrt = as.integer( 1 )
-  dilrt = as.integer( 2 )
+  dilrt = as.integer( dilrt )
   model <- keras_model_sequential() %>%
     layer_conv_2d(filters = filtSz[1], kernel_size = c(3,3), activation = myact,
                   input_shape = input_shape, dilation_rate = dilrt ) %>%
     layer_conv_2d(filters = filtSz[2], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = 0.0 ) %>%
+    layer_dropout( rate = drate ) %>%
+    layer_batch_normalization() %>%
     layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = 0.0 ) %>%
+    layer_dropout( rate = drate ) %>%
+    layer_batch_normalization() %>%
     layer_conv_2d(filters = filtSz[4], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = 0.0 ) %>%
+    layer_dropout( rate = drate ) %>%
+    layer_batch_normalization() %>%
     layer_conv_2d(filters = filtSz[5], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = 0.0 ) %>%
+    layer_dropout( rate = drate ) %>%
+    layer_batch_normalization() %>%
     layer_flatten() %>%
     layer_dense(units = filtSz[6], activation = myact) %>%
-    layer_dropout(rate = 0.0 ) %>%
+    layer_dropout(rate = drate ) %>%
     layer_dense(units = num_regressors )
 
   model %>% compile(
     loss = "mse",
     optimizer = optimizer_adam( ),
-#    optimizer = optimizer_rmsprop(),
     metrics = list("mean_absolute_error")
   )
 
@@ -106,8 +114,8 @@ tdgenfun <- mytd$generate( batchSize = 10 )
 
 ##################### generate from a new source anatomy
 reg = antsRegistration( ref, ri( leaveout[2] ), "SyN", totalSigma = 0.0 )
-newanat = ( iMath( reg$warpedmovout, "Normalize" ) * 1 ) %>%
-  resampleImage( scl )
+newanat = normimg( reg$warpedmovout, scl )
+newanat = normimg( ref, scl )
 mytd2 <- randomImageTransformParametersBatchGenerator$new(
   imageList = list( newanat ),
   transformType = "DeformationBasis",
@@ -130,8 +138,10 @@ if ( doTrain ) {
     regressionModel <- build_model(  input_shape, numRegressors   )
   track <- regressionModel$fit_generator(
     generator = reticulate::py_iterator( tdgenfun ),
-    steps_per_epoch = 5,
+    steps_per_epoch = 10,
     epochs = myep  )
+# save_model_hdf5( regressionModel, 'my_model.h5')
+#     regressionModel <- load_model_hdf5('my_model.h5')
   }
 
 #####################
