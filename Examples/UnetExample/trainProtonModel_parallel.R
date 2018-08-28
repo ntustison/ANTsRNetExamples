@@ -111,7 +111,7 @@ track <- parallel_unetModel$fit_generator(
   generator = reticulate::py_iterator( trainingDataGenerator ), 
 #  steps_per_epoch = ceiling( 400 / batchSize ),
   steps_per_epoch = ceiling( 1000 / batchSize ),
-  epochs = 20,
+  epochs = 200,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
   validation_steps = ceiling( 500 / batchSize ),
   callbacks = list( 
