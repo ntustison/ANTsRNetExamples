@@ -36,7 +36,7 @@ if ( ! exists( "dpca") ) {
 #  dpca2 = multichannelPCA( wlist, mskpca, k=5, pcaOption=25 )
 # We need this because not all of the allowable decompositions are SVD-like.
 #  dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
-  dpca = multichannelPCA( wlist, mskpca, pcaOption='svd' )
+  dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
   pcaReconCoeffs = matrix( nrow = length( wlist ), ncol = ncol(dpca$pca$v)  )
   for ( i in 1:length( wlist ) ) {
     wvec = multichannelToVector( wlist[[i]], mskpca )
