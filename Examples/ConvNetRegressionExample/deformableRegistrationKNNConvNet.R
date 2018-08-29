@@ -17,10 +17,11 @@ scl = 2
 nc = 6
 sm = 0.0
 leaveout = c( 1 )  # leave out the template
-sdt = 0.25
-numRegressors = 12
-algid='fastICA'
+sdt = 0.025
+numRegressors = 6
 algid='pca'
+algid='fastICA'
+# algid=66
 onm = paste0( 'regi', numRegressors, 'alg',algid, 'regressionModel.h5' )
 bnm = tools::file_path_sans_ext( onm )
 if ( ! exists( "bst" ) ) bst =  1 # should do line search on this value
@@ -46,7 +47,7 @@ if ( ! exists( "dpca") & !file.exists(  onm  ) )  {
     ct = ct + 1
     }
 
-  mskpca = getMask( ref ) %>% iMath( "MD", 6 )
+#  mskpca = getMask( ref ) %>% iMath( "MD", 6 )
   print('begin decomposition')
 #  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=100 )
   dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=algid )
@@ -127,7 +128,7 @@ mysds = pcaReconCoeffsSD * sdt
 # reg = antsRegistration( ref, ri( leaveout[2] ), "SyN", totalSigma = 0.0 )
 # newanat = normimg( reg$warpedmovout, scl )
 newanat = normimg( ref, scl )
-newanat = antsRegistration( ref, normimg(  ri( sample( 2:6 )[1] )  , scl ) )$warpedmovout # original data
+# newanat = antsRegistration( ref, normimg(  ri( sample( 2:6 )[1] )  , scl ) )$warpedmovout # original data
 mytd2 <- randomImageTransformParametersBatchGenerator$new(
   imageList = list( newanat ),
   transformType = "DeformationBasis",
