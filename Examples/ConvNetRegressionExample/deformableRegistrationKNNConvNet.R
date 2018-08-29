@@ -6,7 +6,7 @@ library(keras)
 # use_implementation("tensorflow")
 library(tensorflow)
 # tfe_enable_eager_execution(device_policy = "silent") # for the future
-library(tfdatasets)
+# library(tfdatasets)
 library( abind )
 normimg <-function( img, scl ) {
   temp = iMath( img, "Normalize" ) - 0.5
@@ -20,7 +20,7 @@ leaveout = c( 1 )  # leave out the template
 sdt = 0.33
 if ( ! exists( "bst" ) ) bst =  1 # should do line search on this value
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = 50 # reasonable default
+if ( ! exists( "myep" ) ) myep = 10 # reasonable default
 ref = ri( 16 ) %>% resampleImage( scl )
 if ( ! exists( "dpca") ) {
   inimages <- ri( "all" )
@@ -63,7 +63,20 @@ if ( ! exists( "dpca") ) {
   pcaReconCoeffsSD = apply( pcaReconCoeffs, FUN=sd, MARGIN=2 )
   print('end decomposition')
   mskpca = ref *  0 + 1 # reset to full domain for deep learning
+  numRegressors = length( basisw )
   }
+
+###
+onm = paste0( 'regi', numRegressors, 'KNNregressionModel.h5' )
+bnm = tools::file_path_sans_ext( onm )
+if ( file.exists( onm ) ) {
+  regressionModel <- load_model_hdf5( onm )
+  basisw = list( )
+  for ( k in 1:numRegressors ) basisw[[ k ]] = antsImageRead( paste0( bnm, '_basis',k,'.nii.gz' ) )
+  pcaReconCoeffsMeans = as.numeric( read.csv(  paste0( bnm, 'mn.csv' )  )[,1] )
+  pcaReconCoeffsSD = as.numeric( read.csv(  paste0( bnm, 'sd.csv' )  )[,1] )
+  }
+
 
 build_model <- function( input_shape, num_regressors, dilrt = 1,
   myact='linear', drate = 0.0 ) {
@@ -103,7 +116,6 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
   model
 }
 
-numRegressors = length( basisw )
 input_shape <- c( dim( images[[1]]), images[[1]]@components )
 mymus = pcaReconCoeffsMeans
 mysds = pcaReconCoeffsSD * sdt
@@ -139,11 +151,8 @@ testimg = makeImage( mskpca, testpop[[1]][1,,,1] )
 # plot( testimg, doCropping = F )
 
 ###
-onm = paste0( 'regi', numRegressors, 'KNNregressionModel.h5' )
-if ( file.exists( onm ) ) {
-  regressionModel <- load_model_hdf5( onm )
   # read bases, means and SDs as well
-  } else{
+  if ( !file.exists( onm ) ) {
   if ( ! exists( "doTrain" ) ) doTrain = TRUE else doTrain = FALSE
   if ( doTrain ) {
     if ( ! exists( "regressionModel" ) )
@@ -157,7 +166,9 @@ if ( file.exists( onm ) ) {
       save_model_hdf5( regressionModel, onm )
       # FIXME - need to save the bases as well! they can change over irlba runs
 #      deformationBasis = basisw,
-#      deformationBasisMeans = mymus * 1,
+       for ( k in 1:length( basisw ) ) antsImageWrite( basisw[[k]], paste0( bnm, '_basis',k,'.nii.gz' ) )
+       write.csv( pcaReconCoeffsMeans, paste0( bnm, 'mn.csv'),  row.names=F )
+       write.csv( pcaReconCoeffsSD, paste0( bnm, 'sd.csv'), row.names=F )
 #      deformationBasisSDs = mysds * 1)
       }
     }
@@ -172,7 +183,7 @@ for ( it in 1:1 ) {
   testpop <- tdgenfun2()
   k = 1
   testimg = makeImage( mskpca, testpop[[1]][k,,,1] )
-  plot( testimg, doCropping = F )
+#  plot( testimg, doCropping = F )
   t1=Sys.time()
   predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
 #  predictedData = testpop[[2]] # best possible result
@@ -187,7 +198,7 @@ for ( it in 1:1 ) {
     learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
     print(paste("lrn2tar", antsImageMutualInformation( testimg, learned, nBins=16)))
     print( paste( "reg2tar", antsImageMutualInformation( testimg, reg$warpedmovout, nBins=16)) )
-  plot( testimg, doCropping=F, alpha = 0.5  )
-#  plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
-  plot( learned, doCropping=F, alpha = 0.5  )
+#  plot( testimg, doCropping=F, alpha = 0.5  )
+##  plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
+#  plot( learned, doCropping=F, alpha = 0.5  )
   }
