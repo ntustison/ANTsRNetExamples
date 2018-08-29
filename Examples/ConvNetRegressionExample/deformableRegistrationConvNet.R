@@ -15,11 +15,11 @@ normimg <-function( img, scl ) {
 scl = 2
 nc = 4
 sm = 0.0
-leaveout = c( 1, 4 )  # leave out the template
+leaveout = c( 1 )  # leave out the template
 sdt = 1.5
 if ( ! exists( "bst" ) ) bst = 1.0
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = 50 # reasonable default
+if ( ! exists( "myep" ) ) myep = 300 # reasonable default
 ref = ri( 16 ) %>% resampleImage( scl )
 if ( ! exists( "dpca") ) {
   inimages <- ri( "all" )
@@ -32,7 +32,7 @@ if ( ! exists( "dpca") ) {
     cat( "Processing image-MI", i, "\n" )
     noiseimage = makeImage( ref*0+1, rnorm( prod(dim(ref)), 0, 0.05 ) )
     img  = normimg( inimages[[i]], scl ) + noiseimage
-    reg = antsRegistration( ref, img, "SyN", totalSigma = 0.0,
+    reg = antsRegistration( ref, img, "SyN", flowSigma = sample( c(3,4,5) )[1],
       affSampling=sample( c( 16, 20, 24, 28, 32 ) )[1], verbose=F )
     wlist[[ ct ]] =  composeTransformsToField( ref, reg$fwd[1] )
     images[[ct]] <- reg$warpedmovout
@@ -113,8 +113,8 @@ mytd <- randomImageTransformParametersBatchGenerator$new(
 tdgenfun <- mytd$generate( batchSize = 10 )
 
 ##################### generate from a new source anatomy
-reg = antsRegistration( ref, ri( leaveout[2] ), "SyN", totalSigma = 0.0 )
-newanat = normimg( reg$warpedmovout, scl )
+# reg = antsRegistration( ref, ri( leaveout[2] ), "SyN", totalSigma = 0.0 )
+# newanat = normimg( reg$warpedmovout, scl )
 newanat = normimg( ref, scl )
 mytd2 <- randomImageTransformParametersBatchGenerator$new(
   imageList = list( newanat ),
