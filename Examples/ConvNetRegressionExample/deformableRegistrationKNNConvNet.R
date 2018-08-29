@@ -10,15 +10,15 @@ library(tensorflow)
 library( abind )
 normimg <-function( img, scl ) {
   temp = iMath( img, "Normalize" ) - 0.5
-  temp = iMath( img, "Normalize" ) * 255
+#  temp = iMath( img, "Normalize" ) * 255
   resampleImage( temp, scl )
 }
 scl = 2
-nc = 4
-sm = 0.5
+nc = 6
+sm = 0.0
 leaveout = c( 1 )  # leave out the template
-sdt = 0.33
-numRegressors = 40
+sdt = 0.25
+numRegressors = 12
 onm = paste0( 'regi', numRegressors, 'KNNregressionModel.h5' )
 bnm = tools::file_path_sans_ext( onm )
 if ( ! exists( "bst" ) ) bst =  1 # should do line search on this value
@@ -47,7 +47,7 @@ if ( ! exists( "dpca") & !file.exists(  onm  ) )  {
   mskpca = getMask( ref ) %>% iMath( "MD", 6 )
 #  dpca = multichannelPCA( wlist, mskpca, pcaOption='pca' )
   print('begin decomposition')
-  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=55 )
+  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=100 )
   basisw = dpca$pcaWarps
   # for some decompositions, we multiply by a magic number
   # b/c learning is sensitive to scaling
@@ -144,11 +144,11 @@ testimg = makeImage( mskpca, testpop[[1]][1,,,1] )
 ###
   # read bases, means and SDs as well
 if ( !file.exists( onm ) ) {
+  input_shape <- c( dim( images[[1]]), images[[1]]@components )	
   if ( ! exists( "doTrain" ) ) doTrain = TRUE else doTrain = FALSE
   if ( doTrain ) {
     if ( ! exists( "regressionModel" ) )
       regressionModel <- build_model(  input_shape, numRegressors   )
-    input_shape <- c( dim( images[[1]]), images[[1]]@components )
     mytd <- randomImageTransformParametersBatchGenerator$new( 
 							     imageList = images,
 							     transformType = "DeformationBasis",
