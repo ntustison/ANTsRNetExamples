@@ -18,11 +18,15 @@ nc = 4
 sm = 0.5
 leaveout = c( 1 )  # leave out the template
 sdt = 0.33
+numRegressors = 40
+onm = paste0( 'regi', numRegressors, 'KNNregressionModel.h5' )
+bnm = tools::file_path_sans_ext( onm )
 if ( ! exists( "bst" ) ) bst =  1 # should do line search on this value
 txtype = "DeformationBasis"
 if ( ! exists( "myep" ) ) myep = 10 # reasonable default
 ref = ri( 16 ) %>% resampleImage( scl )
-if ( ! exists( "dpca") ) {
+mskpca = ref * 0 + 1
+if ( ! exists( "dpca") & !file.exists(  onm  ) )  {
   inimages <- ri( "all" )
   images = list()
   wlist  <- list()
@@ -43,7 +47,7 @@ if ( ! exists( "dpca") ) {
   mskpca = getMask( ref ) %>% iMath( "MD", 6 )
 #  dpca = multichannelPCA( wlist, mskpca, pcaOption='pca' )
   print('begin decomposition')
-  dpca = multichannelPCA( wlist, mskpca, k=40, pcaOption=55 )
+  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=55 )
   basisw = dpca$pcaWarps
   # for some decompositions, we multiply by a magic number
   # b/c learning is sensitive to scaling
@@ -66,15 +70,13 @@ if ( ! exists( "dpca") ) {
   numRegressors = length( basisw )
   }
 
-###
-onm = paste0( 'regi', numRegressors, 'KNNregressionModel.h5' )
-bnm = tools::file_path_sans_ext( onm )
 if ( file.exists( onm ) ) {
+  pcaReconCoeffsMeans = as.numeric( read.csv(  paste0( bnm, 'mn.csv' )  )[,1] )
+  pcaReconCoeffsSD = as.numeric( read.csv(  paste0( bnm, 'sd.csv' )  )[,1] )
+  numRegressors = length( pcaReconCoeffsMeans )
   regressionModel <- load_model_hdf5( onm )
   basisw = list( )
   for ( k in 1:numRegressors ) basisw[[ k ]] = antsImageRead( paste0( bnm, '_basis',k,'.nii.gz' ) )
-  pcaReconCoeffsMeans = as.numeric( read.csv(  paste0( bnm, 'mn.csv' )  )[,1] )
-  pcaReconCoeffsSD = as.numeric( read.csv(  paste0( bnm, 'sd.csv' )  )[,1] )
   }
 
 
@@ -116,25 +118,14 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
   model
 }
 
-input_shape <- c( dim( images[[1]]), images[[1]]@components )
 mymus = pcaReconCoeffsMeans
 mysds = pcaReconCoeffsSD * sdt
-mytd <- randomImageTransformParametersBatchGenerator$new(
-  imageList = images,
-  transformType = "DeformationBasis",
-  imageDomain = ref,
-  spatialSmoothing = sm,
-  numberOfCompositions = nc,
-  deformationBasis = basisw,
-  deformationBasisMeans = mymus * 0,
-  deformationBasisSDs = mysds )
-tdgenfun <- mytd$generate( batchSize = 10 )
 
 ##################### generate from a new source anatomy
 # reg = antsRegistration( ref, ri( leaveout[2] ), "SyN", totalSigma = 0.0 )
 # newanat = normimg( reg$warpedmovout, scl )
 newanat = normimg( ref, scl )
-newanat = normimg(  ri( sample( 2:6 )[1] )  , scl ) # original data
+# newanat = normimg(  ri( sample( 2:6 )[1] )  , scl ) # original data
 mytd2 <- randomImageTransformParametersBatchGenerator$new(
   imageList = list( newanat ),
   transformType = "DeformationBasis",
@@ -152,11 +143,22 @@ testimg = makeImage( mskpca, testpop[[1]][1,,,1] )
 
 ###
   # read bases, means and SDs as well
-  if ( !file.exists( onm ) ) {
+if ( !file.exists( onm ) ) {
   if ( ! exists( "doTrain" ) ) doTrain = TRUE else doTrain = FALSE
   if ( doTrain ) {
     if ( ! exists( "regressionModel" ) )
       regressionModel <- build_model(  input_shape, numRegressors   )
+    input_shape <- c( dim( images[[1]]), images[[1]]@components )
+    mytd <- randomImageTransformParametersBatchGenerator$new( 
+							     imageList = images,
+							     transformType = "DeformationBasis",
+							     imageDomain = ref,
+							     spatialSmoothing = sm,
+							     numberOfCompositions = nc,
+							     deformationBasis = basisw,
+							     deformationBasisMeans = mymus * 0,
+							     deformationBasisSDs = mysds )
+    tdgenfun <- mytd$generate( batchSize = 10 )
     for ( trn in 1:100 ) {
       track <- regressionModel$fit_generator(
         generator = reticulate::py_iterator( tdgenfun ),
