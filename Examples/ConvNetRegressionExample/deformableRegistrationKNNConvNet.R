@@ -19,7 +19,9 @@ sm = 0.0
 leaveout = c( 1 )  # leave out the template
 sdt = 0.25
 numRegressors = 12
-onm = paste0( 'regi', numRegressors, 'KNNregressionModel.h5' )
+algid='fastICA'
+algid='pca'
+onm = paste0( 'regi', numRegressors, 'alg',algid, 'regressionModel.h5' )
 bnm = tools::file_path_sans_ext( onm )
 if ( ! exists( "bst" ) ) bst =  1 # should do line search on this value
 txtype = "DeformationBasis"
@@ -45,9 +47,9 @@ if ( ! exists( "dpca") & !file.exists(  onm  ) )  {
     }
 
   mskpca = getMask( ref ) %>% iMath( "MD", 6 )
-#  dpca = multichannelPCA( wlist, mskpca, pcaOption='pca' )
   print('begin decomposition')
-  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=100 )
+#  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=100 )
+  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=algid )
   basisw = dpca$pcaWarps
   # for some decompositions, we multiply by a magic number
   # b/c learning is sensitive to scaling
@@ -125,7 +127,7 @@ mysds = pcaReconCoeffsSD * sdt
 # reg = antsRegistration( ref, ri( leaveout[2] ), "SyN", totalSigma = 0.0 )
 # newanat = normimg( reg$warpedmovout, scl )
 newanat = normimg( ref, scl )
-# newanat = normimg(  ri( sample( 2:6 )[1] )  , scl ) # original data
+newanat = antsRegistration( ref, normimg(  ri( sample( 2:6 )[1] )  , scl ) )$warpedmovout # original data
 mytd2 <- randomImageTransformParametersBatchGenerator$new(
   imageList = list( newanat ),
   transformType = "DeformationBasis",
@@ -185,7 +187,10 @@ for ( it in 1:1 ) {
   testpop <- tdgenfun2()
   k = 1
   testimg = makeImage( mskpca, testpop[[1]][k,,,1] )
-#  plot( testimg, doCropping = F )
+#  plot( testimg, doCropping = F, outname='/mnt/c/Users/bavants/Downloads/temp.jpg' )
+  antsImageWrite( antsImageClone( iMath(testimg,
+	"Normalize")*255,	out_pixeltype="unsigned char" ), 
+		 '/mnt/c/Users/bavants/Downloads/temp.jpg' )
   t1=Sys.time()
   predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
 #  predictedData = testpop[[2]] # best possible result
