@@ -3,12 +3,12 @@ library( ANTsRNet )
 library( keras )
 
 baseDir <- './'
-inputImageDir <- paste0( baseDir, 'TestingImages/' )
+inputImageDir <- paste0( baseDir, 'TestingImages/Set5/' )
 
 outputDir <- paste0( baseDir, 'TestingResults/' )
 dir.create( outputDir, showWarnings = FALSE )
 
-inputImages <- list.files( path = inputImageDir, pattern = ".bmp",
+inputImages <- list.files( path = inputImageDir, pattern = ".png",
   full.names = TRUE, recursive = TRUE )
 numberOfInputImages <- length( inputImages )
 
@@ -33,7 +33,7 @@ for( i in seq_len( numberOfInputImages ) )
   cat( "Reading ", inputImages[i], "(", i, 
     " out of ", length( inputImages ), ").\n", sep = '' )  
   image <- antsImageRead( inputImages[i] )
-  baseId <- basename( inputImages[i] )
+  baseId <- sub( ".png", "", basename( inputImages[i] ) )
   imageChannels <- splitChannels( image )
 
   # Combine to a single channel for simplicity using Y_{linear}
@@ -63,11 +63,18 @@ for( i in seq_len( numberOfInputImages ) )
     highResolutionPatchSize, maxNumberOfPatches = 'all' )
   numberOfPatches <- length( luminanceImagePatches )
 
+  patchesMean <- rep( 0, numberOfPatches )
+  patchesSd <- rep( 0, numberOfPatches )
+
   X_test <- array( data = 0, 
     dim = c( numberOfPatches, highResolutionPatchSize, channelSize ) )
   for( j in seq_len( numberOfPatches ) )
     {
-    X_test[j,,,1] <- luminanceImagePatches[[j]]
+    patchesMean[j] <- mean( luminanceImagePatches[[j]] )
+    patchesSd[j] <- sd( luminanceImagePatches[[j]] )
+    
+    X_test[j,,,1] <- ( luminanceImagePatches[[j]] - patchesMean[j] ) / 
+      patchesSd[j]
     }
 
   cat( "  Predicting SR image.\n" )
@@ -76,12 +83,12 @@ for( i in seq_len( numberOfInputImages ) )
   predictedPatches <- list()
   for( j in seq_len( numberOfPatches ) )
     {
-    predictedPatches[[j]] <- predictedData[j,,,1]
+    predictedPatches[[j]] <- predictedData[j,,,1] * patchesSd[j] + patchesMean[j]
     }
   predictedImage <- reconstructImageFromPatches( predictedPatches, luminanceImage )
 
   # Write output images.
-  antsImageWrite( image, 
+  antsImageWrite( luminanceImage, 
     paste0( outputDir, baseId, "Original.nii.gz" ) )
   antsImageWrite( luminanceImageInterpolated, 
     paste0( outputDir, baseId, "BsplineInterpolated.nii.gz" ) )

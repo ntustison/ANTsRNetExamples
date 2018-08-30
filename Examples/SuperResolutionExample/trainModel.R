@@ -19,7 +19,7 @@ inputImages <- list.files( path = inputImageDir, pattern = ".bmp",
   full.names = TRUE, recursive = TRUE )
 numberOfInputImages <- length( inputImages )
 
-numberOfPatchesPerImage <- 1000
+numberOfPatchesPerImage <- 10000
 
 lowResolutionPatches <- list.files( path = patchesLowResolutionDir, 
   pattern = ".nii.gz", full.names = TRUE )

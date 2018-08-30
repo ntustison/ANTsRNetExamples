@@ -74,7 +74,7 @@ sampleIndices <- sample( numberOfData )
 validationSplit <- 40
 trainingIndices <- sampleIndices[1:validationSplit]
 numberOfTrainingData <- length( trainingIndices )
-validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfTrainingData]
+validationIndices <- sampleIndices[( validationSplit + 1 ):numberOfData]
 numberOfValidationData <- length( validationIndices )
 
 trainingData <- unetImageBatchGenerator$new( 
@@ -105,7 +105,7 @@ validationDataGenerator <- validationData$generate( batchSize = batchSize )
 track <- unetModel$fit_generator( 
   generator = reticulate::py_iterator( trainingDataGenerator ), 
   steps_per_epoch = ceiling( numberOfTrainingData^2 / batchSize ),
-  epochs = 200,
+  epochs = 100,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
   validation_steps = ceiling( numberOfValidationData^2 / batchSize ),
   callbacks = list( 
@@ -114,8 +114,8 @@ track <- unetModel$fit_generator(
       verbose = 1, mode = 'auto', period = 1 ),
      callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.1,
        verbose = 1, patience = 10, mode = 'auto' ),
-     callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
-       patience = 10 )
+     callback_early_stopping( monitor = 'val_loss', min_delta = 0.0001, 
+       patience = 20 )
     )
   )
 

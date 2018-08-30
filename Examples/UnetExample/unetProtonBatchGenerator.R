@@ -116,8 +116,10 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
         batchSegmentations <- self$segmentationList[batchIndices$source]
         batchTransforms <- self$transformList[batchIndices$source]
 
-        batchReferenceImages <- self$referenceImageList[batchIndices$reference]
-        batchReferenceTransforms <- self$referenceTransformList[batchIndices$reference]
+        # batchReferenceImages <- self$referenceImageList[batchIndices$reference]
+        # batchReferenceTransforms <- self$referenceTransformList[batchIndices$reference]
+        batchReferenceImages <- batchImages
+        batchReferenceTransforms <- batchTransforms
 
         imageSize <- dim( batchImages[[1]] )
 
@@ -125,6 +127,10 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
         batchY <- array( data = 0, dim = c( batchSize, imageSize ) )
 
         currentPassCount <<- currentPassCount + batchSize
+
+        randomTransformObject <- randomImageTransformAugmentation( batchReferenceImages[[1]], 
+          list( batchImages ), batchSegmentations, n = batchSize, 
+          typeOfTransform = 'AffineAndDeformation', sdAffine = 0.25 ) 
 
         for( i in seq_len( batchSize ) )
           {
@@ -135,27 +141,43 @@ unetImageBatchGenerator <- R6::R6Class( "UnetImageBatchGenerator",
           referenceX <- batchReferenceImages[[i]]
           referenceXfrm <- batchReferenceTransforms[[i]]
 
-          boolInvert <- c( TRUE, FALSE, FALSE, FALSE )
-          transforms <- c( referenceXfrm$invtransforms[1], 
-            referenceXfrm$invtransforms[2], sourceXfrm$fwdtransforms[1],
-            sourceXfrm$fwdtransforms[2] )
+          # boolInvert <- c( TRUE, FALSE, FALSE, FALSE )
+          # transforms <- c( referenceXfrm$invtransforms[1], 
+          #   referenceXfrm$invtransforms[2], sourceXfrm$fwdtransforms[1],
+          #   sourceXfrm$fwdtransforms[2] )
 
-          warpedImageX <- antsApplyTransforms( referenceX, sourceX, 
-            interpolator = "linear", transformlist = transforms,
-            whichtoinvert = boolInvert )          
-          warpedImageY <- antsApplyTransforms( referenceX, sourceY, 
-            interpolator = "genericLabel", transformlist = transforms,
-            whichtoinvert = boolInvert )
+          # warpedImageX <- antsApplyTransforms( referenceX, sourceX, 
+          #   interpolator = "linear", transformlist = transforms,
+          #   whichtoinvert = boolInvert )          
+          # warpedImageY <- antsApplyTransforms( referenceX, sourceY, 
+          #   interpolator = "nearestNeighbor", transformlist = transforms,
+          #   whichtoinvert = boolInvert )
 
-          doPerformHistogramMatching <- sample( c( TRUE, FALSE ), size = 1 )
-          if( doPerformHistogramMatching )
-            {
-            warpedImageX <- histogramMatchImage( warpedImageX, referenceX,
-              numberOfHistogramBins = 64, numberOfMatchPoints = 16 )
-            }
+          # doPerformHistogramMatching <- sample( c( TRUE, FALSE ), size = 1 )
+          # if( doPerformHistogramMatching )
+          #   {
+          #   warpedImageX <- histogramMatchImage( warpedImageX, referenceX,
+          #     numberOfHistogramBins = 64, numberOfMatchPoints = 16 )
+          #   }
+          # warpedArrayX <- as.array( warpedImageX )
+          # warpedArrayY <- as.array( warpedImageY )
 
-          warpedArrayX <- as.array( warpedImageX )
-          warpedArrayY <- as.array( warpedImageY )
+          warpedArrayX <- as.array( randomTransformObject$outputPredictorList[[i]][[1]] )
+          warpedArrayY <- as.array( randomTransformObject$outputOutcomeList[[i]] )
+          # antsImageWrite( randomTransformObject$outputPredictorList[[1]][[1]], "~/Desktop/warpedX.nii.gz" )
+          # antsImageWrite( randomTransformObject$outputOutcomeList[[1]], "~/Desktop/warpedY.nii.gz" )
+          # readline( prompt = "Press rturne\n" )
+
+          # cat( referenceXfrm$invtransforms[1], "\n" )
+          # cat( referenceXfrm$invtransforms[2], "\n" )
+          # cat( sourceXfrm$fwdtransforms[1], "\n" )
+          # cat( sourceXfrm$fwdtransforms[2], "\n" )
+
+          # antsImageWrite( warpedImageX, "~/Desktop/warpedImageX.nii.gz" )
+          # antsImageWrite( warpedImageY, "~/Desktop/warpedImageY.nii.gz" )
+          # antsImageWrite( sourceX, "~/Desktop/sourceX.nii.gz" )
+          # antsImageWrite( referenceX, "~/Desktop/referenceX.nii.gz" )
+          # readline( prompt = "Press rturne\n" )
 
           warpedArrayX <- ( warpedArrayX - mean( warpedArrayX ) ) / sd( warpedArrayX )
           # warpedArrayX <- ( warpedArrayX - min( warpedArrayX ) ) / 
