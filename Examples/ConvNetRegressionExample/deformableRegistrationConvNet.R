@@ -1,13 +1,14 @@
 ################################################################################
-################################################################################
+library( abind )
 library( ANTsRNet )
 library( ANTsR )
 library(keras)
-# use_implementation("tensorflow")
-library(tensorflow)
-# tfe_enable_eager_execution(device_policy = "silent") # for the future
-library(tfdatasets)
-library( abind )
+# for plaidml
+usePlaid=TRUE
+if ( usePlaid ) {
+  use_implementation(implementation = c("keras"))
+  use_backend(backend = 'plaidml' )
+}
 normimg <-function( img, scl ) {
   temp = iMath( img, "Normalize" ) - 0.5
   resampleImage( temp, scl )
@@ -16,10 +17,10 @@ scl = 2
 nc = 4
 sm = 0.0
 leaveout = c( 1 )  # leave out the template
-sdt = 1.5
+sdt = 10.0
 if ( ! exists( "bst" ) ) bst = 1.0
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = 300 # reasonable default
+if ( ! exists( "myep" ) ) myep = 30 # reasonable default
 ref = ri( 16 ) %>% resampleImage( scl )
 if ( ! exists( "dpca") ) {
   inimages <- ri( "all" )
@@ -34,7 +35,7 @@ if ( ! exists( "dpca") ) {
     img  = normimg( inimages[[i]], scl ) + noiseimage
     reg = antsRegistration( ref, img, "SyN", flowSigma = sample( c(3,4,5) )[1],
       affSampling=sample( c( 16, 20, 24, 28, 32 ) )[1], verbose=F )
-    wlist[[ ct ]] =  composeTransformsToField( ref, reg$fwd[1] )
+    wlist[[ ct ]] =  composeTransformsToField( ref, reg$fwd )
     images[[ct]] <- reg$warpedmovout
     ct = ct + 1
     }
@@ -43,6 +44,7 @@ if ( ! exists( "dpca") ) {
 #  dpca2 = multichannelPCA( wlist, mskpca, k=5, pcaOption=25 )
 # We need this because not all of the allowable decompositions are SVD-like.
 #  dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
+  mskpca = getMask( ref ) %>% iMath( "MD", 5 )
   dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
   pcaReconCoeffs = matrix( nrow = length( wlist ), ncol = ncol(dpca$pca$v)  )
   for ( i in 1:length( wlist ) ) {
@@ -52,6 +54,7 @@ if ( ! exists( "dpca") ) {
   }
   pcaReconCoeffsMeans = colMeans( pcaReconCoeffs )
   pcaReconCoeffsSD = apply( pcaReconCoeffs, FUN=sd, MARGIN=2 )
+  mskpca = ref * 0 + 1
   }
 
 build_model <- function( input_shape, num_regressors, dilrt = 1,
@@ -100,7 +103,7 @@ for ( i in seq_len( length( basisw ) ) )
 numRegressors = length( basisw )
 input_shape <- c( dim( images[[1]]), images[[1]]@components )
 mymus = pcaReconCoeffsMeans
-mysds = pcaReconCoeffsSD * sdt
+mysds = cov( pcaReconCoeffs ) * sdt
 mytd <- randomImageTransformParametersBatchGenerator$new(
   imageList = images,
   transformType = "DeformationBasis",
@@ -108,8 +111,8 @@ mytd <- randomImageTransformParametersBatchGenerator$new(
   spatialSmoothing = sm,
   numberOfCompositions = nc,
   deformationBasis = basisw,
-  deformationBasisMeans = mymus,
-  deformationBasisSDs = mysds )
+  txParamMeans = mymus,
+  txParamSDs = mysds )
 tdgenfun <- mytd$generate( batchSize = 10 )
 
 ##################### generate from a new source anatomy
@@ -123,8 +126,8 @@ mytd2 <- randomImageTransformParametersBatchGenerator$new(
   spatialSmoothing = sm,
   numberOfCompositions = nc,
   deformationBasis = basisw,
-  deformationBasisMeans = mymus,
-  deformationBasisSDs = mysds )
+  txParamMeans = mymus,
+  txParamSDs = mysds )
 tdgenfun2 <- mytd2$generate( batchSize = 1 )
 
 testpop <- tdgenfun2()
@@ -152,8 +155,10 @@ for ( it in 1:1 ) {
   cat("*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*\n")
   testpop <- tdgenfun2()
   k = 1
+#  testpop[[1]][k,,,1] = as.array( normimg( ri(2) , scl ) )
   testimg = makeImage( mskpca, testpop[[1]][k,,,1] )
   plot( testimg, doCropping = F )
+#  testpop[[1]][k,,,1] = as.array( normimg( learned , scl ) )
   t1=Sys.time()
   predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
 #  predictedData = testpop[[2]] # best possible result
@@ -164,7 +169,7 @@ for ( it in 1:1 ) {
   print( paste("speedup:",as.numeric(t3-t2)/as.numeric(t2-t1), 'cor',mycor))
   # we are learning the mapping from the template to the target image
   print(paste( "ref2tar", antsImageMutualInformation( testimg, ref, nBins=16)) )
-    bst =  0.74 # should do line search on this value
+    # bst =  0.74 # should do line search on this value
     mytx  = basisWarp( basisw, predictedData * ( bst ), nc, sm )
     learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
     print(paste("lrn2tar", antsImageMutualInformation( testimg, learned, nBins=16)))
