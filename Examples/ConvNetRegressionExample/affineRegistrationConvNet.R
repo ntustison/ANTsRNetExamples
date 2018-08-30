@@ -1,5 +1,4 @@
-
-
+###################
 library( ANTsRNet )
 library( ANTsR )
 library( abind )
@@ -9,13 +8,12 @@ library( keras )
 use_implementation(implementation = c("keras"))
 use_backend(backend = 'plaidml' )
 
-
 imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 if ( ! exists( "images" ) ) {
   images <- list()
   priorParams = matrix( nrow = length( imageIDs ), ncol = 6 )
 }
-scl = 4
+scl = 2
 leaveout = 4
 sdt = 10
 if ( ! exists( "myep" ) ) myep = 50 # reasonable default
@@ -104,7 +102,7 @@ tdgenfun <- mytd$generate( batchSize = 10 )
 #
 track <- regressionModel$fit_generator(
   generator = reticulate::py_iterator( tdgenfun ),
-  steps_per_epoch = 1,
+  steps_per_epoch = 5,
   epochs = myep  )
 
 #####################
