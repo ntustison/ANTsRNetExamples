@@ -130,7 +130,7 @@ X_train <- X[1:numberOfTrainingPatches,,,, drop = FALSE]
 Y_train <- Y[1:numberOfTrainingPatches,,,, drop = FALSE]
 
 X_test <- X[( numberOfTrainingPatches + 1 ):numberOfPatches,,,, drop = FALSE]
-Y_test <- X[( numberOfTrainingPatches + 1 ):numberOfPatches,,,, drop = FALSE]
+Y_test <- Y[( numberOfTrainingPatches + 1 ):numberOfPatches,,,, drop = FALSE]
 
 ###
 #
@@ -141,7 +141,7 @@ srModel <- createImageSuperResolutionModel2D(
  convolutionKernelSizes = list( c( 9, 9 ), c( 1, 1 ), c( 5, 5 ) ) )
 srModel %>% compile( loss = loss_mean_squared_error,
   optimizer = optimizer_adam( lr = 0.001 ),  
-  metrics = c( 'mse' ) )
+  metrics = c( 'mse', peak_signal_to_noise_ratio ) )
 
 ##
 #
