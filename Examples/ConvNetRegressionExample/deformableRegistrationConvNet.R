@@ -21,7 +21,7 @@ leaveout = c( 1 )  # leave out the template
 sdt = 0.05
 if ( ! exists( "bst" ) ) bst = 1.0
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = 120 # reasonable default
+if ( ! exists( "myep" ) ) myep = 12 # reasonable default
 ref = ri( 16 ) %>% resampleImage( scl )
 if ( ! exists( "dpca") ) {
   inimages <- ri( "all" )
@@ -191,25 +191,24 @@ for ( it in 1:1 ) {
   cat("*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*\n")
   testpop <- tdgenfun2()
   k = 1
-#  testpop[[1]][k,,,1] = as.array( normimg( antsRegistration( ref, ri(4) , "Affine")$warpedmovout , scl ) )
+#  testpop[[1]][k,,,1] = as.array( normimg(
+#    antsRegistration( ref, ri( sample(2:6)[1]), "Rigid")$warpedmovout , scl ) )
   testimg = makeImage( mskpca, testpop[[1]][k,,,1] )
   plot( testimg, doCropping = F )
 #  testpop[[1]][k,,,1] = as.array( normimg( learned , scl ) )
   t1=Sys.time()
   predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
-#  predictedData = testpop[[2]] # best possible result
   t2=Sys.time()
   reg = antsRegistration( testimg, ref, 'SyN' )
   t3=Sys.time()
   mycor = cor( as.numeric(predictedData), as.numeric( testpop[[2]] ))
   print( paste("speedup:",as.numeric(t3-t2)/as.numeric(t2-t1), 'cor',mycor))
   # we are learning the mapping from the template to the target image
-  print(paste( "ref2tar", antsImageMutualInformation( testimg, ref, nBins=16)) )
-    # bst =  0.74 # should do line search on this value
-    mytx  = basisWarp( basisw, predictedData * ( bst ), nc, sm )
-    learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
-    print(paste("lrn2tar", antsImageMutualInformation( testimg, learned, nBins=16)))
-    print( paste( "reg2tar", antsImageMutualInformation( testimg, reg$warpedmovout, nBins=16)) )
+  print(paste( "ref2tar", antsImageMutualInformation( testimg, ref)) )
+  mytx  = basisWarp( basisw, predictedData * ( bst ), nc, sm )
+  learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
+  print(paste("lrn2tar", antsImageMutualInformation( testimg, learned )))
+  print(paste("reg2tar", antsImageMutualInformation( testimg,reg$warpedmovout)))
   plot( testimg, doCropping=F, alpha = 0.5  )
   plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
   plot( learned, doCropping=F, alpha = 0.5  )
