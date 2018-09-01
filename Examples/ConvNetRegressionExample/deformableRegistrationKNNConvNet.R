@@ -1,87 +1,130 @@
 ################################################################################
-################################################################################
+# download data from:  figshare five example modalities
+#
+set.seed( 1 ) # b/c we use resampling - we want to keep folds the same over runs
+runExtraOpt = FALSE
+library( abind )
 library( ANTsRNet )
 library( ANTsR )
 library(keras)
-# use_implementation("tensorflow")
-library(tensorflow)
-# tfe_enable_eager_execution(device_policy = "silent") # for the future
-# library(tfdatasets)
-library( abind )
+# for plaidml
+usePlaid=TRUE
+if ( usePlaid ) {
+  use_implementation(implementation = c("keras"))
+  use_backend(backend = 'plaidml' )
+}
+
+numRegressors = 35
+shapeSD = 0.125
+algid='randPCA'
+algid='fastICA'
+# algid=500
+# algid='eanat'
+onm = paste0( 'regi', numRegressors, 'alg',algid, 'regressionModel.h5' )
+bnm = tools::file_path_sans_ext( onm )
+
+imageMetric <- function( optParams, fImg, mImg, basisw, metricIn,
+                         pcaParams, ncomp, smoothing ) {
+  whichk=1:length(pcaParams)
+  pcaParams[ whichk ] = optParams
+  wtxlong = basisWarp( basisw, pcaParams, ncomp, smoothing )
+  warped = applyAntsrTransform( wtxlong, data = mImg,
+    reference = fImg )
+  antsrMetricSetMovingImage( metricIn, warped )
+  antsrMetricInitialize( metricIn )
+  metricVal = antsrMetricGetValue( metricIn )
+  return( metricVal )
+}
+
+imageMetricLS <- function( u, pcaParamsIn, gradIn, fImg, mImg,
+  basisw, metricIn, ncomp, smoothing ) {
+  pcaParams = pcaParamsIn + gradIn * u
+  wtxlong = basisWarp( basisw, pcaParams, ncomp, smoothing )
+  warped = applyAntsrTransform( wtxlong, data = mImg,
+    reference = fImg )
+  antsrMetricSetMovingImage( metricIn, warped )
+  antsrMetricInitialize( metricIn )
+  metricVal = antsrMetricGetValue( metricIn )
+  return( metricVal )
+}
+
 normimg <-function( img, scl ) {
-  temp = iMath( img, "Normalize" ) - 0.5
-#  temp = iMath( img, "Normalize" ) * 255
+  temp = iMath( img  %>% iMath( "PadImage", 10 ), "Normalize" ) - 0.5
   resampleImage( temp, scl )
 }
 scl = 2
-nc = 6
-sm = 0.0
-leaveout = c( 1 )  # leave out the template
-sdt = 0.025
-numRegressors = 6
-algid='pca'
-algid='fastICA'
-# algid=66
-onm = paste0( 'regi', numRegressors, 'alg',algid, 'regressionModel.h5' )
-bnm = tools::file_path_sans_ext( onm )
-if ( ! exists( "bst" ) ) bst =  1 # should do line search on this value
+nc = 4
+sm = 1.0
+rdir = "/Users/stnava/Downloads/ndgenSliceStudy/"
+rdir = "/Users/stnava/Downloads/five/t1/"
+fns = Sys.glob( paste0( rdir, "modt1*nii.gz" ) )
+templatefn = "/Users/stnava/Downloads/five/t1/modt1_x130.nii.gz"
+ww = which( fns == templatefn )
+leaveout = c( caret::createDataPartition( 1:length(fns), p=0.5,
+  list = T )$Resample1, ww ) # leave out template
+template = antsImageRead( templatefn )
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = 10 # reasonable default
-ref = ri( 16 ) %>% resampleImage( scl )
+if ( ! exists( "myep" ) ) myep = c( 10, 10 ) # epochs, batchSize
+ref = normimg( template, scl )
 mskpca = ref * 0 + 1
-if ( ! exists( "dpca") & !file.exists(  onm  ) )  {
-  inimages <- ri( "all" )
+if ( !file.exists(  onm  ) )  {
+  inimages <- imageFileNames2ImageList( fns )
   images = list()
   wlist  <- list()
   ct = 1
-  wimgs = seq_len( length( inimages ) )[-leaveout]
-  for( i in c(wimgs,wimgs,wimgs,wimgs) )
+  wimgs = seq_len( length( inimages ) )[ -leaveout ]
+  for( i in wimgs )
     {
     cat( "Processing image-MI", i, "\n" )
-    noiseimage = makeImage( ref*0+1, rnorm( prod(dim(ref)), 0, 0.05 ) )
-    img  = normimg( inimages[[i]], scl ) + noiseimage
-    reg = antsRegistration( ref, img, "SyN", flowSigma = sample( c(3,4,5) )[1],
-      affSampling=sample( c( 16, 20, 24, 28, 32 ) )[1], verbose=F )
+    img = normimg( inimages[[i]], scl )
+    reg = antsRegistration( ref, img, "SyNBold",
+      flowSigma = sample(c(3,6))[1], verbose=F)
     wlist[[ ct ]] =  composeTransformsToField( ref, reg$fwd[1] )
     images[[ct]] <- reg$warpedmovout
     ct = ct + 1
     }
 
-#  mskpca = getMask( ref ) %>% iMath( "MD", 6 )
+  mskpca = ref * 0 + 1
   print('begin decomposition')
-#  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=100 )
-  dpca = multichannelPCA( wlist, mskpca, k=numRegressors, pcaOption=algid )
+  basisw = wlist
+  dpca = multichannelPCA( wlist, mskpca, k=numRegressors,
+      pcaOption='randPCA', verbose=TRUE )
   basisw = dpca$pcaWarps
+  numRegressors = length( basisw )
   # for some decompositions, we multiply by a magic number
   # b/c learning is sensitive to scaling
-  defScale = 10
+  defScale = 10.0
   for ( i in seq_len( length( basisw ) ) )
-    basisw[[i]] = basisw[[i]] / defScale
-  dpca$pca$v = dpca$pca$v / defScale
+    basisw[[i]] = ( basisw[[i]] / mean( abs( basisw[[i]] ) ) ) / defScale
+  mskpca = ref *  0 + 1 # reset to full domain for deep learning
+  newv = matrix( nrow = prod( dim(mskpca ) )* mskpca@dimension,
+    ncol = numRegressors )
+  for ( myk in 1:numRegressors )
+    newv[ , myk ] = multichannelToVector( basisw[[myk]], mskpca )
 # We need this because not all of the allowable decompositions are SVD-like.
 #  dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
-  pcaReconCoeffs = matrix( nrow = length( wlist ), ncol = ncol(dpca$pca$v)  )
+  pcaReconCoeffs = matrix( nrow = length( wlist ), ncol = numRegressors  )
   for ( i in 1:length( wlist ) ) {
     wvec = multichannelToVector( wlist[[i]], mskpca )
-    mdl = lm( wvec ~ 0 + dpca$pca$v )
+    mdl = lm( wvec ~ 0 + newv )
     pcaReconCoeffs[ i,  ] = coefficients(mdl)
   }
   pcaReconCoeffsMeans = colMeans( pcaReconCoeffs )
-  pcaReconCoeffsSD = apply( pcaReconCoeffs, FUN=sd, MARGIN=2 )
+  pcaReconCoeffsSD = cov( pcaReconCoeffs )
+  for ( k in 1:length( basisw ) ) antsImageWrite( basisw[[k]], paste0( bnm, '_basis',k,'.nii.gz' ) )
+  write.csv( pcaReconCoeffsMeans, paste0( bnm, 'mn.csv'),  row.names=F )
+  write.csv( pcaReconCoeffsSD, paste0( bnm, 'sd.csv'), row.names=F )
   print('end decomposition')
-  mskpca = ref *  0 + 1 # reset to full domain for deep learning
-  numRegressors = length( basisw )
   }
 
-if ( file.exists( onm ) ) {
+if ( file.exists( onm ) ) regressionModel <- load_model_hdf5( onm )
+if ( file.exists(  paste0( bnm, 'mn.csv' ) ) ) {
   pcaReconCoeffsMeans = as.numeric( read.csv(  paste0( bnm, 'mn.csv' )  )[,1] )
-  pcaReconCoeffsSD = as.numeric( read.csv(  paste0( bnm, 'sd.csv' )  )[,1] )
+  pcaReconCoeffsSD = read.csv(  paste0( bnm, 'sd.csv' )  )
   numRegressors = length( pcaReconCoeffsMeans )
-  regressionModel <- load_model_hdf5( onm )
   basisw = list( )
   for ( k in 1:numRegressors ) basisw[[ k ]] = antsImageRead( paste0( bnm, '_basis',k,'.nii.gz' ) )
   }
-
 
 build_model <- function( input_shape, num_regressors, dilrt = 1,
   myact='linear', drate = 0.0 ) {
@@ -121,92 +164,97 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
   model
 }
 
-mymus = pcaReconCoeffsMeans
-mysds = pcaReconCoeffsSD * sdt
+numRegressors = length( basisw )
+mymus = pcaReconCoeffsMeans * 0
+mysds = data.matrix( pcaReconCoeffsSD ) * shapeSD
 
-##################### generate from a new source anatomy
-# reg = antsRegistration( ref, ri( leaveout[2] ), "SyN", totalSigma = 0.0 )
-# newanat = normimg( reg$warpedmovout, scl )
-newanat = normimg( ref, scl )
-# newanat = antsRegistration( ref, normimg(  ri( sample( 2:6 )[1] )  , scl ) )$warpedmovout # original data
+##################### generate reference anatomy
 mytd2 <- randomImageTransformParametersBatchGenerator$new(
-  imageList = list( newanat ),
+  imageList = list( ref ),
   transformType = "DeformationBasis",
   imageDomain = ref,
   spatialSmoothing = sm,
   numberOfCompositions = nc,
   deformationBasis = basisw,
-  deformationBasisMeans = mymus * 1,
-  deformationBasisSDs = mysds * 1)
+  txParamMeans = mymus,
+  txParamSDs = mysds )
 tdgenfun2 <- mytd2$generate( batchSize = 1 )
 
 testpop <- tdgenfun2()
 testimg = makeImage( mskpca, testpop[[1]][1,,,1] )
-# plot( testimg, doCropping = F )
+plot( testimg, doCropping = F )
 
-###
-  # read bases, means and SDs as well
-if ( !file.exists( onm ) ) {
-  input_shape <- c( dim( images[[1]]), images[[1]]@components )	
+if ( !file.exists( onm ) )
+  {
+  input_shape <- c( dim( ref ), ref@components )
   if ( ! exists( "doTrain" ) ) doTrain = TRUE else doTrain = FALSE
   if ( doTrain ) {
     if ( ! exists( "regressionModel" ) )
       regressionModel <- build_model(  input_shape, numRegressors   )
-    mytd <- randomImageTransformParametersBatchGenerator$new( 
+    mytd <- randomImageTransformParametersBatchGenerator$new(
 							     imageList = images,
 							     transformType = "DeformationBasis",
 							     imageDomain = ref,
 							     spatialSmoothing = sm,
 							     numberOfCompositions = nc,
-							     deformationBasis = basisw,
-							     deformationBasisMeans = mymus * 0,
-							     deformationBasisSDs = mysds )
+                   deformationBasis = basisw,
+                   txParamMeans = mymus,
+                   txParamSDs = mysds )
     tdgenfun <- mytd$generate( batchSize = 10 )
-    for ( trn in 1:100 ) {
+    for ( trn in 1:2 ) {
       track <- regressionModel$fit_generator(
         generator = reticulate::py_iterator( tdgenfun ),
-        steps_per_epoch = 10,
-        epochs = myep  )
+        steps_per_epoch = myep[2],
+        epochs = myep[1]  )
       print( paste( 'saving', onm, 'at loop', trn ) )
       save_model_hdf5( regressionModel, onm )
-      # FIXME - need to save the bases as well! they can change over irlba runs
-#      deformationBasis = basisw,
-       for ( k in 1:length( basisw ) ) antsImageWrite( basisw[[k]], paste0( bnm, '_basis',k,'.nii.gz' ) )
-       write.csv( pcaReconCoeffsMeans, paste0( bnm, 'mn.csv'),  row.names=F )
-       write.csv( pcaReconCoeffsSD, paste0( bnm, 'sd.csv'), row.names=F )
-#      deformationBasisSDs = mysds * 1)
       }
     }
   }
 
-#####################
-# generate new data #
-#####################
-domainMask = ref * 0 + 1
-for ( it in 1:1 ) {
+
+###################################
+# test on fully left out new data #
+###################################
+testpop <- tdgenfun2()
+for ( k in leaveout ) {
   cat("*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*\n")
-  testpop <- tdgenfun2()
-  k = 1
-  testimg = makeImage( mskpca, testpop[[1]][k,,,1] )
-#  plot( testimg, doCropping = F, outname='/mnt/c/Users/bavants/Downloads/temp.jpg' )
-  antsImageWrite( antsImageClone( iMath(testimg,
-	"Normalize")*255,	out_pixeltype="unsigned char" ), 
-		 '/mnt/c/Users/bavants/Downloads/temp.jpg' )
-  t1=Sys.time()
-  predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
-#  predictedData = testpop[[2]] # best possible result
-  t2=Sys.time()
+  testimg = normimg( antsImageRead( fns[k] ), scl )
+  testimg = resampleImageToTarget( testimg, ref )
+  testimg[testimg == 0] = min( testimg )
+  t0=Sys.time()
   reg = antsRegistration( testimg, ref, 'SyN' )
+  t1=Sys.time()
+  testpop[[1]][1,,,1] = as.array( testimg )
+  metricx = "Mattes"
+  metric = antsrMetricCreate( testimg, ref, type = metricx,
+    sampling.strategy = "regular", sampling.percentage = 0.25, nBins=32 )
+  antsrMetricInitialize( metric )
+  t2=Sys.time()
+  inp = ( regressionModel %>% predict( testpop[[1]], verbose = 0 ) )[1,]
+  if ( runExtraOpt ) { # run an extra line search optimization on top
+    myg4 = inp
+    bestval = optimize( imageMetricLS, lower=-1, upper=1,
+      metricIn = metric,
+      pcaParamsIn = inp, gradIn = myg4,
+      basisw=basisw, fImg=testimg, mImg=ref,
+      ncomp=nc, smoothing=sm  )
+    print( bestval )
+    outp = inp + myg4 * bestval$minimum
+    } else outp = inp
+  mytx  = basisWarp( basisw, outp, nc, sm )
+  learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
   t3=Sys.time()
-  mycor = cor( as.numeric(predictedData), as.numeric( testpop[[2]] ))
-  print( paste("speedup:",as.numeric(t3-t2)/as.numeric(t2-t1), 'cor',mycor))
+  dltime = as.numeric(t3-t2)
+  print( paste("speedup:",as.numeric(t1-t0)/dltime ))
   # we are learning the mapping from the template to the target image
-  print(paste( "ref2tar", antsImageMutualInformation( testimg, ref, nBins=16)) )
-    mytx  = basisWarp( basisw, predictedData * ( bst ), nc, sm )
-    learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
-    print(paste("lrn2tar", antsImageMutualInformation( testimg, learned, nBins=16)))
-    print( paste( "reg2tar", antsImageMutualInformation( testimg, reg$warpedmovout, nBins=16)) )
-#  plot( testimg, doCropping=F, alpha = 0.5  )
-##  plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
-#  plot( learned, doCropping=F, alpha = 0.5  )
+  print(paste( "ref2tar", antsImageMutualInformation( testimg, ref)) )
+  print(paste("lrn2tar", antsImageMutualInformation( testimg, learned)))
+  print( paste( "reg2tar", antsImageMutualInformation( testimg,
+    reg$warpedmovout)) )
+  plot( testimg, doCropping=F, alpha = 0.5  )
+  Sys.sleep(1)
+  plot( learned, doCropping=F, alpha = 0.5  )
+  Sys.sleep(1)
+#  plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
   }
