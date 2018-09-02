@@ -19,7 +19,7 @@ inputImages <- list.files( path = inputImageDir, pattern = ".bmp",
   full.names = TRUE, recursive = TRUE )
 numberOfInputImages <- length( inputImages )
 
-numberOfPatchesPerImage <- 10000
+numberOfPatchesPerImage <- 2000
 
 lowResolutionPatches <- list.files( path = patchesLowResolutionDir, 
   pattern = ".nii.gz", full.names = TRUE )
@@ -139,7 +139,7 @@ Y_test <- Y[( numberOfTrainingPatches + 1 ):numberOfPatches,,,, drop = FALSE]
 srModel <- createImageSuperResolutionModel2D( 
  c( highResolutionPatchSize, channelSize ),
  convolutionKernelSizes = list( c( 9, 9 ), c( 1, 1 ), c( 5, 5 ) ) )
-srModel %>% compile( loss = loss_mean_squared_error,
+srModel %>% compile( loss = loss_peak_signal_to_noise_ratio_error,
   optimizer = optimizer_adam( lr = 0.001 ),  
   metrics = c( 'mse', peak_signal_to_noise_ratio ) )
 
