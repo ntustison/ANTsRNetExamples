@@ -1,25 +1,27 @@
 ################################################################################
-################################################################################
+library( abind )
 library( ANTsRNet )
 library( ANTsR )
 library(keras)
-# use_implementation("tensorflow")
-library(tensorflow)
-# tfe_enable_eager_execution(device_policy = "silent") # for the future
-library(tfdatasets)
-library( abind )
+# for plaidml
+usePlaid=TRUE
+if ( usePlaid ) {
+  use_implementation(implementation = c("keras"))
+  use_backend(backend = 'plaidml' )
+}
 normimg <-function( img, scl ) {
   temp = iMath( img, "Normalize" ) - 0.5
   resampleImage( temp, scl )
 }
 scl = 2
 nc = 4
-sm = 0.0
+sm = 5.0
+numRegressors = 10
 leaveout = c( 1 )  # leave out the template
-sdt = 1.5
+sdt = 0.05
 if ( ! exists( "bst" ) ) bst = 1.0
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = 300 # reasonable default
+if ( ! exists( "myep" ) ) myep = 12 # reasonable default
 ref = ri( 16 ) %>% resampleImage( scl )
 if ( ! exists( "dpca") ) {
   inimages <- ri( "all" )
@@ -32,7 +34,8 @@ if ( ! exists( "dpca") ) {
     cat( "Processing image-MI", i, "\n" )
     noiseimage = makeImage( ref*0+1, rnorm( prod(dim(ref)), 0, 0.05 ) )
     img  = normimg( inimages[[i]], scl ) + noiseimage
-    reg = antsRegistration( ref, img, "SyN", flowSigma = sample( c(3,4,5) )[1],
+    reg = antsRegistration( ref, img, "SyNBold",
+      flowSigma = sample( c(3,4,5) )[1],
       affSampling=sample( c( 16, 20, 24, 28, 32 ) )[1], verbose=F )
     wlist[[ ct ]] =  composeTransformsToField( ref, reg$fwd[1] )
     images[[ct]] <- reg$warpedmovout
@@ -40,10 +43,18 @@ if ( ! exists( "dpca") ) {
     }
 
   mskpca = ref * 0 + 1
+  if ( FALSE ) {
 #  dpca2 = multichannelPCA( wlist, mskpca, k=5, pcaOption=25 )
 # We need this because not all of the allowable decompositions are SVD-like.
 #  dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
-  dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
+  mskpca = getMask( ref ) %>% iMath( "MD", 5 )
+  dpca = multichannelPCA( wlist, mskpca, pcaOption='randPCA' )
+  basisw = dpca$pcaWarps
+  # for some decompositions, we multiply by a magic number
+  # b/c learning is sensitive to scaling
+  for ( i in seq_len( length( basisw ) ) )
+    basisw[[i]] = basisw[[i]] / 1000
+  dpca$pca$v = dpca$pca$v / 1000
   pcaReconCoeffs = matrix( nrow = length( wlist ), ncol = ncol(dpca$pca$v)  )
   for ( i in 1:length( wlist ) ) {
     wvec = multichannelToVector( wlist[[i]], mskpca )
@@ -51,7 +62,42 @@ if ( ! exists( "dpca") ) {
     pcaReconCoeffs[ i,  ] = coefficients(mdl)
   }
   pcaReconCoeffsMeans = colMeans( pcaReconCoeffs )
-  pcaReconCoeffsSD = apply( pcaReconCoeffs, FUN=sd, MARGIN=2 )
+  pcaReconCoeffsSD = cov( pcaReconCoeffs )
+  mskpca = ref * 0 + 1
+  }
+
+  mskpca = getMask( ref ) %>% iMath( "MD", 5 )
+  print('begin decomposition')
+  basisw = wlist
+  dpca = multichannelPCA( wlist, mskpca, k=numRegressors,
+      pcaOption='randPCA', verbose=TRUE )
+  basisw = dpca$pcaWarps
+  numRegressors = length( basisw )
+  # for some decompositions, we multiply by a magic number
+  # b/c learning is sensitive to scaling
+  defScale = 10.0
+  for ( i in seq_len( length( basisw ) ) )
+    basisw[[i]] = ( basisw[[i]] / mean( abs( basisw[[i]] ) ) ) / defScale
+  mskpca = ref *  0 + 1 # reset to full domain for deep learning
+  newv = matrix( nrow = prod( dim(mskpca ) )* mskpca@dimension,
+    ncol = numRegressors )
+  for ( myk in 1:numRegressors )
+    newv[ , myk ] = multichannelToVector( basisw[[myk]], mskpca )
+# We need this because not all of the allowable decompositions are SVD-like.
+#  dpca = multichannelPCA( wlist, mskpca, pcaOption='fastICA' )
+  pcaReconCoeffs = matrix( nrow = length( wlist ), ncol = numRegressors  )
+  for ( i in 1:length( wlist ) ) {
+    wvec = multichannelToVector( wlist[[i]], mskpca )
+    mdl = lm( wvec ~ 0 + newv )
+    pcaReconCoeffs[ i,  ] = coefficients(mdl)
+  }
+  pcaReconCoeffsMeans = colMeans( pcaReconCoeffs )
+  pcaReconCoeffsSD = cov( pcaReconCoeffs )
+#  for ( k in 1:length( basisw ) ) antsImageWrite( basisw[[k]], paste0( bnm, '_basis',k,'.nii.gz' ) )
+#  write.csv( pcaReconCoeffsMeans, paste0( bnm, 'mn.csv'),  row.names=F )
+#  write.csv( pcaReconCoeffsSD, paste0( bnm, 'sd.csv'), row.names=F )
+  print('end decomposition')
+
   }
 
 build_model <- function( input_shape, num_regressors, dilrt = 1,
@@ -92,14 +138,9 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
   model
 }
 
-basisw = dpca$pcaWarps
-# for some decompositions, we multiply by a magic number
-# b/c learning is sensitive to scaling
-for ( i in seq_len( length( basisw ) ) )
-  basisw[[i]] = basisw[[i]] / 10
 numRegressors = length( basisw )
 input_shape <- c( dim( images[[1]]), images[[1]]@components )
-mymus = pcaReconCoeffsMeans
+mymus = pcaReconCoeffsMeans * 0
 mysds = pcaReconCoeffsSD * sdt
 mytd <- randomImageTransformParametersBatchGenerator$new(
   imageList = images,
@@ -108,8 +149,8 @@ mytd <- randomImageTransformParametersBatchGenerator$new(
   spatialSmoothing = sm,
   numberOfCompositions = nc,
   deformationBasis = basisw,
-  deformationBasisMeans = mymus,
-  deformationBasisSDs = mysds )
+  txParamMeans = mymus,
+  txParamSDs = mysds )
 tdgenfun <- mytd$generate( batchSize = 10 )
 
 ##################### generate from a new source anatomy
@@ -123,14 +164,13 @@ mytd2 <- randomImageTransformParametersBatchGenerator$new(
   spatialSmoothing = sm,
   numberOfCompositions = nc,
   deformationBasis = basisw,
-  deformationBasisMeans = mymus,
-  deformationBasisSDs = mysds )
+  txParamMeans = mymus,
+  txParamSDs = mysds )
 tdgenfun2 <- mytd2$generate( batchSize = 1 )
 
 testpop <- tdgenfun2()
 testimg = makeImage( mskpca, testpop[[1]][1,,,1] )
 plot( testimg, doCropping = F )
-
 ###
 if ( ! exists( "doTrain" ) ) doTrain = TRUE else doTrain = FALSE
 if ( doTrain ) {
@@ -147,28 +187,28 @@ if ( doTrain ) {
 #####################
 # generate new data #
 #####################
-domainMask = ref * 0 + 1
 for ( it in 1:1 ) {
   cat("*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*\n")
   testpop <- tdgenfun2()
   k = 1
+#  testpop[[1]][k,,,1] = as.array( normimg(
+#    antsRegistration( ref, ri( sample(2:6)[1]), "Rigid")$warpedmovout , scl ) )
   testimg = makeImage( mskpca, testpop[[1]][k,,,1] )
   plot( testimg, doCropping = F )
+#  testpop[[1]][k,,,1] = as.array( normimg( learned , scl ) )
   t1=Sys.time()
   predictedData <- regressionModel %>% predict( testpop[[1]], verbose = 0 )
-#  predictedData = testpop[[2]] # best possible result
   t2=Sys.time()
   reg = antsRegistration( testimg, ref, 'SyN' )
   t3=Sys.time()
   mycor = cor( as.numeric(predictedData), as.numeric( testpop[[2]] ))
   print( paste("speedup:",as.numeric(t3-t2)/as.numeric(t2-t1), 'cor',mycor))
   # we are learning the mapping from the template to the target image
-  print(paste( "ref2tar", antsImageMutualInformation( testimg, ref, nBins=16)) )
-    bst =  0.74 # should do line search on this value
-    mytx  = basisWarp( basisw, predictedData * ( bst ), nc, sm )
-    learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
-    print(paste("lrn2tar", antsImageMutualInformation( testimg, learned, nBins=16)))
-    print( paste( "reg2tar", antsImageMutualInformation( testimg, reg$warpedmovout, nBins=16)) )
+  print(paste( "ref2tar", antsImageMutualInformation( testimg, ref)) )
+  mytx  = basisWarp( basisw, predictedData * ( bst ), nc, sm )
+  learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
+  print(paste("lrn2tar", antsImageMutualInformation( testimg, learned )))
+  print(paste("reg2tar", antsImageMutualInformation( testimg,reg$warpedmovout)))
   plot( testimg, doCropping=F, alpha = 0.5  )
   plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
   plot( learned, doCropping=F, alpha = 0.5  )

@@ -28,7 +28,14 @@ A collection of examples and models for the [ANTsRNet](https://github.com/ANTsX/
     * [W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, and A. Berg.  SSD: Single Shot MultiBox Detector.](https://arxiv.org/abs/1512.02325)
     * SSD7: small 7-layer architecture 
     * SSD300/SSD512: porting of original architectures
- 
+
+### Image super-resolution
+
+* Super-resolution convolutional neural network (SRCNN) (2-D, 3-D)
+    * [Chao Dong, Chen Change Loy, Kaiming He, and Xiaoou Tang.  Image Super-Resolution Using Deep Convolutional Networks.](https://arxiv.org/abs/1501.00092)
+    
+---------------------------------
+
 # Misc topics
 
 * Optimizers
