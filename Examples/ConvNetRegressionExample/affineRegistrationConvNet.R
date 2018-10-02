@@ -1,13 +1,12 @@
 
-
 #########################################################
 library( ANTsRNet )
 library( ANTsR )
 library( abind )
 library( keras )
 # for plaidml
-use_implementation(implementation = c("keras"))
-use_backend(backend = 'plaidml' )
+# use_implementation(implementation = c("keras"))
+# use_backend(backend = 'plaidml' )
 #########################################################
 imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 if ( ! exists( "scl" ) ) scl = 4
@@ -31,45 +30,6 @@ for( i in 1:length( imageIDs ) )
   }
 }
 
-build_model <- function( input_shape, num_regressors, dilrt = 1,
-  myact='linear', drate = 0.0 ) {
-  filtSz = c( 32, 32, 32, 32, 32, 32 )
-  filtSz = c( 16, 32, 64, max( input_shape ), 64, 32 )
-  dilrt = as.integer( dilrt )
-  model <- keras_model_sequential() %>%
-    layer_conv_2d(filters = filtSz[1], kernel_size = c(3,3), activation = myact,
-                  input_shape = input_shape, dilation_rate = dilrt ) %>%
-    layer_conv_2d(filters = filtSz[2], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = drate ) %>%
-#    layer_batch_normalization() %>%
-    layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = drate ) %>%
-#    layer_batch_normalization() %>%
-    layer_conv_2d(filters = filtSz[4], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = drate ) %>%
-#    layer_batch_normalization() %>%
-    layer_conv_2d(filters = filtSz[5], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = drate ) %>%
-#    layer_batch_normalization() %>%
-    layer_flatten() %>%
-    layer_dense(units = filtSz[6], activation = myact) %>%
-    layer_dropout(rate = drate ) %>%
-    layer_dense(units = num_regressors )
-
-  model %>% compile(
-    loss = "mse",
-    optimizer = optimizer_adam( ),
-    metrics = list("mean_absolute_error")
-  )
-
-  model
-}
-
-
 affTx = createAntsrTransform( "AffineTransform", dimension = 2 )
 numRegressors = length( getAntsrTransformParameters( affTx ) )
 input_shape <- c( dim( images[[1]]), 1)
@@ -86,13 +46,19 @@ mytd <- randomImageTransformParametersBatchGenerator$new(
   txParamMeans = affmns,
   txParamSDs = affcov,
   imageDomain = ref )
-tdgenfun <- mytd$generate( batchSize = 10 )
+tdgenfun <- mytd$generate( batchSize = 32 )
 if ( ! exists( "track" ) ) {
-  regressionModel <- build_model(  input_shape, numRegressors   )
+  regressionModel <- createAlexNetModel2D( input_shape, numRegressors, regression = TRUE   )
+  regressionModel %>% compile(
+    loss = "mse",
+    optimizer = optimizer_adam( ),
+    metrics = list("mean_absolute_error")
+  )
+
 #  regressionModel %>% summary()
   track <- regressionModel$fit_generator(
     generator = reticulate::py_iterator( tdgenfun ),
-    steps_per_epoch = 5,
+    steps_per_epoch = 16,
     epochs = myep  )
   }
 #####################
