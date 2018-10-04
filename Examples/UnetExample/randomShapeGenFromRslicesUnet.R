@@ -21,14 +21,16 @@ for( i in 1:length( imageIDs ) )
   kmeansSegs[[i]] <- thresholdImage( img, "Otsu", 3 )
   }
 ###
-unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ), 1 ),
-  numberOfFiltersAtBaseLayer = 64, dropoutRate = 0.0,
-  numberOfClassificationLabels = numberOfLabels+1 )
+if ( ! exists( "unetModel" ) ) {
+  unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ), 1 ),
+    numberOfFiltersAtBaseLayer = 8, dropoutRate = 0.0,
+    numberOfClassificationLabels = numberOfLabels + 1 )
 
-# categorical_crossentropy
-unetModel %>% compile( loss = 'categorical_crossentropy',
-  optimizer = optimizer_adam( ),
-  metrics = c( multilabel_dice_coefficient ) )
+  # categorical_crossentropy
+  unetModel %>% compile( loss = 'categorical_crossentropy',
+    optimizer = optimizer_adam( ),
+    metrics = c( multilabel_dice_coefficient ) )
+  }
 
 mytd <- randomImageTransformBatchGenerator$new(
   imageList = images,
@@ -38,12 +40,12 @@ mytd <- randomImageTransformBatchGenerator$new(
   imageDomain = images[[1]][[1]],
   toCategorical = TRUE )
 
-tdgenfun <- mytd$generate( batchSize = 1 )
+tdgenfun <- mytd$generate( batchSize = 8 )
 #
 track <- unetModel$fit_generator(
   generator = reticulate::py_iterator( tdgenfun ),
   steps_per_epoch = 1,
-  epochs = 999  )
+  epochs = 99 )
 
 diceOverlap <- function( x,  y ) {
   ulabs = sort( unique( c( unique(x), unique(y) ) ) )
