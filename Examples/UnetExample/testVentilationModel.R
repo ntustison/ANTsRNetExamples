@@ -20,21 +20,21 @@ channelSize <- length( imageMods )
 
 resampledImageSize <- c( 80, 128 )
 
-unetModel <- createUnetModel2D( c( resampledImageSize, channelSize ), 
-  numberOfClassificationLabels = numberOfClassificationLabels, 
+unetModel <- createUnetModel2D( c( resampledImageSize, channelSize ),
+  numberOfOutputs = numberOfClassificationLabels,
   convolutionKernelSize = c( 5, 5 ),
-  deconvolutionKernelSize = c( 5, 5 ), 
+  deconvolutionKernelSize = c( 5, 5 ),
   dropoutRate = 0.2 )
-load_model_weights_hdf5( unetModel, 
+load_model_weights_hdf5( unetModel,
   filepath = paste0( dataDirectory, 'unetWeights.h5' ) )
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
-  optimizer = optimizer_adam( lr = 0.0001 ),  
+  optimizer = optimizer_adam( lr = 0.0001 ),
   metrics = c( multilabel_dice_coefficient ) )
 
 testingImageDirectory <- paste0( dataDirectory, 'TestingData/' )
-testingImageFiles <- list.files( 
+testingImageFiles <- list.files(
   path = testingImageDirectory, pattern = "N4_Denoised", full.names = TRUE )
-testingMaskFiles <- list.files( 
+testingMaskFiles <- list.files(
   path = testingImageDirectory, pattern = "Mask", full.names = TRUE )
 
 for( i in 1:length( testingImageFiles ) )
@@ -44,18 +44,18 @@ for( i in 1:length( testingImageFiles ) )
 
   image <- antsImageRead( testingImageFiles[i], dimension = 2 )
   imageSize <- dim( image )
-  resampledImage <- resampleImage( image, resampledImageSize, 
+  resampledImage <- resampleImage( image, resampledImageSize,
     useVoxels = TRUE, interpType = 1 )
-  resampledImageArray <- as.array( resampledImage )  
-  resampledImageArray <- ( resampledImageArray - mean( resampledImageArray ) ) / 
+  resampledImageArray <- as.array( resampledImage )
+  resampledImageArray <- ( resampledImageArray - mean( resampledImageArray ) ) /
     sd( resampledImageArray )
 
   mask <- antsImageRead( testingMaskFiles[i], dimension = 2 )
-  resampledMask <- resampleImage( mask, resampledImageSize, 
+  resampledMask <- resampleImage( mask, resampledImageSize,
     useVoxels = TRUE, interpType = 1 )
-  resampledMaskArray <- as.array( resampledMask )  
+  resampledMaskArray <- as.array( resampledMask )
 
-  batchX <- array( data = 0, 
+  batchX <- array( data = 0,
     dim = c( 1, resampledImageSize, channelSize ) )
 
   batchX[1,,,1] <- resampledImageArray
@@ -66,16 +66,16 @@ for( i in 1:length( testingImageFiles ) )
 
   for( j in seq_len( numberOfClassificationLabels ) )
     {
-    imageFileName <- paste0( 
+    imageFileName <- paste0(
       predictedDirectory, subjectId, "Probability", j, ".nii.gz" )
 
-    cat( "Writing", imageFileName, "\n" )  
+    cat( "Writing", imageFileName, "\n" )
 
-    probabilityArray <- as.array( 
-      resampleImage( probabilityImagesArray[[1]][[j]], 
+    probabilityArray <- as.array(
+      resampleImage( probabilityImagesArray[[1]][[j]],
         imageSize, useVoxels = TRUE, interpType = 1 ) )
-    
+
     antsImageWrite( as.antsImage( probabilityArray, reference = image ),
-      imageFileName )  
-    }  
+      imageFileName )
+    }
   }

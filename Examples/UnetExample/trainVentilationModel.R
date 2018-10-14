@@ -16,11 +16,11 @@ imageMods <- c( "Ventilation", "Foreground mask" )
 channelSize <- length( imageMods )
 
 trainingImageDirectory <- paste0( dataDirectory, 'TrainingData/' )
-trainingImageFiles <- list.files( 
+trainingImageFiles <- list.files(
   path = trainingImageDirectory, pattern = "Ventilation", full.names = TRUE )
-trainingMaskFiles <- list.files( 
+trainingMaskFiles <- list.files(
   path = trainingImageDirectory, pattern = "Mask", full.names = TRUE )
-trainingSegmentationFiles <- list.files( 
+trainingSegmentationFiles <- list.files(
   path = trainingImageDirectory, pattern = "Segmentation", full.names = TRUE )
 
 trainingTransformDirectory <- paste0( dataDirectory, 'TemplateTransforms/' )
@@ -34,7 +34,7 @@ for( i in 1:length( trainingImageFiles ) )
   trainingImages[[i]] <- c( trainingImageFiles[i], trainingMaskFiles[i] )
   trainingSegmentations[[i]] <- trainingSegmentationFiles[i]
 
-  id <- basename( trainingImageFiles[i] ) 
+  id <- basename( trainingImageFiles[i] )
   id <- gsub( "Ventilation.nii.gz", '', id )
 
   xfrmPrefix <- paste0( trainingTransformDirectory, 'T_', id )
@@ -52,20 +52,20 @@ for( i in 1:length( trainingImageFiles ) )
     stop( "Transform file does not exist.\n" )
     }
 
-  trainingTransforms[[i]] <- list( 
+  trainingTransforms[[i]] <- list(
     fwdtransforms = fwdtransforms, invtransforms = invtransforms )
   }
 
 resampledImageSize <- c( 80, 128 )
 
-unetModel <- createUnetModel2D( c( resampledImageSize, channelSize ), 
-  numberOfClassificationLabels = numberOfClassificationLabels, 
+unetModel <- createUnetModel2D( c( resampledImageSize, channelSize ),
+  numberOfOutputs = numberOfClassificationLabels,
   convolutionKernelSize = c( 5, 5 ),
-  deconvolutionKernelSize = c( 5, 5 ), 
+  deconvolutionKernelSize = c( 5, 5 ),
   dropoutRate = 0.2 )
 
 unetModel %>% compile( loss = loss_multilabel_dice_coefficient_error,
-  optimizer = optimizer_adam( lr = 0.00001 ),  
+  optimizer = optimizer_adam( lr = 0.00001 ),
   metrics = c( multilabel_dice_coefficient ) )
 
 ###
@@ -85,22 +85,22 @@ validationSplit <- 0.8
 trainingIndices <- sampleIndices[1:ceiling( validationSplit * numberOfTrainingData )]
 validationIndices <- sampleIndices[( ceiling( validationSplit * numberOfTrainingData ) + 1 ):numberOfTrainingData]
 
-trainingData <- unetImageBatchGenerator$new( 
-  imageList = trainingImages[trainingIndices], 
-  segmentationList = trainingSegmentations[trainingIndices], 
-  transformList = trainingTransforms[trainingIndices], 
-  referenceImageList = trainingImages, 
+trainingData <- unetImageBatchGenerator$new(
+  imageList = trainingImages[trainingIndices],
+  segmentationList = trainingSegmentations[trainingIndices],
+  transformList = trainingTransforms[trainingIndices],
+  referenceImageList = trainingImages,
   referenceTransformList = trainingTransforms
   )
 
-trainingDataGenerator <- trainingData$generate( batchSize = batchSize, 
+trainingDataGenerator <- trainingData$generate( batchSize = batchSize,
   resampledImageSize = resampledImageSize )
 
-validationData <- unetImageBatchGenerator$new( 
-  imageList = trainingImages[validationIndices], 
-  segmentationList = trainingSegmentations[validationIndices], 
+validationData <- unetImageBatchGenerator$new(
+  imageList = trainingImages[validationIndices],
+  segmentationList = trainingSegmentations[validationIndices],
   transformList = trainingTransforms[validationIndices],
-  referenceImageList = trainingImages, 
+  referenceImageList = trainingImages,
   referenceTransformList = trainingTransforms
   )
 
@@ -112,20 +112,20 @@ validationDataGenerator <- validationData$generate( batchSize = batchSize,
 # Run training
 #
 
-track <- unetModel$fit_generator( 
-  generator = reticulate::py_iterator( trainingDataGenerator ), 
+track <- unetModel$fit_generator(
+  generator = reticulate::py_iterator( trainingDataGenerator ),
   steps_per_epoch = ceiling( 5 * length( trainingIndices ) / batchSize ),
   epochs = 200,
   validation_data = reticulate::py_iterator( validationDataGenerator ),
   validation_steps = ceiling( 5 * length( validationIndices ) / batchSize ),
-  callbacks = list( 
-    callback_model_checkpoint( paste0( baseDirectory, "unetVentilationWeights.h5" ), 
+  callbacks = list(
+    callback_model_checkpoint( paste0( baseDirectory, "unetVentilationWeights.h5" ),
       monitor = 'val_loss', save_best_only = TRUE, save_weights_only = TRUE,
       verbose = 1, mode = 'auto', period = 1 ),
      callback_reduce_lr_on_plateau( monitor = 'val_loss', factor = 0.5,
        verbose = 1, patience = 10, mode = 'auto' )
       # ,
-    #  callback_early_stopping( monitor = 'val_loss', min_delta = 0.001, 
+    #  callback_early_stopping( monitor = 'val_loss', min_delta = 0.001,
     #    patience = 10 ),
     )
   )

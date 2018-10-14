@@ -24,7 +24,7 @@ for( i in 1:length( imageIDs ) )
 if ( ! exists( "unetModel" ) ) {
   unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ), 1 ),
     numberOfFiltersAtBaseLayer = 8, dropoutRate = 0.0,
-    numberOfClassificationLabels = numberOfLabels + 1 )
+    numberOfOutputs = numberOfLabels + 1 )
 
   # categorical_crossentropy
   unetModel %>% compile( loss = 'categorical_crossentropy',

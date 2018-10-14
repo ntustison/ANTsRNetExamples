@@ -41,7 +41,7 @@ unetModel <- createUnetModel2D(
     numberOfFiltersAtBaseLayer = 16,
     numberOfLayers = 6,
     dropoutRate = 0.0, strides=c(2,2),
-    numberOfClassificationLabels = 1, mode='regression' )
+    numberOfOutputs = 1, mode='regression' )
 
 # custom metric via ntustison
 unetModel %>% compile( loss = loss_peak_signal_to_noise_ratio_error,
