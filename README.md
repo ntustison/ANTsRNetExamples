@@ -2,37 +2,10 @@
 
 A collection of examples and models for the [ANTsRNet](https://github.com/ANTsX/ANTsRNet) package.
 
-## Image segmentation
-
-* U-Net (2-D) or V-Net (3-D) with a [multi-label Dice loss function](https://github.com/ntustison/ANTsRNet/blob/master/Models/createUnetModel.R#L1-L91)
-    * [O. Ronneberger, P. Fischer, and T. Brox.  U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
-    * [Fausto Milletari, Nassir Navab, Seyed-Ahmad Ahmadi. V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation](https://arxiv.org/pdf/1606.04797.pdf)
-
-## Image classification 
-
-* AlexNet (2-D, 3-D)
-    * [A. Krizhevsky, and I. Sutskever, and G. Hinton. ImageNet Classification with Deep Convolutional Neural Networks.](http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf)
-* Vgg16/Vgg19 (2-D, 3-D)
-    * [K. Simonyan and A. Zisserman. Very Deep Convolutional Networks for Large-Scale Image Recognition.](https://arxiv.org/abs/1409.1556)
-* ResNet/ResNeXt (2-D, 3-D)
-    * [Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.  Deep Residual Learning for Image Recognition.](https://arxiv.org/abs/1512.03385)
-    * [Saining Xie and Ross Girshick and Piotr Dollár and Zhuowen Tu and Kaiming He.  Aggregated Residual Transformations for Deep Neural Networks.](https://arxiv.org/abs/1611.05431)
-* GoogLeNet (Inception v3) (2-D)
-    * [C. Szegedy, W. Liu, Y. Jia, P. Sermanet, S. Reed, D. Anguelov, D. Erhan, V. Vanhoucke, and A. Rabinovich. Going Deeper with Convolutions.](https://arxiv.org/abs/1512.00567)
-* DenseNet (2-D, 3-D)
-    * [G. Huang, Z. Liu, K. Weinberger, and L. van der Maaten. Densely Connected Convolutional Networks Networks.](https://arxiv.org/abs/1608.06993)
-
-## Object detection
-
-* Single Shot MultiBox Detector (2-D, 3-D) 
-    * [W. Liu, D. Anguelov, D. Erhan, C. Szegedy, S. Reed, C-Y. Fu, and A. Berg.  SSD: Single Shot MultiBox Detector.](https://arxiv.org/abs/1512.02325)
-    * SSD7: small 7-layer architecture 
-    * SSD300/SSD512: porting of original architectures
-
-### Image super-resolution
-
-* Super-resolution convolutional neural network (SRCNN) (2-D, 3-D)
-    * [Chao Dong, Chen Change Loy, Kaiming He, and Xiaoou Tang.  Image Super-Resolution Using Deep Convolutional Networks.](https://arxiv.org/abs/1501.00092)
+* Image voxelwise segmentation/regression
+* Image classification/regression
+* Object detection
+* Image super-resolution
     
 ---------------------------------
 
@@ -51,10 +24,6 @@ A collection of examples and models for the [ANTsRNet](https://github.com/ANTsX/
 
 # To do:
 
-* __WIP:__ YOLO9000
-    * [Joseph Redmon, Ali Farhadi.  YOLO9000: Better, Faster, Stronger](https://arxiv.org/abs/1612.08242)
-    * [Implementation](https://github.com/ykamikawa/yolov2)
-* deconvnet.R
 * ResNet and AlexNet use lambda layers so those models aren't writeable to file (h5 format).  So we need to redo to rewrite to json or something else.  At least I think that's the problem. 
 * Need to go through and make sure that the 'tf' vs. 'th' ordering is accounted for.  Currently, tensorflow is assumed.  Should work with theano but need to check this.  Actually, given that Theano is [no longer in active development](https://groups.google.com/forum/#!topic/theano-users/7Poq8BZutbY), perhaps we should just stick with a tensorflow backend.
 
@@ -123,3 +92,160 @@ __Update (April 11, 2018):__ The recent MacOSx update (10.13.4) broke the eGPU c
     4. Plug in the eGPU
     5. Logout
     6. Log back in
+
+****************
+****************
+
+# My laptop set-up 
+
+## Hardware
+
+* MacBook Pro (13-inch, 2016, Four Thunderbolt 3 Ports)
+* Blackmagic eGPU (AMD Radeon Pro 580)
+
+## Software
+
+* [plaidml](https://github.com/plaidml/plaidml)
+* keras in R
+* anaconda3 
+
+## Misc. notes
+
+* Installed plaidml according to the [instructions](https://github.com/plaidml/plaidml/blob/master/docs/installing.md).
+* During the ``plaidml-setup`` call, I selected something like ``2 : metal_amd_radeon_pro_580.0``.
+* Somewhere I read I should install anaconda3
+* Switched the python library in ``~/.Rprofile``
+* Uninstalled keras in R (``> remove.package( "keras" )``) as that was tied to the other version of python (``/Library/Frameworks/Python.framework/Versions/3.6/bin/python3.6``).
+* Reinstalled keras which added everything to the anaconda3 python directory
+    * ``> install.packages( "keras" )``
+    * ``> install_keras()``
+* Despite this, I could not get keras in R to switch to the "plaidml" backend.
+    * ``> library( keras )``
+    * ``> use_backend( "plaidml" )``
+    * ``> K <- backend()``
+    * ``> K$backend()``
+    * ``[1] "tensorflow"``
+* I even tried to change the backend in ``~/.keras/keras.json`` but no luck.    
+* I also noticed that ``install_keras()`` activates a conda environment (``r-tensorflow``) so I reinstalled plaidml in that conda environment but still no luck getting keras in R to switch backends.
+* However, I could get the python plaidml [example](https://github.com/plaidml/plaidml#hello-vgg) to work.  I could open up ``Activity Monitor --> Window --> GPU History`` and see the workload on the Blackmagic eGPU.
+* Finally, after doing that, I noticed the line in the python example ``os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"``.  I finally got the plaidml backend to work by adding that environment variable, i.e., ``$ export KERAS_BACKEND="plaidml.keras.backend"``.  After that, I started up and was able to run this [example](https://rpubs.com/siero5335/399690) and see the workload on the eGPU:
+
+```
+$ R
+
+R version 3.5.1 (2018-07-02) -- "Feather Spray"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin15.6.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+
+*** Successfully loaded .Rprofile ***
+
+##------ [/Users/ntustison/Pkg] Thu Oct 25 20:56:11 2018 ------##
+> library( keras )
+Using plaidml.keras.backend backend.
+> use_backend(backend = "plaidml")
+> K <- backend()
+> K$backend()
+[1] "plaidml.keras.backend"
+> batch_size <- 128
+> num_classes <- 10
+> epochs <- 5
+> img_rows <- 28
+> img_cols <- 28
+> 
+> 
+> mnist <- dataset_mnist()
+x_train <- mnist$train$x
+y_train <- mnist$train$y
+x_test <- mnist$test$x
+y_test <- mnist$test$y
+> x_train <- mnist$train$x
+> y_train <- mnist$train$y
+> x_test <- mnist$test$x
+> y_test <- mnist$test$y
+> x_train <- array_reshape(x_train, c(nrow(x_train), img_rows, img_cols, 1))
+> x_test <- array_reshape(x_test, c(nrow(x_test), img_rows, img_cols, 1))
+> input_shape <- c(img_rows, img_cols, 1)
+> 
+> x_train <- x_train / 255
+> x_test <- x_test / 255
+> 
+> y_train <- to_categorical(y_train, 10)
+> y_test <- to_categorical(y_test, 10)
+> 
+> model <- keras_model_sequential() %>%
++   layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = 'relu',
++                 input_shape = input_shape) %>% 
++   layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = 'relu') %>% 
++   layer_max_pooling_2d(pool_size = c(2, 2)) %>% 
++   layer_dropout(rate = 0.25) %>% 
++   layer_flatten() %>% 
++   layer_dense(units = 128, activation = 'relu') %>% 
++   layer_dropout(rate = 0.5) %>% 
++   layer_dense(units = num_classes, activation = 'softmax')
+INFO:plaidml:Opening device "metal_amd_radeon_pro_580.0"
+> 
+> summary(model)
+________________________________________________________________________________
+Layer (type)                        Output Shape                    Param #     
+================================================================================
+conv2d_1 (Conv2D)                   (None, 26, 26, 32)              320         
+________________________________________________________________________________
+conv2d_2 (Conv2D)                   (None, 24, 24, 64)              18496       
+________________________________________________________________________________
+max_pooling2d_1 (MaxPooling2D)      (None, 12, 12, 64)              0           
+________________________________________________________________________________
+dropout_1 (Dropout)                 (None, 12, 12, 64)              0           
+________________________________________________________________________________
+flatten_1 (Flatten)                 (None, 9216)                    0           
+________________________________________________________________________________
+dense_1 (Dense)                     (None, 128)                     1179776     
+________________________________________________________________________________
+dropout_2 (Dropout)                 (None, 128)                     0           
+________________________________________________________________________________
+dense_2 (Dense)                     (None, 10)                      1290        
+================================================================================
+Total params: 1,199,882
+Trainable params: 1,199,882
+Non-trainable params: 0
+________________________________________________________________________________
+> 
+> model %>% compile(
++   loss = loss_categorical_crossentropy,
++   optimizer = optimizer_adadelta(),
++   metrics = c('accuracy')
++ )
+> model %>% fit(
++   x_train, y_train,
++   batch_size = batch_size,
++   epochs = epochs,
++   validation_split = 0.2
++ )
+Train on 48000 samples, validate on 12000 samples
+Epoch 1/5
+INFO:plaidml:Analyzing Ops: 85 of 285 operations complete
+48000/48000 [==============================] - 18s 372us/step - loss: 0.3130 - acc: 0.9042 - val_loss: 0.0702 - val_acc: 0.9803
+Epoch 2/5
+48000/48000 [==============================] - 10s 200us/step - loss: 0.0982 - acc: 0.9705 - val_loss: 0.0543 - val_acc: 0.9846
+Epoch 3/5
+48000/48000 [==============================] - 9s 188us/step - loss: 0.0721 - acc: 0.9787 - val_loss: 0.0490 - val_acc: 0.9867
+Epoch 4/5
+48000/48000 [==============================] - 9s 188us/step - loss: 0.0613 - acc: 0.9814 - val_loss: 0.0410 - val_acc: 0.9882
+Epoch 5/5
+48000/48000 [==============================] - 9s 187us/step - loss: 0.0510 - acc: 0.9851 - val_loss: 0.0418 - val_acc: 0.9882
+```
+    
