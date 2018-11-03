@@ -2,13 +2,13 @@
 # download data from:  figshare five example modalities
 #
 set.seed( 1 ) # b/c we use resampling - we want to keep folds the same over runs
-runExtraOpt = FALSE
+runExtraOpt = F
 library( abind )
 library( ANTsRNet )
 library( ANTsR )
 library(keras)
 # for plaidml
-usePlaid=TRUE
+usePlaid=FALSE
 if ( usePlaid ) {
   use_implementation(implementation = c("keras"))
   use_backend(backend = 'plaidml' )
@@ -22,7 +22,7 @@ algid='fastICA'
 # algid='eanat'
 onm = paste0( 'regi', numRegressors, 'alg',algid, 'regressionModel.h5' )
 bnm = tools::file_path_sans_ext( onm )
-
+mnnm = paste0( bnm, 'mn.csv')
 imageMetric <- function( optParams, fImg, mImg, basisw, metricIn,
                          pcaParams, ncomp, smoothing ) {
   whichk=1:length(pcaParams)
@@ -55,19 +55,25 @@ normimg <-function( img, scl ) {
 scl = 2
 nc = 4
 sm = 1.0
-rdir = "/Users/stnava/Downloads/ndgenSliceStudy/"
-rdir = "/Users/stnava/Downloads/five/t1/"
+rdir = "~/data/fiveModalities/five/t1/"
 fns = Sys.glob( paste0( rdir, "modt1*nii.gz" ) )
-templatefn = "/Users/stnava/Downloads/five/t1/modt1_x130.nii.gz"
+templatefn = "~/data/fiveModalities/five/t1/modt1_x130.nii.gz"
 ww = which( fns == templatefn )
-leaveout = c( caret::createDataPartition( 1:length(fns), p=0.5,
+leaveout = c( caret::createDataPartition( 1:length(fns), p=0.2,
   list = T )$Resample1, ww ) # leave out template
 template = antsImageRead( templatefn )
 txtype = "DeformationBasis"
-if ( ! exists( "myep" ) ) myep = c( 10, 10 ) # epochs, batchSize
+if ( ! exists( "myep" ) ) myep = c( 100, 10 ) # epochs, batchSize
 ref = normimg( template, scl )
 mskpca = ref * 0 + 1
-if ( !file.exists(  onm  ) )  {
+if ( ! exists( "images" ) ) {
+  images = imageFileNames2ImageList( fns )[ -leaveout ]
+  for ( k in 1:length( images ) ) {
+    print( k )
+    images[[ k ]] = antsRegistration( ref, normimg( images[[k]], 1),  "SyNBold" )$warpedmovout
+    }
+  }
+if ( !file.exists(  mnnm  ) )  {
   inimages <- imageFileNames2ImageList( fns )
   images = list()
   wlist  <- list()
@@ -130,6 +136,8 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
   myact='linear', drate = 0.0 ) {
   filtSz = c( 32, 32, 32, 32, 32, 32 )
   filtSz = c( 16, 32, 64, max( input_shape ), 64, 32 )
+  filtSz  = c(128, 128, 64, 32, 16, 128 )
+  filtSz = c( 128,  16, 8,  4, 256 )
   dilrt = as.integer( dilrt )
   model <- keras_model_sequential() %>%
     layer_conv_2d(filters = filtSz[1], kernel_size = c(3,3), activation = myact,
@@ -141,17 +149,11 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
     layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-#    layer_batch_normalization() %>%
-    layer_conv_2d(filters = filtSz[4], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
+    layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-#    layer_batch_normalization() %>%
-    layer_conv_2d(filters = filtSz[5], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
-    layer_dropout( rate = drate ) %>%
-#    layer_batch_normalization() %>%
     layer_flatten() %>%
-    layer_dense(units = filtSz[6], activation = myact) %>%
+    layer_dense(units = filtSz[ 5 ], activation = myact) %>%
     layer_dropout(rate = drate ) %>%
     layer_dense(units = num_regressors )
 
@@ -169,46 +171,33 @@ mymus = pcaReconCoeffsMeans * 0
 mysds = data.matrix( pcaReconCoeffsSD ) * shapeSD
 
 ##################### generate reference anatomy
-mytd2 <- randomImageTransformParametersBatchGenerator$new(
-  imageList = list( ref ),
-  transformType = "DeformationBasis",
-  imageDomain = ref,
-  spatialSmoothing = sm,
-  numberOfCompositions = nc,
-  deformationBasis = basisw,
-  txParamMeans = mymus,
-  txParamSDs = mysds )
-tdgenfun2 <- mytd2$generate( batchSize = 1 )
+mytd <- randomImageTransformParametersBatchGenerator$new(
+                   imageList = images,
+                   transformType = "DeformationBasis",
+                   imageDomain = ref,
+                   spatialSmoothing = sm,
+                   numberOfCompositions = nc,
+                   deformationBasis = basisw,
+                   txParamMeans = mymus,
+                   txParamSDs = mysds )
+tdgenfun <- mytd$generate( batchSize = myep[2] )
 
-testpop <- tdgenfun2()
-testimg = makeImage( mskpca, testpop[[1]][1,,,1] )
-plot( testimg, doCropping = F )
-
-if ( !file.exists( onm ) )
+if ( !file.exists( onm ) | TRUE )
   {
   input_shape <- c( dim( ref ), ref@components )
   if ( ! exists( "doTrain" ) ) doTrain = TRUE else doTrain = FALSE
   if ( doTrain ) {
-    if ( ! exists( "regressionModel" ) )
+   # if ( ! exists( "regressionModel" ) ) {  } 
       regressionModel <- build_model(  input_shape, numRegressors   )
-    mytd <- randomImageTransformParametersBatchGenerator$new(
-							     imageList = images,
-							     transformType = "DeformationBasis",
-							     imageDomain = ref,
-							     spatialSmoothing = sm,
-							     numberOfCompositions = nc,
-                   deformationBasis = basisw,
-                   txParamMeans = mymus,
-                   txParamSDs = mysds )
-    tdgenfun <- mytd$generate( batchSize = 10 )
-    for ( trn in 1:2 ) {
+print( regressionModel )
+print( args( build_model ) )
       track <- regressionModel$fit_generator(
         generator = reticulate::py_iterator( tdgenfun ),
-        steps_per_epoch = myep[2],
+        steps_per_epoch =  1,  # or floor( length(images) / myep[2] )
         epochs = myep[1]  )
-      print( paste( 'saving', onm, 'at loop', trn ) )
+      print( paste( 'saving', onm ) )
       save_model_hdf5( regressionModel, onm )
-      }
+     
     }
   }
 
@@ -216,22 +205,30 @@ if ( !file.exists( onm ) )
 ###################################
 # test on fully left out new data #
 ###################################
-testpop <- tdgenfun2()
-for ( k in leaveout ) {
+testImages = imageFileNames2ImageList( fns[ leaveout ] )
+xTest = array( data = NA, dim = c( length( testImages ), dim( ref ), 1 ) )
+for ( i in 1:length( testImages ) ) {
+  xTest[i,,,1] = as.array( normimg( testImages[[i]], scl ) %>% resampleImageToTarget(ref) )
+  }
+pTime1=Sys.time()
+predParams = ( regressionModel %>% predict( xTest, verbose = 1 ) )
+pTime2=Sys.time()
+dltime = ( pTime2 - pTime1 ) / nrow( predParams )
+#######################
+mna = rep( NA, length( testImages ) )
+metricParams = data.frame( init=mna, learn=mna, ants=mna )
+for ( k in sample( 1:length( testImages ) ) ) {
   cat("*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*<>*\n")
-  testimg = normimg( antsImageRead( fns[k] ), scl )
-  testimg = resampleImageToTarget( testimg, ref )
-  testimg[testimg == 0] = min( testimg )
+  testimg = resampleImageToTarget( testImages[[ k ]], ref )
   t0=Sys.time()
   reg = antsRegistration( testimg, ref, 'SyN' )
   t1=Sys.time()
-  testpop[[1]][1,,,1] = as.array( testimg )
   metricx = "Mattes"
   metric = antsrMetricCreate( testimg, ref, type = metricx,
     sampling.strategy = "regular", sampling.percentage = 0.25, nBins=32 )
   antsrMetricInitialize( metric )
   t2=Sys.time()
-  inp = ( regressionModel %>% predict( testpop[[1]], verbose = 0 ) )[1,]
+  inp = predParams[k,]
   if ( runExtraOpt ) { # run an extra line search optimization on top
     myg4 = inp
     bestval = optimize( imageMetricLS, lower=-1, upper=1,
@@ -244,17 +241,25 @@ for ( k in leaveout ) {
     } else outp = inp
   mytx  = basisWarp( basisw, outp, nc, sm )
   learned = applyAntsrTransformToImage( mytx,  ref, testimg  )
+  msk = getMask( testimg )* 0 + 1
   t3=Sys.time()
-  dltime = as.numeric(t3-t2)
-  print( paste("speedup:",as.numeric(t1-t0)/dltime ))
+  print( paste("speedup:",as.numeric(t1-t0)/as.numeric(dltime) ))
+  metricParams[k,] = c(
+    antsImageMutualInformation( testimg*msk, ref*msk),
+    antsImageMutualInformation( testimg*msk, learned*msk),
+    antsImageMutualInformation( testimg*msk, reg$warpedmovout*msk))
   # we are learning the mapping from the template to the target image
-  print(paste( "ref2tar", antsImageMutualInformation( testimg, ref)) )
-  print(paste("lrn2tar", antsImageMutualInformation( testimg, learned)))
-  print( paste( "reg2tar", antsImageMutualInformation( testimg,
-    reg$warpedmovout)) )
-  plot( testimg, doCropping=F, alpha = 0.5  )
-  Sys.sleep(1)
-  plot( learned, doCropping=F, alpha = 0.5  )
-  Sys.sleep(1)
+#  print(paste( "ref2tar", antsImageMutualInformation( testimg*msk, ref*msk)) )
+#  print(paste("lrn2tar", antsImageMutualInformation( testimg*msk, learned*msk)))
+#  print( paste( "reg2tar", antsImageMutualInformation( testimg*msk,
+#    reg$warpedmovout*msk)) )
+#
+#  plot( testimg, doCropping=F, alpha = 0.5  )
+#  Sys.sleep(1)
+#  plot( learned, doCropping=F, alpha = 0.5  )
+#  Sys.sleep(1)
 #  plot( reg$warpedmovout, doCropping=F, alpha = 0.5  )
   }
+print(colMeans( metricParams ) )
+print( t.test( metricParams[,3], metricParams[,2], paired=T ) )
+
