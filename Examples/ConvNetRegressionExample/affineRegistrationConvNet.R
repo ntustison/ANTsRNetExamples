@@ -1,25 +1,21 @@
-
-#########################################################
 library( ANTsRNet )
 library( ANTsR )
 library( abind )
 library( keras )
-# for plaidml
-# use_implementation(implementation = c("keras"))
-# use_backend(backend = 'plaidml' )
 #########################################################
 imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 if ( ! exists( "scl" ) ) scl = 4
 leaveout = 4
 shapeSD = 10
-if ( ! exists( "myep" ) ) myep = 255 # reasonable default
+if ( ! exists( "myep" ) ) myep = 25 # reasonable default
 ref = ri( 16 )  %>% resampleImage( scl ) %>% iMath("Normalize")
 
-if ( ! exists( "images" ) ) {
 images <- list()
 priorParams = matrix( nrow = length( imageIDs ), ncol = 6 )
-for( i in 1:length( imageIDs ) )
+for( j in 1:25 )
   {
+  i = j %% 6
+  if ( i == 0 ) i = 1
   cat( "Processing image", imageIDs[i], "\n" )
   img  = antsImageRead( getANTsRData( imageIDs[i] ) )
   reg = antsRegistration( ref, img, "Affine", affIterations=c(100,50,20) )
@@ -28,7 +24,6 @@ for( i in 1:length( imageIDs ) )
   priorParams[i,] = getAntsrTransformParameters(
     readAntsrTransform( reg$fwdtransforms[1] ) )
   }
-}
 
 affTx = createAntsrTransform( "AffineTransform", dimension = 2 )
 numRegressors = length( getAntsrTransformParameters( affTx ) )
@@ -44,23 +39,22 @@ mytd <- randomImageTransformParametersBatchGenerator$new(
   imageList = images[ -leaveout ],
   transformType = "Affine",
   txParamMeans = affmns,
-  txParamSDs = affcov,
+  txParamSDs = diag(6),
   imageDomain = ref )
 tdgenfun <- mytd$generate( batchSize = 32 )
-if ( ! exists( "track" ) ) {
-  regressionModel <- createAlexNetModel2D( input_shape, numRegressors, regression = TRUE   )
-  regressionModel %>% compile(
+regressionModel <- createAlexNetModel2D( input_shape,
+  numRegressors, mode = 'regression'  )
+regressionModel %>% compile(
     loss = "mse",
     optimizer = optimizer_adam( ),
     metrics = list("mean_absolute_error")
   )
 
-#  regressionModel %>% summary()
-  track <- regressionModel$fit_generator(
+track <- regressionModel %>% fit_generator(
     generator = reticulate::py_iterator( tdgenfun ),
     steps_per_epoch = 16,
     epochs = myep  )
-  }
+
 #####################
 mytd2 <- randomImageTransformParametersBatchGenerator$new(
   imageList = list( images[[ leaveout ]] ),

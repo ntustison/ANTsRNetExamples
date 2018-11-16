@@ -2,9 +2,6 @@ library( ANTsRNet )
 library( ANTsR )
 library( abind )
 library( keras )
-# for plaidml
-# use_implementation(implementation = c("keras"))
-# use_backend(backend = 'plaidml' )
 ##########################################
 imageIDs <- c( "r16", "r27", "r30",  "r62", 'r64' )
 imageIDs2 <- c( "r85", "r27" ) # testing
@@ -13,8 +10,10 @@ loSpc = c( 4, 4 )
 ################################################
 images <- list()
 denoised <- list()
-for( i in 1:length( imageIDs ) )
+for( j in 1:50 )
   {
+  i = j %% 6
+  if ( i == 0 ) i = 1
   cat( "Processing image", imageIDs[i], "\n" )
   img = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% iMath("Normalize")
   loimg = resampleImage( img, loSpc ) %>% resampleImageToTarget( img )
@@ -44,9 +43,9 @@ unetModel <- createUnetModel2D(
     numberOfOutputs = 1, mode='regression' )
 
 # custom metric via ntustison
-unetModel %>% compile( loss = loss_peak_signal_to_noise_ratio_error,
+unetModel %>% compile( loss = 'mse',
   optimizer = optimizer_adam( lr = 0.001 ),
-  metrics = c( 'mse', peak_signal_to_noise_ratio ) )
+  metrics = c( 'mse' ) )
 
 # affine augmentation
 sdAff = 0.03
@@ -58,12 +57,12 @@ mytd <- randomImageTransformBatchGenerator$new(
   imageDomain = images[[1]][[1]],
   imageDomainY = loimg,
   toCategorical = FALSE )
-tdgenfun <- mytd$generate( batchSize = 8 )
+tdgenfun <- mytd$generate( batchSize = 2 )
 ################################################
-track <- unetModel$fit_generator(
-  generator = reticulate::py_iterator( tdgenfun ),
-  steps_per_epoch = 4,
-  epochs = 85 )
+unetModel %>% fit_generator(
+  generator = tdgenfun,
+  steps_per_epoch = 1,
+  epochs = 5 )
 ################################################
 mytd2 <- randomImageTransformBatchGenerator$new(
   imageList = images2,

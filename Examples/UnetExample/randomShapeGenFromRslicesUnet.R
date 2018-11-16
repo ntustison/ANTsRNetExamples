@@ -1,9 +1,6 @@
-
-
-# Sys.setenv(TENSORFLOW_PYTHON='/usr/local/bin/python3')
 library( ANTsRNet )
 library( ANTsR )
-library(abind)
+library( abind )
 library( keras )
 imageIDs <- c( "r16", "r27", "r30", "r62", "r64", "r85" )
 # Perform simple 3-tissue segmentation.  For convenience we are going
@@ -13,39 +10,41 @@ numberOfLabels <- length( segmentationLabels )
 images <- list()
 kmeansSegs <- list()
 #
-for( i in 1:length( imageIDs ) )
+for( j in 1:22 )
   {
+  i = j %% 6
+  if ( i == 0 ) i = 1
   cat( "Processing image", imageIDs[i], "\n" )
   img  = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% resampleImage( 2 )
   images[[i]] <- list( img )
   kmeansSegs[[i]] <- thresholdImage( img, "Otsu", 3 )
   }
 ###
-if ( ! exists( "unetModel" ) ) {
-  unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ), 1 ),
+unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ), 1 ),
     numberOfFiltersAtBaseLayer = 8, dropoutRate = 0.0,
-    numberOfOutputs = numberOfLabels + 1 )
-
-  # categorical_crossentropy
-  unetModel %>% compile( loss = 'categorical_crossentropy',
-    optimizer = optimizer_adam( ),
-    metrics = c( multilabel_dice_coefficient ) )
-  }
+    numberOfOutputs = numberOfLabels + 1, mode = 'classification' )
 
 mytd <- randomImageTransformBatchGenerator$new(
   imageList = images,
   outcomeImageList = kmeansSegs,
   transformType = "Affine",
   sdAffine = 0.05,
+  normalization = '01',
   imageDomain = images[[1]][[1]],
   toCategorical = TRUE )
 
-tdgenfun <- mytd$generate( batchSize = 8 )
+tdgenfun <- mytd$generate( batchSize = 1 )
 #
-track <- unetModel$fit_generator(
-  generator = reticulate::py_iterator( tdgenfun ),
-  steps_per_epoch = 1,
-  epochs = 99 )
+unetModel %>% compile(
+      loss = "categorical_crossentropy",
+      optimizer = optimizer_adam( ),
+      metrics = list("categorical_crossentropy")
+    )
+
+track <- unetModel %>% fit_generator(
+      generator = tdgenfun,
+      steps_per_epoch = 5,
+      epochs = 25  )
 
 diceOverlap <- function( x,  y ) {
   ulabs = sort( unique( c( unique(x), unique(y) ) ) )
