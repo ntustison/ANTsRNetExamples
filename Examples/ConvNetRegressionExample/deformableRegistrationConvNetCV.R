@@ -137,7 +137,8 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
   filtSz = c( 32, 32, 32, 32, 32, 32 )
   filtSz = c( 16, 32, 64, max( input_shape ), 64, 32 )
   filtSz  = c(128, 128, 64, 32, 16, 128 )
-  filtSz = c( 128,  16, 8,  4, 256 )
+  filtSz = c( 128,  64, 32,  16, 256 )
+#  filtSz = c( 128,  16, 8,  4, 256 )
   dilrt = as.integer( dilrt )
   model <- keras_model_sequential() %>%
     layer_conv_2d(filters = filtSz[1], kernel_size = c(3,3), activation = myact,
@@ -149,8 +150,8 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
     layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-    layer_locally_connected_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact ) %>%
-    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
+    layer_locally_connected_2d(filters = filtSz[4], kernel_size = c(3,3), activation = myact ) %>%
+#    layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
     layer_flatten() %>%
     layer_dense(units = filtSz[ 5 ], activation = myact) %>%
