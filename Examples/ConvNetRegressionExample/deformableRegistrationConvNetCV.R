@@ -149,7 +149,7 @@ build_model <- function( input_shape, num_regressors, dilrt = 1,
     layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
-    layer_conv_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact, dilation_rate = dilrt ) %>%
+    layer_locally_connected_2d(filters = filtSz[3], kernel_size = c(3,3), activation = myact ) %>%
     layer_max_pooling_2d(pool_size = c(2, 2)) %>%
     layer_dropout( rate = drate ) %>%
     layer_flatten() %>%
@@ -191,9 +191,9 @@ if ( !file.exists( onm ) | TRUE )
       regressionModel <- build_model(  input_shape, numRegressors   )
 print( regressionModel )
 print( args( build_model ) )
-      track <- regressionModel$fit_generator(
-        generator = reticulate::py_iterator( tdgenfun ),
-        steps_per_epoch =  1,  # or floor( length(images) / myep[2] )
+      track <- regressionModel %>% fit_generator(
+        generator = tdgenfun,
+        steps_per_epoch =  floor( length(images) / myep[2] ),
         epochs = myep[1]  )
       print( paste( 'saving', onm ) )
       save_model_hdf5( regressionModel, onm )
