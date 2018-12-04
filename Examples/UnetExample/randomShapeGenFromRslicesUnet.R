@@ -9,13 +9,11 @@ numberOfLabels <- length( segmentationLabels )
 
 images <- list()
 kmeansSegs <- list()
-#
-for( j in 1:22 )
+scl = 1
+for( i in 1:6 )
   {
-  i = j %% 6
-  if ( i == 0 ) i = 1
   cat( "Processing image", imageIDs[i], "\n" )
-  img  = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% resampleImage( 2 )
+  img  = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% resampleImage( scl )
   images[[i]] <- list( img )
   kmeansSegs[[i]] <- thresholdImage( img, "Otsu", 3 )
   }
@@ -23,7 +21,7 @@ for( j in 1:22 )
 if ( ! exists( "newModel") ) newModel = T
 if ( newModel )
 unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ),1 ),
-    numberOfLayers=2, numberOfFiltersAtBaseLayer = 4, dropoutRate = 0.0,
+    numberOfLayers=4, numberOfFiltersAtBaseLayer = 16, dropoutRate = 0.0,
     numberOfOutputs = numberOfLabels + 1, mode = 'classification' )
 
 mytd <- randomImageTransformBatchGenerator$new(
@@ -72,11 +70,13 @@ for ( t in 1:1 ) {
   segmat = matrix( predictedData[k,,,], nrow=tail(dim(predictedData),1) )
   for ( tt in 1:4 )
     segmat[tt,] = probabilityImagesArray[[k]][[tt]][ domainMask == 1 ]
+  seggm = makeImage( domainMask, segmat[3,] )
   segvec = apply( segmat[,], FUN=which.max, MARGIN=2 )
   segimg = makeImage( domainMask, segvec )
   segimggt = thresholdImage( testimg, "Otsu", 3 )
   plot( testimg, segimg-1, alpha=0.8 )
   print( diceOverlap( segimggt, segimg-1 ) )
+  plot( seggm )
   Sys.sleep(1)
   }
 
