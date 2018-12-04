@@ -20,6 +20,7 @@ for( j in 1:22 )
   kmeansSegs[[i]] <- thresholdImage( img, "Otsu", 3 )
   }
 ###
+if ( ! exists( "newModel") ) newModel = T
 if ( newModel )
 unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ),1 ),
     numberOfLayers=2, numberOfFiltersAtBaseLayer = 4, dropoutRate = 0.0,
@@ -29,7 +30,7 @@ mytd <- randomImageTransformBatchGenerator$new(
   imageList = images,
   outcomeImageList = kmeansSegs,
   transformType = "Affine",
-  sdAffine = 0.05,
+  sdAffine = 0.1,
   normalization = 'standardize',
   imageDomain = images[[1]][[1]],
   toCategorical = TRUE )
@@ -46,7 +47,7 @@ unetModel %>% compile(
 track <- unetModel %>% fit_generator(
       generator = tdgenfun,
       steps_per_epoch = 4,
-      epochs = 50 )
+      epochs = 250 )
 
 diceOverlap <- function( x,  y ) {
   ulabs = sort( unique( c( unique(x), unique(y) ) ) )
@@ -75,7 +76,7 @@ for ( t in 1:1 ) {
   segimg = makeImage( domainMask, segvec )
   segimggt = thresholdImage( testimg, "Otsu", 3 )
   plot( testimg, segimg-1, alpha=0.8 )
-  print( diceOverlap( segimggt[gtmask==1], segimg[gtmask==1]-1 ) )
+  print( diceOverlap( segimggt, segimg-1 ) )
   Sys.sleep(1)
   }
 
