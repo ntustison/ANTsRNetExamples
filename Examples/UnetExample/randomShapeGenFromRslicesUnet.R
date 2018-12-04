@@ -20,8 +20,9 @@ for( j in 1:22 )
   kmeansSegs[[i]] <- thresholdImage( img, "Otsu", 3 )
   }
 ###
-unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ), 1 ),
-    numberOfFiltersAtBaseLayer = 8, dropoutRate = 0.0,
+if ( newModel )
+unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ),1 ),
+    numberOfLayers=2, numberOfFiltersAtBaseLayer = 4, dropoutRate = 0.0,
     numberOfOutputs = numberOfLabels + 1, mode = 'classification' )
 
 mytd <- randomImageTransformBatchGenerator$new(
@@ -29,12 +30,13 @@ mytd <- randomImageTransformBatchGenerator$new(
   outcomeImageList = kmeansSegs,
   transformType = "Affine",
   sdAffine = 0.05,
-  normalization = '01',
+  normalization = 'standardize',
   imageDomain = images[[1]][[1]],
   toCategorical = TRUE )
 
 tdgenfun <- mytd$generate( batchSize = 1 )
 #
+if ( newModel )
 unetModel %>% compile(
       loss = "categorical_crossentropy",
       optimizer = optimizer_adam( ),
@@ -43,8 +45,8 @@ unetModel %>% compile(
 
 track <- unetModel %>% fit_generator(
       generator = tdgenfun,
-      steps_per_epoch = 5,
-      epochs = 25  )
+      steps_per_epoch = 4,
+      epochs = 50 )
 
 diceOverlap <- function( x,  y ) {
   ulabs = sort( unique( c( unique(x), unique(y) ) ) )
@@ -58,15 +60,7 @@ diceOverlap <- function( x,  y ) {
 }
 #####################
 k=1
-mytd2 <- randomImageTransformBatchGenerator$new(
-  imageList = images,
-  outcomeImageList = kmeansSegs,
-  transformType = "AffineAndDeformation",
-  sdAffine = 0.05, spatialSmoothing = 8,
-  imageDomain = images[[1]][[1]],
-  toCategorical = TRUE )
-tdgenfun2 <- mytd2$generate( batchSize = 10 )
-testpop <- tdgenfun2()
+testpop <- tdgenfun()
 domainMask = img * 0 + 1
 testimg = makeImage( domainMask, testpop[[1]][k,,,1] )
 plot( testimg )
@@ -79,12 +73,9 @@ for ( t in 1:1 ) {
     segmat[tt,] = probabilityImagesArray[[k]][[tt]][ domainMask == 1 ]
   segvec = apply( segmat[,], FUN=which.max, MARGIN=2 )
   segimg = makeImage( domainMask, segvec )
-  segimg = ( segimg * getMask(segimg, 1, Inf ) ) - 1
   segimggt = thresholdImage( testimg, "Otsu", 3 )
-  gtmask = thresholdImage( segimggt, 1, Inf )
-  plot( testimg, segimggt, alpha=0.8 )
-  plot( testimg, segimg, alpha=0.8 )
-  print( diceOverlap( segimggt[gtmask==1], segimg[gtmask==1] ) )
+  plot( testimg, segimg-1, alpha=0.8 )
+  print( diceOverlap( segimggt[gtmask==1], segimg[gtmask==1]-1 ) )
   Sys.sleep(1)
   }
 
