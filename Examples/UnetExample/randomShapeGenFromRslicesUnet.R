@@ -9,13 +9,20 @@ numberOfLabels <- length( segmentationLabels )
 
 images <- list()
 kmeansSegs <- list()
+imagesTr <- list()
+kmeansSegsTr <- list()
 scl = 1
 for( i in 1:6 )
   {
   cat( "Processing image", imageIDs[i], "\n" )
   img  = antsImageRead( getANTsRData( imageIDs[i] ) ) %>% resampleImage( scl )
-  images[[i]] <- list( img )
-  kmeansSegs[[i]] <- thresholdImage( img, "Otsu", 3 )
+  if ( i < 3 ) {
+    imagesTr[[i]] <- list( img )
+    kmeansSegsTr[[i]] <- thresholdImage( img, "Otsu", 3 )
+  } else {
+    images[[i-2]] <- list( img )
+    kmeansSegs[[i-2]] <- thresholdImage( img, "Otsu", 3 )
+    }
   }
 ###
 if ( ! exists( "newModel") ) newModel = T
@@ -24,9 +31,10 @@ unetModel <- createUnetModel2D( c( dim( images[[1]][[1]] ),1 ),
     numberOfLayers=4, numberOfFiltersAtBaseLayer = 16, dropoutRate = 0.0,
     numberOfOutputs = numberOfLabels + 1, mode = 'classification' )
 
+# note: we learn from a single example
 mytd <- randomImageTransformBatchGenerator$new(
-  imageList = images,
-  outcomeImageList = kmeansSegs,
+  imageList = imagesTr,
+  outcomeImageList = kmeansSegsTr,
   transformType = "Affine",
   sdAffine = 0.1,
   normalization = 'standardize',
@@ -42,10 +50,13 @@ unetModel %>% compile(
       metrics = list("categorical_crossentropy")
     )
 
-track <- unetModel %>% fit_generator(
+if ( doTrain ) {
+   newModel=F
+   track <- unetModel %>% fit_generator(
       generator = tdgenfun,
       steps_per_epoch = 4,
-      epochs = 250 )
+      epochs = 20 )
+}
 
 diceOverlap <- function( x,  y ) {
   ulabs = sort( unique( c( unique(x), unique(y) ) ) )
@@ -58,6 +69,16 @@ diceOverlap <- function( x,  y ) {
   return( dicedf )
 }
 #####################
+mytd <- randomImageTransformBatchGenerator$new(
+					         imageList = images,
+						   outcomeImageList = kmeansSegs,
+						   transformType = "Affine",
+						     sdAffine = 0.1,
+						     normalization = 'standardize',
+						       imageDomain = images[[1]][[1]],
+						       toCategorical = TRUE )
+tdgenfun <- mytd$generate( batchSize = 4 )
+#
 k=1
 testpop <- tdgenfun()
 domainMask = img * 0 + 1
