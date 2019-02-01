@@ -1,3 +1,16 @@
+
+----------------------------
+
+
+# Deprecated 
+
+Please see the [ANTsRNet](https://github.com/ANTsX/ANTsRNet) repo.
+
+
+----------------------------
+
+
+
 # ANTsRNetExamples
 
 A collection of examples and models for the [ANTsRNet](https://github.com/ANTsX/ANTsRNet) package.
