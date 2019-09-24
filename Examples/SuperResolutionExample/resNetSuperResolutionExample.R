@@ -45,11 +45,13 @@ mytd <- randomImageTransformBatchGenerator$new(
   toCategorical = FALSE )
 
 tdgenfun <- mytd$generate( batchSize = 8 )
-
-track <- srModel$fit_generator(
-  generator = reticulate::py_iterator( tdgenfun ),
-  steps_per_epoch = 5,
-  epochs = 13 )
+# direct training
+trainData = tdgenfun()
+X = trainData[[1]]
+Y = trainData[[2]]
+srModel %>% fit( X, Y )
+# training with generator
+srModel %>% fit_generator( tdgenfun, steps_per_epoch = 3, epochs = 5 )
 ################################################
 ################################################
 testpop <- tdgenfun()
